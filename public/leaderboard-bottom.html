@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: url("/images/hamour-bg.png") center/cover no-repeat fixed;
+      color: #fff;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(60% 80% at 50% 10%, rgba(0, 70, 140, .35), transparent 60%),
+        linear-gradient(to bottom, rgba(0, 20, 60, .55), rgba(0, 20, 60, .75));
+      pointer-events: none;
+      z-index: -1;
+    }
+    .hamour-panel {
+      background: rgba(0, 35, 80, .45);
+      border: 2px solid #FFD700;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06);
+      backdrop-filter: blur(2px);
+    }
+    .hamour-title {
+      color: #FFD700;
+      text-shadow: 0 0 6px rgba(0,0,0,.7);
+    }
+    .hamour-table {
+      width: 100%;
+      table-layout: fixed;
+      text-align: center;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    .hamour-table thead th {
+      background: linear-gradient(#0b4a8a, #0a3c73);
+      color: #FFD700;
+      border-bottom: 2px solid #FFD700;
+      padding: .75rem .5rem;
+      font-weight: 800;
+    }
+    .hamour-table tbody td {
+      background: rgba(0, 60, 120, .55);
+      border: 2px solid #FFD700;
+      border-top: none;
+      padding: .5rem;
+    }
+    .hamour-table td.rownum {
+      background: rgba(0, 56, 112, .7);
+      font-weight: 700;
+    }
+    .hamour-table td, .hamour-table th {
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+  </style>
+</head>
+<body>
+  <h1 class="hamour-title text-4xl font-extrabold mb-2 text-center">
+    QG14 CARD CLASH
+  </h1>
+  <h2 class="hamour-title text-3xl font-extrabold mb-6 text-center">
+    قاع الهامور – أفضل الخاسرين
+  </h2>
+
+  <div class="max-w-6xl w-full mx-auto px-4">
+    <div class="hamour-panel p-4">
+      <div class="overflow-x-auto">
+        <table class="hamour-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>اسم اللاعب</th>
+              <th>عدد المباريات</th>
+              <th>فاز</th>
+              <th>خسر</th>
+              <th>نسبة الخسارة</th>
+              <th>نقاط</th>
+            </tr>
+          </thead>
+          <tbody id="lbBottomBody">
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mt-6 flex gap-3 justify-center">
+      <a href="/leaderboard.html" class="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-2 rounded">المتصدرون</a>
+      <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded">الرئيسية</a>
+    </div>
+  </div>
+
+  <script>
+    async function loadBottom() {
+      try {
+        const res = await fetch("/api/leaderboard/all");
+        const data = await res.json();
+        const players = Array.isArray(data.players) ? data.players : [];
+
+        // compute lossRate
+        players.forEach(p => {
+          p.lossRate = p.games ? +((p.losses / p.games) * 100).toFixed(1) : 0;
+        });
+
+        // sort bottom: points ASC, then lossRate DESC, then games DESC
+        players.sort((a, b) => {
+          if (a.points !== b.points) return a.points - b.points;
+          if (b.lossRate !== a.lossRate) return b.lossRate - a.lossRate;
+          if (b.games !== a.games) return b.games - a.games;
+          return a.name.localeCompare(b.name, "ar");
+        });
+
+        const worst10 = players.slice(0, 20);
+        const tbody = document.getElementById("lbBottomBody");
+        tbody.innerHTML = "";
+
+        worst10.forEach((p, idx) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="rownum">${idx + 1}</td>
+            <td class="font-bold">${p.name}</td>
+            <td>${p.games}</td>
+            <td>${p.wins}</td>
+            <td>${p.losses}</td>
+            <td>${p.lossRate}%</td>
+            <td>${p.points}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        if (!worst10.length) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td colspan="7" class="opacity-80 py-6">لا توجد بيانات بعد.</td>`;
+          tbody.appendChild(tr);
+        }
+      } catch (e) {
+        console.error("Failed to load bottom leaderboard", e);
+      }
+    }
+    loadBottom();
+    setInterval(loadBottom, 20000);
+  </script>
+
+  <script src="copyright.js"></script>
+  <script src="security.js"></script>
+</body>
+</html>

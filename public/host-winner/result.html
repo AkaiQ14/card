@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{
+      --gold:#FFD700;
+      --green:#0b6e3f;
+      --green-hover:#14824c;
+    }
+    /* Hide scrollbars but keep scrolling */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Also hide page scrollbars globally */
+    html, body { scrollbar-width: none; }
+    html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+
+    .btn-gold{
+      background: var(--green);
+      border: 3px solid var(--gold);
+      color: var(--gold);
+      font-weight: 800;
+      border-radius: 14px;
+      box-shadow: 0 2px 0 rgba(0,0,0,.3);
+      transition: background .15s ease, transform .05s ease;
+    }
+    .btn-gold:hover{ background: var(--green-hover); }
+    .btn-gold:active{ transform: translateY(1px); }
+
+    .btn-ico{
+      width: 52px; height: 52px;
+      display: grid; place-items: center;
+      border-radius: 9999px;
+      padding: 0;
+    }
+    .btn-inc{ background: var(--green); }
+    .btn-dec{ background:#991b1b; }
+    .btn-dec:hover{ background:#b91c1c; }
+
+    .chip-gold{
+      background:#6d1a2e;
+      border:3px solid var(--gold);
+      color:var(--gold);
+      font-weight:800;
+      border-radius:9999px;
+      min-width:100px;
+      text-align:center;
+      padding:10px 22px;
+      line-height:1;
+      box-shadow:0 2px 0 rgba(0,0,0,.3);
+      font-size:1.4rem;
+    }
+  </style>
+</head>
+<body class="bg-[#4B0E1F] text-white min-h-screen no-scrollbar">
+
+  <div id="arena"
+       class="w-full min-h-screen border-8 border-yellow-500 rounded-none box-border flex flex-col items-center">
+    <p id="roundTitle" class="text-3xl md:text-4xl font-extrabold text-yellow-400 mt-8 mb-3">الجولة</p>
+
+    <div class="w-full max-w-[1600px] px-6 md:px-10 pb-10">
+      <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-6 items-start">
+
+        <!-- LEFT column (player 2) -->
+        <div>
+          <h3 class="text-xl font-extrabold mb-2">بطاقات الجولات السابقة</h3>
+          <div id="prevLeftScroll" class="h-72 overflow-y-auto no-scrollbar pr-0">
+            <div id="prevLeftGrid" class="grid grid-cols-3 gap-y-3 gap-x-1"></div>
+          </div>
+
+          <div class="rounded-2xl border-2 border-yellow-600 bg-black/20 p-4 mt-5 max-w-[480px] mx-auto">
+            <div class="flex items-center justify-between text-base font-bold mb-2">
+              <span>قدرات اللاعب الثاني</span>
+              <span class="opacity-70">متاحة</span>
+            </div>
+            <div id="p2Abilities" class="space-y-2.5 overflow-y-auto no-scrollbar text-base"></div>
+            <div class="mt-2.5 space-y-2.5">
+              <button class="btn-gold w-full py-2.5 text-base"
+                      onclick="openTransferModal('player2Abilities','اللاعب الثاني','اللاعب الأول')">
+                نقل القدرة للاعب الآخر
+              </button>
+              <button class="btn-gold w-full py-2.5 text-base bg-green-600 hover:bg-green-700"
+                      onclick="openAddAbilityModal('player2Abilities','اللاعب الثاني')">
+                اضافة قدرة
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CENTER -->
+        <div class="flex flex-col items-center mt-6 md:mt-10">
+          <div id="vsRow" class="flex justify-center gap-10 flex-wrap"></div>
+        </div>
+
+        <!-- RIGHT column (player 1) -->
+        <div>
+          <h3 class="text-xl font-extrabold mb-2">بطاقات الجولات السابقة</h3>
+          <div id="prevRightScroll" class="h-72 overflow-y-auto no-scrollbar pr-0">
+            <div id="prevRightGrid" class="grid grid-cols-3 gap-y-3 gap-x-1"></div>
+          </div>
+
+          <div class="rounded-2xl border-2 border-yellow-600 bg-black/20 p-4 mt-5 max-w-[480px] mx-auto">
+            <div class="flex items-center justify-between text-base font-bold mb-2">
+              <span>قدرات اللاعب الأول</span>
+              <span class="opacity-70">متاحة</span>
+            </div>
+            <div id="p1Abilities" class="space-y-2.5 overflow-y-auto no-scrollbar text-base"></div>
+            <div class="mt-2.5 space-y-2.5">
+              <button class="btn-gold w-full py-2.5 text-base"
+                      onclick="openTransferModal('player1Abilities','اللاعب الأول','اللاعب الثاني')">
+                نقل القدرة للاعب الآخر
+              </button>
+              <button class="btn-gold w-full py-2.5 text-base bg-green-600 hover:bg-green-700"
+                      onclick="openAddAbilityModal('player1Abilities','اللاعب الأول')">
+                اضافة قدرة
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Health & confirm -->
+      <div class="mt-8 grid grid-cols-1 md:grid-cols-3 items-center gap-5">
+        <!-- LEFT health (player2) -->
+        <div class="relative flex items-center justify-center gap-4 order-1 md:order-1">
+          <button id="p2Dec" class="btn-gold btn-ico btn-dec" aria-label="decrease left health">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="#ef4444"><path d="M12 16l-6-6h12l-6 6z"/></svg>
+          </button>
+          <div id="p2Health" class="chip-gold">0</div>
+          <button id="p2Inc" class="btn-gold btn-ico btn-inc" aria-label="increase left health">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="#22c55e"><path d="M12 8l6 6H6l6-6z"/></svg>
+          </button>
+
+          <!-- OK badge (LEFT) -->
+          <div id="p2OkAlert"
+               class="hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full
+                      bg-emerald-600 text-white font-bold text-sm shadow-xl ring-2 ring-emerald-300/50">
+            تمام
+          </div>
+        </div>
+
+        <div class="flex justify-center order-3 md:order-2">
+          <button onclick="confirmWinner()" class="btn-gold px-10 py-3 text-xl">تأكيد النتيجة</button>
+        </div>
+
+        <!-- RIGHT health (player1) -->
+        <div class="relative flex items-center justify-center gap-4 order-2 md:order-3">
+          <button id="p1Dec" class="btn-gold btn-ico btn-dec" aria-label="decrease right health">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="#ef4444"><path d="M12 16l-6-6h12l-6 6z"/></svg>
+          </button>
+          <div id="p1Health" class="chip-gold">0</div>
+          <button id="p1Inc" class="btn-gold btn-ico btn-inc" aria-label="increase right health">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="#22c55e"><path d="M12 8l6 6H6l6-6z"/></svg>
+          </button>
+
+          <!-- OK badge (RIGHT) -->
+          <div id="p1OkAlert"
+               class="hidden absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full
+                      bg-emerald-600 text-white font-bold text-sm shadow-xl ring-2 ring-emerald-300/50">
+            تمام
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- زرّي إعادة تشغيل الصوت (يسار/يمين) -->
+  <button id="sfxReplayLeft"
+          class="fixed left-4 z-[1200] btn-gold px-4 py-2 text-sm flex items-center gap-2 shadow-none bottom-5">
+    🔊 يسار
+  </button>
+
+  <button id="sfxReplayRight"
+          class="fixed right-4 z-[1200] btn-gold px-4 py-2 text-sm flex items-center gap-2 shadow-none bottom-5">
+    🔊 يمين
+  </button>
+
+  <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
+       class="fixed top-4 right-4 w-40 h-auto opacity-90 pointer-events-none" />
+
+  <!-- Transfer Modal -->
+  <div id="transferModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2000]">
+    <div class="bg-[#511522] border-2 border-yellow-500 rounded-xl p-4 w-[90%] max-w-[420px]">
+      <h3 id="transferTitle" class="text-lg font-bold text-yellow-300 mb-3 text-center">اختر القدرة المراد نقلها</h3>
+      <div id="abilityGrid" class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto no-scrollbar"></div>
+      <div class="mt-4 text-center">
+        <button class="btn-gold px-5 py-2" onclick="closeTransferModal()">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Add Ability Modal -->
+  <div id="addAbilityModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2000]" autocomplete="off">
+    <div class="bg-[#511522] border-2 border-yellow-500 rounded-xl p-4 w-[90%] max-w-[460px]">
+      <h3 class="text-lg font-bold text-yellow-300 mb-3 text-center">اضافة قدرة جديدة</h3>
+      <input id="addAbilityInput"
+             class="w-full bg-transparent border-2 border-yellow-600 rounded-lg p-2 mb-3"
+             type="text"
+             name="no-suggest-ability"
+             autocomplete="off"
+             autocapitalize="off"
+             autocorrect="off"
+             spellcheck="false"
+             inputmode="text"
+             aria-autocomplete="none"
+             placeholder="اكتب نص القدرة هنا..." />
+      <div class="flex gap-2 justify-center">
+        <button class="btn-gold px-5 py-2" onclick="confirmAddAbility()">اضافة</button>
+        <button class="btn-gold px-5 py-2 bg-[#7b2131]" onclick="closeAddAbilityModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/webm-sfx.js"></script>
+  <script src="result.js?v=16"></script>
+  <script src="../copyright.js"></script>
+  <script src="../security.js"></script>
+</body>
+</html>

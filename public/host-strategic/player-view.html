@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>QG14 Card Clash</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root{
+        /* ======= Global scale (set to 0.5 = 50%) ======= */
+        --ui-scale: 0.7;
+
+        /* ======= Base (unscaled) design tokens ======= */
+        --_side-w: 308px;
+        --_media-w: 300px;
+        --_vs-w: 80px;
+        --_col-gap: 16px;
+
+        --_prev-h: 220px;
+        --_prev-gap: 6px;
+
+        --_ability-h: 200px;
+
+        --_media-h: 410px;
+        --_notes-h: 96px;
+
+        --_row-gap: 22px;
+        --_border-w: 3px;
+
+        /* ======= Scaled values (used everywhere) ======= */
+        --side-w: calc(var(--_side-w) * var(--ui-scale));
+        --media-w: calc(var(--_media-w) * var(--ui-scale));
+        --vs-w:    calc(var(--_vs-w)   * var(--ui-scale));
+        --col-gap: calc(var(--_col-gap) * var(--ui-scale));
+
+        --prev-h:  calc(var(--_prev-h) * var(--ui-scale));
+        --prev-gap:calc(var(--_prev-gap) * var(--ui-scale));
+
+        --ability-h: calc(var(--_ability-h) * var(--ui-scale));
+
+        --media-h:  calc(var(--_media-h) * var(--ui-scale));
+        --notes-h:  calc(var(--_notes-h) * var(--ui-scale));
+
+        --row-gap:  calc(var(--_row-gap) * var(--ui-scale));
+        --border-w: calc(var(--_border-w) * var(--ui-scale));
+
+        /* Derived total width = columns + 4 gaps (already scaled) */
+        --content-w: calc(var(--side-w)*2 + var(--media-w)*2 + var(--vs-w) + var(--col-gap)*4);
+
+        /* Runtime nudge (JS sets this so round title center = VS center) */
+        --round-shift-x: 0px;
+
+        /* Theme */
+        --gold: #ffd700;
+        --green: #0b6e3f;
+        --green-hover: #14824c;
+      }
+
+      /* Make rem-based Tailwind font sizes shrink with scale */
+      html { font-size: calc(16px * var(--ui-scale)); }
+
+      /* Hide scrollbars visually */
+      .no-scrollbar::-webkit-scrollbar{display:none}
+      .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+      html,body{scrollbar-width:none}
+      html::-webkit-scrollbar,body::-webkit-scrollbar{display:none}
+
+      /* Page width = exact grid width (scaled) so L/R gutters match */
+      body{min-width:var(--content-w)}
+      .page{width:var(--content-w);margin-inline:auto}
+
+      /* Buttons / chips (borders & paddings scaled) */
+      .btn-gold{
+        background:var(--green);
+        border:var(--border-w) solid var(--gold);
+        color:var(--gold);
+        font-weight:800;
+        border-radius:calc(12px * var(--ui-scale));
+        box-shadow:0 calc(2px * var(--ui-scale)) 0 rgba(0,0,0,.3);
+        transition:background .15s ease,transform .05s ease
+      }
+      .btn-gold:hover{background:var(--green-hover)}
+      .chip-gold{
+        background:#6d1a2e;
+        border:var(--border-w) solid var(--gold);
+        color:var(--gold);
+        font-weight:800;
+        border-radius:9999px;
+        min-width:calc(72px * var(--ui-scale));
+        text-align:center;
+        padding:calc(8px * var(--ui-scale)) calc(18px * var(--ui-scale));
+        line-height:1;
+        box-shadow:0 calc(2px * var(--ui-scale)) 0 rgba(0,0,0,.3);
+        font-size:calc(1.1rem * 1); /* font already scaled via html */
+      }
+
+      /* Row 1: round title */
+      .row-top{display:grid;grid-template-columns:1fr}
+      .round-title{transform:translateX(var(--round-shift-x))}
+
+      /* Side columns (prev + abilities) */
+      .side-col{width:var(--side-w)}
+      .prev-box{height:var(--prev-h);overflow-y:auto}
+      .prev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--prev-gap)}
+      .abilities-card{width:var(--side-w);overflow:hidden;margin-top:calc(12px * var(--ui-scale))}
+      .abilities-list{max-height:var(--ability-h);overflow-y:auto}
+
+      /* Row 2 grid */
+      .row-middle{
+        display:grid;
+        grid-template-columns:var(--side-w) var(--media-w) var(--vs-w) var(--media-w) var(--side-w);
+        gap:var(--col-gap);
+        align-items:start;
+      }
+
+      .media-card{
+        width:var(--media-w);height:var(--media-h);overflow:hidden;
+        display:flex;align-items:center;justify-content:center;border-radius:calc(14px * var(--ui-scale))
+      }
+      .notes-box{
+        width:var(--media-w);height:var(--notes-h);background:transparent;color:white;
+        border:calc(2px * var(--ui-scale)) solid #ca8a04;border-radius:calc(10px * var(--ui-scale));
+        padding:calc(10px * var(--ui-scale));font-size:.95rem
+      }
+
+      /* VS column sized by JS for perfect vertical centering */
+      .vs-col{display:flex;align-items:center;justify-content:center}
+    </style>
+  </head>
+  <body class="bg-[#4B0E1F] text-white min-h-screen no-scrollbar">
+    <div id="arena" class="w-full min-h-screen border-8 border-yellow-500 box-border flex flex-col items-center">
+      <!-- Vertically center entire content block -->
+      <div class="page px-[calc(20px*var(--ui-scale))] py-[calc(20px*var(--ui-scale))] my-auto"
+           style="display:flex;flex-direction:column;row-gap:var(--row-gap)">
+        <!-- Row 1: round title (JS nudges to same X as VS) -->
+        <section class="row-top">
+          <h1 id="roundTitle" class="round-title text-3xl font-extrabold text-yellow-400 text-center w-full">الجولة</h1>
+        </section>
+
+        <!-- Row 2: side (prev+abilities) | P1 | VS | P2 | side -->
+        <section class="row-middle">
+          <!-- Left side -->
+          <aside class="side-col">
+            <h3 class="text-lg font-extrabold mb-[calc(6px*var(--ui-scale))]">بطاقات الجولات السابقة</h3>
+            <div id="prevP1Scroll" class="prev-box no-scrollbar">
+              <div id="prevP1Grid" class="prev-grid"></div>
+            </div>
+
+            <div class="abilities-card rounded-2xl border-2 border-yellow-600 bg-black/20 p-[calc(12px*var(--ui-scale))]">
+              <div class="flex items-center justify-between text-sm font-bold mb-[calc(6px*var(--ui-scale))]">
+                <span>قدرات اللاعب الأول</span><span class="opacity-70">متاحة</span>
+              </div>
+              <div id="p1Abilities" class="abilities-list space-y-[calc(var(--ability-gap))] no-scrollbar text-sm"></div>
+              <div class="mt-[calc(8px*var(--ui-scale))] flex gap-[calc(8px*var(--ui-scale))]">
+                <button class="btn-gold flex-1 py-[calc(8px*var(--ui-scale))] text-sm opacity-50 pointer-events-none">نقل</button>
+                <button class="btn-gold flex-1 py-[calc(8px*var(--ui-scale))] text-sm opacity-50 pointer-events-none">اضافة</button>
+              </div>
+            </div>
+          </aside>
+
+          <!-- P1 -->
+          <div class="flex flex-col items-center">
+            <div class="text-yellow-300 font-extrabold text-lg mb-[calc(4px*var(--ui-scale))]" id="p1Name"></div>
+            <div id="p1MediaCard" class="media-card"></div>
+            <textarea id="p1Notes" class="notes-box no-scrollbar mt-[calc(8px*var(--ui-scale))] placeholder:opacity-70" readonly placeholder="ملاحظات"></textarea>
+            <div class="relative mt-[calc(8px*var(--ui-scale))]">
+              <div id="p1OkAlert" class="hidden absolute -top-8 left-1/2 -translate-x-1/2 px-[calc(10px*var(--ui-scale))] py-[calc(4px*var(--ui-scale))] rounded-full bg-emerald-600 text-white font-bold text-xs shadow-xl ring-2 ring-emerald-300/50">تمام</div>
+              <div class="chip-gold text-base" id="p1Health">0</div>
+            </div>
+          </div>
+
+          <!-- VS (auto-centered vertically by JS) -->
+          <div id="vsCol" class="vs-col">
+            <div class="text-yellow-400 font-extrabold text-4xl leading-none">VS</div>
+          </div>
+
+          <!-- P2 -->
+          <div class="flex flex-col items-center">
+            <div class="text-yellow-300 font-extrabold text-lg mb-[calc(4px*var(--ui-scale))]" id="p2Name"></div>
+            <div id="p2MediaCard" class="media-card"></div>
+            <textarea id="p2Notes" class="notes-box no-scrollbar mt-[calc(8px*var(--ui-scale))] placeholder:opacity-70" readonly placeholder="ملاحظات"></textarea>
+            <div class="relative mt-[calc(8px*var(--ui-scale))]">
+              <div id="p2OkAlert" class="hidden absolute -top-8 left-1/2 -translate-x-1/2 px-[calc(10px*var(--ui-scale))] py-[calc(4px*var(--ui-scale))] rounded-full bg-emerald-600 text-white font-bold text-xs shadow-xl ring-2 ring-emerald-300/50">تمام</div>
+              <div class="chip-gold text-base" id="p2Health">0</div>
+            </div>
+          </div>
+
+          <!-- Right side -->
+          <aside class="side-col">
+            <h3 class="text-lg font-extrabold mb-[calc(6px*var(--ui-scale))]">بطاقات الجولات السابقة</h3>
+            <div id="prevP2Scroll" class="prev-box no-scrollbar">
+              <div id="prevP2Grid" class="prev-grid"></div>
+            </div>
+
+            <div class="abilities-card rounded-2xl border-2 border-yellow-600 bg-black/20 p-[calc(12px*var(--ui-scale))]">
+              <div class="flex items-center justify-between text-sm font-bold mb-[calc(6px*var(--ui-scale))]">
+                <span>قدرات اللاعب الثاني</span><span class="opacity-70">متاحة</span>
+              </div>
+              <div id="p2Abilities" class="abilities-list space-y-[calc(var(--ability-gap))] no-scrollbar text-sm"></div>
+              <div class="mt-[calc(8px*var(--ui-scale))] flex gap-[calc(8px*var(--ui-scale))]">
+                <button class="btn-gold flex-1 py-[calc(8px*var(--ui-scale))] text-sm opacity-50 pointer-events-none">نقل</button>
+                <button class="btn-gold flex-1 py-[calc(8px*var(--ui-scale))] text-sm opacity-50 pointer-events-none">اضافة</button>
+              </div>
+            </div>
+          </aside>
+        </section>
+      </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[3000]">
+      <div class="bg-[#511522] border-2 border-yellow-500 rounded-2xl p-5 w-[92%] max-w-[480px] text-center">
+        <h3 class="text-xl font-extrabold text-yellow-300 mb-3">انتهت المباراة</h3>
+        <p id="gameOverText" class="text-base leading-relaxed mb-5"></p>
+        <button id="gameOverClose" class="btn-gold px-5 py-2 text-sm font-extrabold">إغلاق</button>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="player-view.js?v=13"></script>
+    <script src="../copyright.js"></script>
+  </body>
+</html>

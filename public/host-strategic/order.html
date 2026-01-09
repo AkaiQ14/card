@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"
+      oncontextmenu="return false"
+      ondragstart="return false" ondrop="return false">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Block selection/drag/right-click hints on media */
+    html, body, img, video {
+      -webkit-user-select: none; user-select: none;
+      -webkit-user-drag: none;
+      -moz-user-select: none; -ms-user-select: none;
+    }
+    /* Wrapper that lets us overlay an invisible shield */
+    .nosave { position: relative; display: inline-block; }
+    .nosave > .shield {
+      position: absolute; inset: 0;
+      background: transparent;
+      pointer-events: auto;         /* capture clicks so media doesn't get them */
+    }
+    .nosave img, .nosave video { pointer-events: none; }
+  </style>
+</head>
+<body class="bg-[#4B0E1F] text-white p-6 min-h-screen flex flex-col items-center space-y-6">
+  <h1 class="text-4xl font-bold text-center">QG14 Card Clash</h1>
+
+  <div id="timerWrap" class="flex justify-center">
+    <div class="bg-black/40 backdrop-blur px-4 py-1.5 rounded-full border border-yellow-600">
+      <span id="playerCountdown" class="font-mono text-2xl tracking-widest select-none">02:00</span>
+    </div>
+  </div>
+
+  <p id="instruction" class="text-xl text-center">اللاعب ... رتب البطاقات</p>
+
+  <div id="cardGrid" class="flex flex-wrap justify-center gap-6 w-full max-w-6xl mx-auto"></div>
+
+  <!-- Your abilities -->
+  <section id="abilitiesPanel" class="w-full max-w-6xl mx-auto mt-4 p-3 rounded bg-black/20 border border-yellow-600">
+    <p class="font-bold mb-2">قدراتك (اضغط لطلب استخدامها):</p>
+    <div id="playerAbilities" class="flex flex-wrap gap-2"></div>
+    <p id="abilityStatus" class="mt-2 text-sm opacity-80"></p>
+  </section>
+
+  <!-- Opponent abilities (view-only) -->
+  <section id="opponentAbilitiesPanel" class="w-full max-w-6xl mx-auto mt-4 p-3 rounded bg-black/20 border border-yellow-600">
+    <p class="font-bold mb-2">قدرات الخصم (عرض فقط):</p>
+    <div id="opponentAbilities" class="flex flex-wrap gap-2"></div>
+  </section>
+
+  <button
+    id="continueBtn"
+    onclick="submitPicks()
+"
+    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-lg hidden"
+  >متابعة</button>
+
+  <!-- OK button (appears ONLY after order submission) -->
+  <button
+    id="okBtn"
+    onclick="togglePlayerOk()"
+    class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded text-lg hidden"
+    style="margin-top:8px"
+  >تمام</button>
+
+  <!-- Button to toggle the embedded live view -->
+  <button
+    id="openPlayerViewBtn"
+    class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded text-lg"
+    style="margin-top:8px"
+  >عرض الجولة المباشرة</button>
+
+  <!-- NEW: embedded live view container (hidden by default) -->
+  <div id="embeddedPlayerWrap" class="hidden w-full max-w-5xl mx-auto mt-4">
+    <iframe
+      id="embeddedPlayerFrame"
+      src=""
+      class="w-full h-[600px] rounded border border-yellow-600"
+      referrerpolicy="no-referrer"
+    ></iframe>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="order.js?v=nosave-hardened"></script>
+  <script src="../copyright.js"></script>
+</body>
+</html>

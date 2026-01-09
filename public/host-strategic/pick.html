@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script> 
+</head>
+<body class="bg-[#4B0E1F] text-white p-6 min-h-screen flex flex-col items-center space-y-6">
+  <h1 class="text-4xl font-bold">QG14 Card Clash</h1>
+  <p id="instruction" class="text-xl">اللاعب ... اختر بطاقاتك</p>
+
+  <div id="boxGrid" class="grid grid-cols-4 sm:grid-cols-5 gap-4 w-full max-w-6xl" dir="ltr">
+    <!-- Boxes inserted via JS -->
+  </div>
+
+  <button
+    id="confirmBtn"
+    onclick="confirmSelection()"
+    class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded text-lg font-bold mt-6 hidden"
+  >
+    تأكيد الإختيارات
+  </button>
+
+  <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
+     class="fixed bottom-4 right-4 w-40 h-auto opacity-90 pointer-events-none" />
+
+  <script src="pick.js"></script>
+  <script src="../copyright.js"></script>
+  <script src="../security.js"></script>
+</body>
+</html>

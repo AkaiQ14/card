@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-[#4B0E1F] text-white min-h-screen p-6 flex flex-col items-center justify-center space-y-6">
+
+  <h1 class="text-4xl font-bold text-center">QG14 Card Clash</h1>
+
+  <!-- ===== Host-only Timer UI (fixed top-center) ===== -->
+  <div class="fixed top-3 inset-x-0 z-50 flex flex-col items-center space-y-2">
+    <!-- Clickable timer to toggle between 02:00 and 00:30 (only when not running) -->
+    <button
+      id="countdownBox"
+      class="bg-black/40 backdrop-blur px-4 py-1.5 rounded-full border border-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition"
+      title="اضغط للتبديل بين 2:00 و 0:30 (عند التوقف)">
+      <span id="countdown" class="font-mono text-2xl tracking-widest select-none">02:00</span>
+    </button>
+
+    <!-- Controls -->
+    <div class="flex items-center gap-2">
+      <button
+        id="startTimerBtn"
+        class="bg-yellow-600 hover:bg-yellow-700 px-5 py-1.5 rounded-lg text-base font-bold">
+        ابدأ
+      </button>
+      <button
+        id="pauseTimerBtn"
+        class="bg-gray-300 hover:bg-gray-200 text-black px-5 py-1.5 rounded-lg text-base font-bold disabled:opacity-60"
+        disabled>
+        إيقاف
+      </button>
+    </div>
+  </div>
+  <!-- ===== End Host-only Timer UI ===== -->
+
+  <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
+       class="fixed bottom-4 right-4 w-40 h-auto opacity-90 pointer-events-none" />
+
+  <div class="space-y-4 w-full max-w-3xl text-center">
+    <!-- Player 1 -->
+    <div class="flex items-center justify-between gap-4">
+      <button id="copyP1" class="flex-1 bg-purple-600 hover:bg-purple-700 py-2 rounded text-lg">
+        نسخ رابط ترتيب البطاقات
+      </button>
+      <span id="statusP1" class="text-green-400 hidden">✅ تم الاستلام</span>
+    </div>
+
+    <!-- Player 2 (hidden until P1 submits so exclusions are ready) -->
+    <div id="p2Block" class="flex items-center justify-between gap-4 hidden">
+      <button id="copyP2" class="flex-1 bg-indigo-600 hover:bg-indigo-700 py-2 rounded text-lg">
+        نسخ رابط ترتيب البطاقات
+      </button>
+      <span id="statusP2" class="text-green-400 hidden">✅ تم الاستلام</span>
+    </div>
+
+    <!-- Start Button -->
+    <button id="startBtn"
+            class="w-full bg-green-600 hover:bg-green-700 py-2 rounded text-lg disabled:opacity-50"
+            disabled>
+      بدء المعركة
+    </button>
+
+    <!-- Read-only abilities (gold pills) BELOW the start button -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+      <!-- Player 1 abilities -->
+      <div class="p-3 rounded bg-black/20 border border-yellow-600 text-right">
+        <p id="p1Title" class="font-bold mb-2">قدرات اللاعب 1 (عرض فقط):</p>
+        <div id="p1Abilities" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <!-- Player 2 abilities -->
+      <div class="p-3 rounded bg-black/20 border border-yellow-600 text-right">
+        <p id="p2Title" class="font-bold mb-2">قدرات اللاعب 2 (عرض فقط):</p>
+        <div id="p2Abilities" class="flex flex-wrap gap-2"></div>
+      </div>
+    </section>
+  </div>
+
+  <script src="wait.js"></script>
+  <script src="../copyright.js"></script>
+  <script src="../security.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-[#4B0E1F] text-white p-6 min-h-screen flex flex-col items-center space-y-6">
+  <h1 class="text-4xl font-bold">QG14 Card Clash</h1>
+  <p id="instruction" class="text-xl">جاري التحميل...</p>
+
+  <!-- Read-only abilities panel (you + opponent) -->
+  <section class="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div id="abilitiesPanel" class="p-3 rounded bg-black/20 border border-yellow-600">
+      <p class="font-bold mb-2">قدراتك (للاطلاع فقط):</p>
+      <div id="playerAbilities" class="flex flex-wrap gap-2"></div>
+      <p id="abilityHint" class="mt-1 text-sm opacity-80"></p>
+    </div>
+
+    <div id="oppPanel" class="p-3 rounded bg-black/20 border border-yellow-600">
+      <p class="font-bold mb-2">قدرات الخصم (عرض فقط):</p>
+      <div id="oppAbilities" class="flex flex-wrap gap-2"></div>
+      <p id="oppHint" class="mt-1 text-sm opacity-80"></p>
+    </div>
+  </section>
+
+  <!-- 20 numbered boxes -->
+  <div id="boxGrid" class="grid grid-cols-4 sm:grid-cols-5 gap-4 w-full max-w-6xl" dir="ltr"></div>
+
+  <!-- Selected images -->
+  <section id="selectedPanel" class="w-full max-w-6xl mx-auto mt-4 p-3 rounded bg-black/20 border border-yellow-600">
+    <div class="flex items-center justify-between mb-2">
+      <p class="font-bold">اختياراتك حتى الآن</p>
+      <p class="text-sm opacity-80">
+        (<span id="selectedCount">0</span>/<span id="selectedTotal">0</span>)
+      </p>
+    </div>
+    <div id="selectedGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3"></div>
+  </section>
+
+  <button
+    id="confirmBtn"
+    class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded text-lg font-bold mt-2 hidden"
+  >
+    تأكيد الإختيارات
+  </button>
+
+  <!-- Modal -->
+  <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-50">
+    <div class="bg-gray-800 rounded p-6 max-w-5xl w-full fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+      <h2 class="text-2xl font-bold text-center mb-4">اختر صورة من الخيارات الثلاثة</h2>
+      <div id="modalOptions" class="flex justify-center gap-4 flex-wrap"></div>
+    </div>
+  </div>
+
+  <script src="pick.js"></script>
+  <script src="../copyright.js"></script>
+</body>
+</html>

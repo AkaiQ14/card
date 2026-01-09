@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+  <body class="bg-[#4B0E1F] text-white flex items-center justify-center min-h-screen p-6">
+  <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md space-y-6 text-center">
+    <h1 class="text-3xl font-bold text-pink-500">QG14 Card Clash</h1>
+    <p class="text-gray-300">تسجيل الدخول لبدء اللعبة</p>
+
+    <div class="space-y-4">
+      <input
+        type="text"
+        id="username"
+        placeholder="اسم المستخدم"
+        class="w-full p-3 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+      />
+      <input
+        type="password"
+        id="password"
+        placeholder="كلمة المرور"
+        class="w-full p-3 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+      />
+      <button
+        onclick="login()"
+        class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 rounded transition"
+      >
+        دخول
+      </button>
+      <p id="error" class="text-red-400 text-sm"></p>
+    </div>
+  </div>
+
+  <script>
+    async function login() {
+      const user = document.getElementById("username").value.trim();
+      const pass = document.getElementById("password").value.trim();
+      const error = document.getElementById("error");
+
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: user, password: pass })
+      });
+
+      if (res.ok) {
+        window.location.href = "/";
+      } else {
+        error.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة";
+      }
+    }
+  </script>
+  <script src="copyright.js"></script>
+  <script src="security.js"></script>
+</body>
+</html>

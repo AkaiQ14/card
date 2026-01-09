@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: url("/images/QG14Background.png") center/cover no-repeat fixed;
+    }
+    body, html { scrollbar-width: none; }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+  </style>
+</head>
+<body class="text-white min-h-screen p-6 flex flex-col items-center">
+  <!-- Titles -->
+  <h1 class="text-4xl font-extrabold mb-2 text-[#FFD700] drop-shadow-[0_0_6px_rgba(0,0,0,0.7)]">
+    QG14 CARD CLASH
+  </h1>
+  <h2 class="text-3xl font-extrabold mb-6 text-[#FFD700] drop-shadow-[0_0_6px_rgba(0,0,0,0.7)]">
+    TOP 20
+  </h2>
+
+  <!-- Podium (Top 1–3) -->
+  <div class="w-full flex justify-center px-4">
+    <div class="w-full max-w-5xl">
+      <div id="podium" class="flex flex-col items-center mb-6">
+        
+        <!-- #1 Gold -->
+        <div id="podium-1"
+             class="w-40 h-40 md:w-48 md:h-48 rounded-full flex flex-col items-center justify-center text-center
+                    bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700
+                    ring-4 ring-yellow-300/80 shadow-xl shadow-yellow-900/40 z-20 mb-4">
+          <div class="text-sm md:text-base font-bold px-3 truncate max-w-[9rem] md:max-w-[10rem] text-black">—</div>
+          <div class="text-xs md:text-sm opacity-90 mt-1 text-black"><span>نقاط: </span><b>0</b></div>
+          <div class="mt-1 text-[10px] md:text-xs opacity-80 text-black">المركز الأول</div>
+        </div>
+
+        <!-- #2 Silver & #3 Bronze (swapped left/right) -->
+        <div class="flex items-center justify-center gap-8 mt-4">
+          <!-- Bronze #3 (left) -->
+          <div id="podium-3"
+               class="w-32 h-32 md:w-36 md:h-36 rounded-full flex flex-col items-center justify-center text-center
+                      bg-gradient-to-br from-amber-700 via-orange-600 to-amber-800
+                      ring-4 ring-orange-300/60 shadow-lg shadow-black/30">
+            <div class="text-sm font-bold px-3 truncate max-w-[7.5rem] text-black">—</div>
+            <div class="text-xs opacity-90 mt-1 text-black"><span>نقاط: </span><b>0</b></div>
+            <div class="mt-1 text-[10px] opacity-80 text-black">المركز الثالث</div>
+          </div>
+
+          <!-- Silver #2 (right) -->
+          <div id="podium-2"
+               class="w-32 h-32 md:w-36 md:h-36 rounded-full flex flex-col items-center justify-center text-center
+                      bg-gradient-to-br from-gray-200 via-gray-300 to-gray-500
+                      ring-4 ring-gray-200/70 shadow-lg shadow-black/30">
+            <div class="text-sm font-bold px-3 truncate max-w-[7.5rem] text-black">—</div>
+            <div class="text-xs opacity-90 mt-1 text-black"><span>نقاط: </span><b>0</b></div>
+            <div class="mt-1 text-[10px] opacity-80 text-black">المركز الثاني</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard table -->
+  <div class="w-full flex justify-center px-4">
+    <div class="w-full max-w-5xl bg-black/40 border border-yellow-600 rounded-xl p-4">
+      <div class="overflow-x-auto">
+        <table class="w-full table-fixed text-center h-[calc(100vh-220px)]">
+          <thead class="text-[#FFD700]">
+            <tr>
+              <th class="py-3">#</th>
+              <th class="py-3">اسم اللاعب</th>
+              <th class="py-3">عدد المباريات</th>
+              <th class="py-3">فاز</th>
+              <th class="py-3">خسر</th>
+              <th class="py-3">نسبة الفوز</th>
+              <th class="py-3">نقاط</th>
+            </tr>
+          </thead>
+          <tbody id="lbBody" class="divide-y divide-yellow-600 [&>tr>td]:py-0.5">
+            <tr class="h-[4%]"></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation buttons -->
+  <div class="mt-6 flex gap-3">
+    <button onclick="location.href='/'"
+            class="px-6 py-2 rounded bg-blue-600 hover:bg-blue-700">
+        الرئيسية
+      </button>
+      <button onclick="location.href='/leaderboard-bottom.html'"
+              class="px-6 py-2 rounded bg-teal-500 hover:bg-teal-600 text-white">
+        قاع الهامور
+      </button>
+    </div>
+
+    <script src="leaderboard.js"></script>
+    <script src="copyright.js"></script>
+    <script src="security.js"></script>
+  </body>
+  </html>
+

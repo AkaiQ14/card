@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Check session authentication from backend
+    fetch("/api/check-auth").then((res) => {
+      if (!res.ok) {
+        window.location.href = "/login";
+      }
+    });
+
+    // One-time forced refresh to clear old state
+    if (!localStorage.getItem("homepageRefreshed")) {
+      localStorage.setItem("homepageRefreshed", "true");
+      window.location.reload(); // Force refresh once
+    }
+  </script>
+</head>
+<body class="bg-[#4B0E1F] text-white flex items-center justify-center min-h-screen p-6">
+  <div class="text-center space-y-6">
+    <h1 class="text-4xl font-bold">QG14 Card Clash</h1>
+
+    <img
+      src="images/qg14-Card-Clash-logo.png"
+      alt="QG14 Card Clash Logo"
+      class="max-w-xs w-full mx-auto rounded shadow-lg object-contain"
+    />
+
+    <!-- Mode selection -->
+    <div class="space-y-2">
+      <label for="mode" class="block text-lg">:اختر نمط اللعبة</label>
+      <select id="mode" class="w-64 p-2 rounded bg-gray-800 text-white">
+        <option value="strategic">من الأقوى</option>
+        <option value="winner">التحدي</option>
+      </select>
+    </div>
+
+    <!-- Start Game Button -->
+    <a
+      href="#"
+      onclick="logoutAndStart()"
+      class="bg-blue-500 px-6 py-3 rounded text-xl hover:bg-blue-600 transition inline-block"
+    >
+      إبدأ اللعبة
+    </a>
+
+    <!-- Leaderboard Buttons (side-by-side) -->
+    <div class="pt-4 flex flex-wrap items-center justify-center gap-3">
+      <button
+        onclick="location.href='/leaderboard.html'"
+        class="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-3 rounded text-xl transition"
+      >
+        عرض لوحة المتصدرين
+      </button>
+
+      <button
+        onclick="location.href='/leaderboard-bottom.html'"
+        class="bg-cyan-400 hover:bg-cyan-500 text-black px-6 py-3 rounded text-xl transition"
+      >
+        عرض قاع الهامور
+      </button>
+    </div>
+
+    <!-- OPTIONAL: Admin Leaderboard Button -->
+    <div class="pt-2">
+      <button
+        onclick="location.href='/leaderboard-admin'"
+        class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded text-lg transition"
+      >
+        لوحة تحكم المتصدرين
+      </button>
+    </div>
+    
+  </div>
+
+  <script>
+    function logoutAndStart() {
+      if (!localStorage.getItem("homepageRefreshed")) return;
+
+      localStorage.removeItem("homepageRefreshed");
+
+      const selectedMode = document.getElementById("mode").value;
+      let targetPath = "/";
+      switch (selectedMode) {
+        case "manual":
+          targetPath = "/host-manual";
+          break;
+        case "strategic":
+          targetPath = "/host-strategic";
+          break;
+        case "winner":
+          targetPath = "/host-winner";
+          break;
+        default:
+          targetPath = "/host-strategic";
+      }
+
+      localStorage.setItem("gameMode", selectedMode);
+
+      fetch("/api/exit-home", { method: "POST" })
+        .then(() => fetch("/api/logout", { method: "POST" }))
+        .then(() => {
+          window.location.href = `${targetPath}/start.html`; 
+        });
+    }
+  </script>
+    
+  <script src="copyright.js"></script>
+  <script src="security.js"></script>
+</body>
+</html>
