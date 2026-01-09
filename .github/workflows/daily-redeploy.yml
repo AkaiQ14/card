@@ -1,0 +1,42 @@
+name: Daily redeploy (Render)
+
+on:
+  schedule:
+    # Primary: 09:30 UTC (12:30 Riyadh)
+    - cron: "30 9 * * *"
+    # Backup: 09:40 UTC (12:40 Riyadh)
+    - cron: "40 9 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-daily-redeploy
+  cancel-in-progress: true
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger Render deploy hook (with logs + retries)
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          echo "POSTing to Render deploy hook…"
+          # Exponential-ish backoff: 3 tries
+          for i in 1 2 3; do
+            STATUS=$(curl -sS -o /tmp/resp.txt -w "%{http_code}" -X POST "$RENDER_DEPLOY_HOOK") && break || true
+            echo "Attempt $i failed; sleeping $((i*10))s and retrying…"
+            sleep $((i*10))
+          done
+
+          echo "HTTP_STATUS=$STATUS"
+          echo "Response body:"
+          cat /tmp/resp.txt || true
+
+          if [ -z "$STATUS" ] || [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 400 ]; then
+            echo "Deploy hook failed with status $STATUS"
+            exit 1
+          fi

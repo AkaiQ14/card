@@ -1,0 +1,760 @@
+{
+  "players": {
+    "بعبع": {
+      "games": 15,
+      "wins": 8,
+      "losses": 7,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "فواد": {
+      "games": 16,
+      "wins": 8,
+      "losses": 8,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "كايدو": {
+      "games": 64,
+      "wins": 40,
+      "losses": 24,
+      "points": 6,
+      "updatedAt": "2025-12-29T22:38:15.051Z"
+    },
+    "حسن": {
+      "games": 36,
+      "wins": 23,
+      "losses": 13,
+      "points": 3,
+      "updatedAt": "2025-12-30T19:52:27.466Z"
+    },
+    "عباس": {
+      "games": 51,
+      "wins": 31,
+      "losses": 20,
+      "points": 6,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "دكستر": {
+      "games": 34,
+      "wins": 21,
+      "losses": 13,
+      "points": 3,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ايس": {
+      "games": 25,
+      "wins": 11,
+      "losses": 14,
+      "points": 2,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ياسين": {
+      "games": 25,
+      "wins": 11,
+      "losses": 14,
+      "points": 2,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ايوب": {
+      "games": 44,
+      "wins": 22,
+      "losses": 22,
+      "points": 4,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "بيكست": {
+      "games": 21,
+      "wins": 12,
+      "losses": 9,
+      "points": 2,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "سابور": {
+      "games": 3,
+      "wins": 2,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "كمالو": {
+      "games": 8,
+      "wins": 5,
+      "losses": 3,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "شادي": {
+      "games": 49,
+      "wins": 18,
+      "losses": 31,
+      "points": 1,
+      "updatedAt": "2025-12-30T20:56:53.273Z"
+    },
+    "جوجة": {
+      "games": 16,
+      "wins": 7,
+      "losses": 9,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "توفيق": {
+      "games": 33,
+      "wins": 15,
+      "losses": 18,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ارثر": {
+      "games": 7,
+      "wins": 4,
+      "losses": 3,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ايزن": {
+      "games": 23,
+      "wins": 10,
+      "losses": 13,
+      "points": 2,
+      "updatedAt": "2025-12-29T21:38:51.946Z"
+    },
+    "مؤمن": {
+      "games": 6,
+      "wins": 3,
+      "losses": 3,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "بروك": {
+      "games": 3,
+      "wins": 1,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "متعب": {
+      "games": 7,
+      "wins": 4,
+      "losses": 3,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "خالد": {
+      "games": 2,
+      "wins": 1,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "لمى": {
+      "games": 20,
+      "wins": 8,
+      "losses": 12,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ريسبيدا": {
+      "games": 3,
+      "wins": 1,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "زورو": {
+      "games": 15,
+      "wins": 7,
+      "losses": 8,
+      "points": 2,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "اوتاكو": {
+      "games": 16,
+      "wins": 4,
+      "losses": 12,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "مدل": {
+      "games": 4,
+      "wins": 2,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "غينباتشي": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "سايكو": {
+      "games": 9,
+      "wins": 4,
+      "losses": 5,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "اشورا": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "رامبو": {
+      "games": 2,
+      "wins": 0,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "اكاي": {
+      "games": 29,
+      "wins": 13,
+      "losses": 16,
+      "points": 3,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "احمد": {
+      "games": 16,
+      "wins": 7,
+      "losses": 9,
+      "points": 1,
+      "updatedAt": "2025-12-29T22:01:18.601Z"
+    },
+    "مودي": {
+      "games": 2,
+      "wins": 0,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "عزوز": {
+      "games": 55,
+      "wins": 33,
+      "losses": 22,
+      "points": 7,
+      "updatedAt": "2026-01-03T01:51:52.112Z"
+    },
+    "موساشي": {
+      "games": 38,
+      "wins": 19,
+      "losses": 19,
+      "points": 2,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "محمد": {
+      "games": 17,
+      "wins": 9,
+      "losses": 8,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "تركي": {
+      "games": 45,
+      "wins": 26,
+      "losses": 19,
+      "points": 5,
+      "updatedAt": "2026-01-03T01:07:04.639Z"
+    },
+    "اشهد": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "انور": {
+      "games": 3,
+      "wins": 2,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ايمن الونسو": {
+      "games": 6,
+      "wins": 0,
+      "losses": 6,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "باربريتو": {
+      "games": 10,
+      "wins": 8,
+      "losses": 2,
+      "points": 2,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "توميتو": {
+      "games": 24,
+      "wins": 13,
+      "losses": 11,
+      "points": 3,
+      "updatedAt": "2025-12-29T21:32:02.826Z"
+    },
+    "ثمينت": {
+      "games": 2,
+      "wins": 0,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "حمني كويت": {
+      "games": 2,
+      "wins": 1,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "زيزفو": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "شادو": {
+      "games": 2,
+      "wins": 1,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "فارس": {
+      "games": 6,
+      "wins": 4,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "فهد": {
+      "games": 2,
+      "wins": 1,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "في خالد": {
+      "games": 7,
+      "wins": 4,
+      "losses": 3,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "مجيد": {
+      "games": 3,
+      "wins": 1,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "نامكس": {
+      "games": 38,
+      "wins": 19,
+      "losses": 19,
+      "points": 2,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "يزيد": {
+      "games": 24,
+      "wins": 11,
+      "losses": 13,
+      "points": 1,
+      "updatedAt": "2025-12-23T04:29:55.950Z"
+    },
+    "يوناكي": {
+      "games": 6,
+      "wins": 4,
+      "losses": 2,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "حمان": {
+      "games": 4,
+      "wins": 0,
+      "losses": 4,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "عبود": {
+      "games": 11,
+      "wins": 4,
+      "losses": 7,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "روليكو": {
+      "games": 5,
+      "wins": 2,
+      "losses": 3,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "سلطان": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "اسامة": {
+      "games": 17,
+      "wins": 9,
+      "losses": 8,
+      "points": 1,
+      "updatedAt": "2025-12-23T04:50:42.237Z"
+    },
+    "فارس3": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "مو برجاس": {
+      "games": 2,
+      "wins": 0,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "عبدالملك": {
+      "games": 39,
+      "wins": 20,
+      "losses": 19,
+      "points": 2,
+      "updatedAt": "2025-12-30T19:07:38.669Z"
+    },
+    "نافي": {
+      "games": 24,
+      "wins": 16,
+      "losses": 8,
+      "points": 2,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "سنيدبوس": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "عبدالله اياكس": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "موغي وارا احمد": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ليجيند": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ياماتو": {
+      "games": 2,
+      "wins": 1,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "احمد كونان": {
+      "games": 2,
+      "wins": 1,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "نصر": {
+      "games": 26,
+      "wins": 10,
+      "losses": 16,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "انجوي": {
+      "games": 13,
+      "wins": 6,
+      "losses": 7,
+      "points": 1,
+      "updatedAt": "2025-12-30T19:40:14.338Z"
+    },
+    "سمند": {
+      "games": 35,
+      "wins": 21,
+      "losses": 14,
+      "points": 4,
+      "updatedAt": "2025-12-29T22:10:20.374Z"
+    },
+    "وسيم": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "سلوم": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "محمد مكسو": {
+      "games": 2,
+      "wins": 0,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "سارة": {
+      "games": 13,
+      "wins": 7,
+      "losses": 6,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "عبودي": {
+      "games": 21,
+      "wins": 12,
+      "losses": 9,
+      "points": 3,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "زكي": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ناغي": {
+      "games": 11,
+      "wins": 3,
+      "losses": 8,
+      "points": 0,
+      "updatedAt": "2025-12-29T21:49:40.259Z"
+    },
+    "يوسي": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "عبدالرحمن": {
+      "games": 2,
+      "wins": 1,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "يوسف خ": {
+      "games": 6,
+      "wins": 3,
+      "losses": 3,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "علي برجاس": {
+      "games": 2,
+      "wins": 0,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "سلفر": {
+      "games": 16,
+      "wins": 10,
+      "losses": 6,
+      "points": 2,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "محمد جس": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "اوكجي": {
+      "games": 27,
+      "wins": 18,
+      "losses": 9,
+      "points": 5,
+      "updatedAt": "2025-12-29T22:38:12.801Z"
+    },
+    "ديراي": {
+      "games": 3,
+      "wins": 1,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ايهاب": {
+      "games": 9,
+      "wins": 6,
+      "losses": 3,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "كوين": {
+      "games": 7,
+      "wins": 4,
+      "losses": 3,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "شكسو": {
+      "games": 3,
+      "wins": 1,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ياس": {
+      "games": 7,
+      "wins": 3,
+      "losses": 4,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "منتصر": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "زاكي": {
+      "games": 2,
+      "wins": 0,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ايثان": {
+      "games": 3,
+      "wins": 1,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "عبدالله": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "اينوماكي": {
+      "games": 5,
+      "wins": 2,
+      "losses": 3,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ياسين كنق": {
+      "games": 7,
+      "wins": 2,
+      "losses": 5,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "حمد سان": {
+      "games": 12,
+      "wins": 8,
+      "losses": 4,
+      "points": 2,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "براق": {
+      "games": 2,
+      "wins": 0,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "ايتيرنال": {
+      "games": 3,
+      "wins": 1,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "شركاس": {
+      "games": 7,
+      "wins": 2,
+      "losses": 5,
+      "points": 1,
+      "updatedAt": "2025-12-23T05:15:14.429Z"
+    },
+    "ياسر": {
+      "games": 8,
+      "wins": 1,
+      "losses": 7,
+      "points": 1,
+      "updatedAt": "2025-12-30T18:28:59.650Z"
+    },
+    "شورلوك": {
+      "games": 6,
+      "wins": 5,
+      "losses": 1,
+      "points": 1,
+      "updatedAt": "2025-12-30T18:28:59.650Z"
+    },
+    "كيلر": {
+      "games": 12,
+      "wins": 6,
+      "losses": 6,
+      "points": 0,
+      "updatedAt": "2025-12-30T18:49:04.567Z"
+    },
+    "سنوب": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "امجد": {
+      "games": 9,
+      "wins": 5,
+      "losses": 4,
+      "points": 1,
+      "updatedAt": "2026-01-03T01:51:52.112Z"
+    },
+    "الوليد": {
+      "games": 7,
+      "wins": 4,
+      "losses": 3,
+      "points": 1,
+      "updatedAt": "2025-12-23T03:43:09.465Z"
+    },
+    "جينغ يوانو": {
+      "games": 2,
+      "wins": 0,
+      "losses": 2,
+      "points": 0,
+      "updatedAt": "2025-12-30T18:38:39.202Z"
+    },
+    "شورولك": {
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2025-12-30T19:23:06.041Z"
+    }
+  }
+}
