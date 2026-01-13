@@ -12,7 +12,7 @@ function showSuccessModal(playerName) {
   // إنشاء overlay
   const overlay = document.createElement("div");
   overlay.id = "successModalOverlay";
-  overlay.className = "fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 transition-opacity duration-300";
+  overlay.className = "fixed top-0 left-0 w-screen h-screen bg-transparent flex items-center justify-center z-[99999]";
   overlay.style.backdropFilter = "blur(4px)";
   
   // إنشاء البطاقة
@@ -42,7 +42,6 @@ function showSuccessModal(playerName) {
   </span>
 </p>
 
-      
       <!-- زر الإغلاق -->
       <button 
         onclick="closeSuccessModal()"
