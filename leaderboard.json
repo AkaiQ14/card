@@ -29,11 +29,11 @@
       "updatedAt": "2025-12-30T19:52:27.466Z"
     },
     "عباس": {
-      "games": 51,
+      "games": 52,
       "wins": 31,
-      "losses": 20,
+      "losses": 21,
       "points": 6,
-      "updatedAt": "2025-12-23T03:43:09.465Z"
+      "updatedAt": "2026-01-10T20:00:42.437Z"
     },
     "دكستر": {
       "games": 34,
@@ -211,11 +211,11 @@
       "updatedAt": "2025-12-23T03:43:09.465Z"
     },
     "اكاي": {
-      "games": 29,
+      "games": 30,
       "wins": 13,
-      "losses": 16,
+      "losses": 17,
       "points": 3,
-      "updatedAt": "2025-12-23T03:43:09.465Z"
+      "updatedAt": "2026-01-10T19:39:03.303Z"
     },
     "احمد": {
       "games": 16,
@@ -232,18 +232,18 @@
       "updatedAt": "2025-12-23T03:43:09.465Z"
     },
     "عزوز": {
-      "games": 55,
-      "wins": 33,
-      "losses": 22,
-      "points": 7,
-      "updatedAt": "2026-01-03T01:51:52.112Z"
+      "games": 63,
+      "wins": 40,
+      "losses": 23,
+      "points": 8,
+      "updatedAt": "2026-01-12T21:17:46.888Z"
     },
     "موساشي": {
-      "games": 38,
-      "wins": 19,
-      "losses": 19,
+      "games": 42,
+      "wins": 20,
+      "losses": 22,
       "points": 2,
-      "updatedAt": "2025-12-23T03:43:09.465Z"
+      "updatedAt": "2026-01-12T21:17:46.888Z"
     },
     "محمد": {
       "games": 17,
@@ -253,11 +253,11 @@
       "updatedAt": "2025-12-23T03:43:09.465Z"
     },
     "تركي": {
-      "games": 45,
+      "games": 47,
       "wins": 26,
-      "losses": 19,
+      "losses": 21,
       "points": 5,
-      "updatedAt": "2026-01-03T01:07:04.639Z"
+      "updatedAt": "2026-01-10T21:39:28.411Z"
     },
     "اشهد": {
       "games": 1,
@@ -274,11 +274,11 @@
       "updatedAt": "2025-12-23T03:43:09.465Z"
     },
     "ايمن الونسو": {
-      "games": 6,
-      "wins": 0,
-      "losses": 6,
+      "games": 9,
+      "wins": 2,
+      "losses": 7,
       "points": 0,
-      "updatedAt": "2025-12-23T03:43:09.465Z"
+      "updatedAt": "2026-01-10T20:44:45.665Z"
     },
     "باربريتو": {
       "games": 10,
@@ -393,11 +393,11 @@
       "updatedAt": "2025-12-23T03:43:09.465Z"
     },
     "سلطان": {
-      "games": 1,
+      "games": 2,
       "wins": 0,
-      "losses": 1,
+      "losses": 2,
       "points": 0,
-      "updatedAt": "2025-12-23T03:43:09.465Z"
+      "updatedAt": "2026-01-10T19:32:28.048Z"
     },
     "اسامة": {
       "games": 17,
@@ -729,11 +729,11 @@
       "updatedAt": "2025-12-23T03:43:09.465Z"
     },
     "امجد": {
-      "games": 9,
-      "wins": 5,
-      "losses": 4,
+      "games": 11,
+      "wins": 6,
+      "losses": 5,
       "points": 1,
-      "updatedAt": "2026-01-03T01:51:52.112Z"
+      "updatedAt": "2026-01-10T20:10:10.399Z"
     },
     "الوليد": {
       "games": 7,
@@ -755,6 +755,13 @@
       "losses": 1,
       "points": 0,
       "updatedAt": "2025-12-30T19:23:06.041Z"
+    },
+    "غايا": {
+      "games": 2,
+      "wins": 1,
+      "losses": 1,
+      "points": 0,
+      "updatedAt": "2026-01-10T20:25:23.670Z"
     }
   }
 }
