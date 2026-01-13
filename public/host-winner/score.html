@@ -35,18 +35,20 @@
     }
   </style>
 </head>
-<body class="bg-[#4B0E1F] text-white p-6 min-h-screen flex flex-col items-center justify-center space-y-6">
-  <h1 class="text-4xl font-bold text-center">🏆 النتيجة النهائية 🏆</h1>
-
-  <div id="scoreBox" class="text-center text-2xl space-y-4"></div>
-
-  <button
-    onclick="playAgain()"
-    class="bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded text-lg"
-  >
-    بدء لعبة جديدة
-  </button>
-
+<body class="bg-[#4B0E1F] text-white min-h-screen flex flex-col items-center justify-center space-y-6 overflow-hidden">
+  <div class="w-full h-full p-6 flex flex-col items-center justify-center space-y-6">
+    <h1 class="text-4xl font-bold text-center">🏆 النتيجة النهائية 🏆</h1>
+  
+    <div id="scoreBox" class="text-center text-2xl space-y-4"></div>
+  
+    <button
+      onclick="playAgain()"
+      class="bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded text-lg"
+    >
+      بدء لعبة جديدة
+    </button>
+  </div>
+  
   <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
        class="fixed bottom-4 right-4 w-40 h-auto opacity-90 pointer-events-none" />
 
