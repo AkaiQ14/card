@@ -36,11 +36,12 @@ function showSuccessModal(playerName) {
       
       <!-- الرسالة -->
       <p class="text-xl text-white">
-        تمت إضافة نقطة لـ
-      </p>
-      <p class="text-2xl font-bold text-[#FFD700] bg-[#6d1a2e] border-2 border-[#FFD700] rounded-lg px-6 py-3 inline-block">
-        ${playerName}
-      </p>
+  تمت إضافة نقطة لـ
+  <span class="text-2xl font-bold text-[#FFD700]">
+    ${playerName}
+  </span>
+</p>
+
       
       <!-- زر الإغلاق -->
       <button 
