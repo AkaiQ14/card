@@ -97,19 +97,38 @@ function ipAllowlist(req, res, next) {
   next();
 }
 
-// ===== Abilities storage (Firebase) =====
-// Cache for abilities (loaded from Firebase on startup)
-let abilitiesCache = [];
+// ===== Abilities storage (Local files + Firebase backup) =====
+const ABILITIES_PATH = process.env.ABILITIES_PATH || path.join(__dirname, "abilities.json");
 
-async function readAbilitiesFile() {
+function ensureAbilitiesFile() {
   try {
-    const abilities = await readAbilitiesFromFirebase();
-    abilitiesCache = abilities;
-    return abilities;
+    if (!fs.existsSync(ABILITIES_PATH)) {
+      fs.writeFileSync(
+        ABILITIES_PATH,
+        JSON.stringify({ abilities: [] }, null, 2),
+        "utf8"
+      );
+      console.log("[abilities] Created empty abilities.json");
+    }
   } catch (e) {
-    console.error("[abilities] read failed:", e.message);
-    // Fallback to cache if Firebase fails
-    return abilitiesCache;
+    console.error("[abilities] init failed:", e.message);
+  }
+}
+
+// قراءة من الملف المحلي (المصدر الرئيسي)
+function readAbilitiesFile() {
+  ensureAbilitiesFile();
+  try {
+    const exists = fs.existsSync(ABILITIES_PATH);
+    if (!exists) return [];
+
+    const raw = fs.readFileSync(ABILITIES_PATH, "utf8");
+    let json;
+    try { json = JSON.parse(raw); } catch { return []; }
+    const arr = Array.isArray(json?.abilities) ? json.abilities : [];
+    return arr.map(s => String(s).trim()).filter(Boolean);
+  } catch {
+    return [];
   }
 }
 
@@ -180,39 +199,50 @@ async function githubUpsertFile({ content, message, pathRel }) {
 async function writeAbilitiesFile(arr) {
   try {
     const clean = arr.map(s => String(s).trim()).filter(Boolean);
-    const saved = await writeAbilitiesToFirebase(clean);
-    if (saved) {
-      abilitiesCache = saved;
-    }
-    return saved;
+    const jsonStr = JSON.stringify({ abilities: clean }, null, 2);
+    
+    // حفظ في الملف المحلي (المصدر الرئيسي)
+    fs.writeFileSync(ABILITIES_PATH, jsonStr, "utf8");
+    
+    // حفظ في Firebase كنسخة احتياطية (async - لا يمنع العمل إذا فشل)
+    writeAbilitiesToFirebase(clean).catch((e) => {
+      console.warn("[firebase] Failed to backup abilities to Firebase:", e.message);
+    });
+    
+    return clean;
   } catch (e) {
     console.error("[abilities] write failed:", e.message);
     return null;
   }
 }
 
-// ===== Leaderboard (Firebase persistence) =====
-// Cache for leaderboard (loaded from Firebase on startup)
-let leaderboardCache = { players: {} };
+// Ensure the abilities file exists at boot
+ensureAbilitiesFile();
 
-async function readLeaderboard() {
+// ===== Leaderboard (Local files + Firebase backup) =====
+const LEADERBOARD_PATH = path.join(__dirname, "leaderboard.json");
+
+// قراءة من الملف المحلي (المصدر الرئيسي)
+function readLeaderboard() {
   try {
-    const data = await readLeaderboardFromFirebase();
-    leaderboardCache = data;
-    return data;
-  } catch (e) {
-    console.error("[leaderboard] read failed:", e.message);
-    // Fallback to cache if Firebase fails
-    return leaderboardCache;
-  }
+    const raw = fs.readFileSync(LEADERBOARD_PATH, "utf8");
+    const json = JSON.parse(raw);
+    if (json && typeof json === "object" && json.players) return json;
+  } catch {}
+  return { players: {} };
 }
 
 async function writeLeaderboard(data) {
   try {
-    const success = await writeLeaderboardToFirebase(data);
-    if (success) {
-      leaderboardCache = data;
-    }
+    const jsonStr = JSON.stringify(data, null, 2);
+    
+    // حفظ في الملف المحلي (المصدر الرئيسي)
+    fs.writeFileSync(LEADERBOARD_PATH, jsonStr, "utf8");
+    
+    // حفظ في Firebase كنسخة احتياطية (async - لا يمنع العمل إذا فشل)
+    writeLeaderboardToFirebase(data).catch((e) => {
+      console.warn("[firebase] Failed to backup leaderboard to Firebase:", e.message);
+    });
   } catch (e) {
     console.error("Failed saving leaderboard:", e.message);
   }
@@ -346,15 +376,15 @@ app.get("/leaderboard-admin", requireAuth, (req, res) => {
 });
 
 // ====== Abilities REST API ======
-app.get("/api/abilities", async (req, res) => {
-  const list = await readAbilitiesFile();
+app.get("/api/abilities", (req, res) => {
+  const list = readAbilitiesFile();
   res.json({ abilities: list });
 });
 app.post("/api/abilities/add", async (req, res) => {
   const text = String(req.body.text || "").trim();
   if (!text) return res.status(400).json({ ok: false, error: "missing text" });
 
-  const list = await readAbilitiesFile();
+  const list = readAbilitiesFile();
   list.push(text);
   const saved = await writeAbilitiesFile(list);
   if (!saved) return res.status(500).json({ ok: false, error: "write_failed" });
@@ -362,7 +392,7 @@ app.post("/api/abilities/add", async (req, res) => {
 });
 app.delete("/api/abilities/:index", async (req, res) => {
   const idx = parseInt(req.params.index, 10);
-  const list = await readAbilitiesFile();
+  const list = readAbilitiesFile();
   if (isNaN(idx) || idx < 0 || idx >= list.length) {
     return res.status(400).json({ ok: false, error: "bad_index" });
   }
@@ -371,8 +401,8 @@ app.delete("/api/abilities/:index", async (req, res) => {
   if (!saved) return res.status(500).json({ ok: false, error: "write_failed" });
   res.json({ ok: true, abilities: saved });
 });
-app.post("/api/abilities/reset-defaults", async (req, res) => {
-  const defaults = await readAbilitiesFile();
+app.post("/api/abilities/reset-defaults", (req, res) => {
+  const defaults = readAbilitiesFile();
   res.json({ ok: true, abilities: defaults });
 });
 
@@ -482,8 +512,8 @@ app.get("/list-images/:folder", (req, res) => {
 });
 
 // ================= Leaderboard APIs =================
-app.get("/api/leaderboard/top", async (req, res) => {
-  const lb = await readLeaderboard();
+app.get("/api/leaderboard/top", (req, res) => {
+  const lb = readLeaderboard();
   const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || "20", 10)));
   const rows = Object.entries(lb.players).map(([name, s]) => ({
     name,
@@ -499,8 +529,8 @@ app.get("/api/leaderboard/top", async (req, res) => {
   res.json({ top: rows.slice(0, limit) });
 });
 
-app.get("/api/leaderboard/bottom", async (req, res) => {
-  const lb = await readLeaderboard();
+app.get("/api/leaderboard/bottom", (req, res) => {
+  const lb = readLeaderboard();
   const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || "20", 10)));
   const rows = Object.entries(lb.players).map(([name, s]) => ({
     name,
@@ -516,8 +546,8 @@ app.get("/api/leaderboard/bottom", async (req, res) => {
   res.json({ bottom: rows.slice(0, limit) });
 });
 
-app.get("/api/leaderboard/all", async (req, res) => {
-  const lb = await readLeaderboard();
+app.get("/api/leaderboard/all", (req, res) => {
+  const lb = readLeaderboard();
   const rows = Object.entries(lb.players).map(([name, s]) => ({
     name,
     ...s,
@@ -532,7 +562,7 @@ app.post("/api/leaderboard/award", async (req, res) => {
   const delta = Number.isFinite(+req.body.delta) ? Math.trunc(+req.body.delta) : 1;
   if (!name) return res.status(400).json({ ok: false, error: "missing player" });
 
-  const lb = await readLeaderboard();
+  const lb = readLeaderboard();
   const row = upsertPlayer(lb, name);
   row.points = Math.max(0, (row.points || 0) + delta);
   row.updatedAt = new Date().toISOString();
@@ -549,7 +579,7 @@ app.post("/api/leaderboard/update", requireApiAuth, async (req, res) => {
   if (!name) return res.status(400).json({ ok: false, error: "missing player" });
   if (wins + losses > games) return res.status(400).json({ ok: false, error: "wins+losses > games" });
 
-  const lb = await readLeaderboard();
+  const lb = readLeaderboard();
   const row = upsertPlayer(lb, name);
   row.games = games;
   row.wins = wins;
@@ -561,7 +591,7 @@ app.post("/api/leaderboard/update", requireApiAuth, async (req, res) => {
 
 app.post("/api/leaderboard/batchUpdate", requireApiAuth, async (req, res) => {
   const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
-  const lb = await readLeaderboard();
+  const lb = readLeaderboard();
   let updated = 0;
 
   for (const r of rows) {
@@ -586,7 +616,7 @@ app.post("/api/leaderboard/batchUpdate", requireApiAuth, async (req, res) => {
 app.post("/api/leaderboard/delete", requireApiAuth, async (req, res) => {
   const name = String(req.body.player || "").trim();
   if (!name) return res.status(400).json({ ok: false, error: "missing player" });
-  const lb = await readLeaderboard();
+  const lb = readLeaderboard();
   if (lb.players[name]) {
     delete lb.players[name];
     await writeLeaderboard(lb);
@@ -911,7 +941,7 @@ io.on("connection", (socket) => {
         const mode = game.meta?.mode || "winner";
         const countFlag = !!game.meta?.countLeaderboard;
         if (mode !== "manual" && countFlag) {
-          const lb = await readLeaderboard();
+          const lb = readLeaderboard();
           const playerNames = Object.values(game.players).map((p) => p.name);
           if (playerNames.length === 2) {
             const [A, B] = playerNames;
@@ -970,7 +1000,7 @@ io.on("connection", (socket) => {
       const countFlag = !!game.meta?.countLeaderboard;
 
       if (mode !== "manual" && countFlag) {
-        const lb = await readLeaderboard();
+        const lb = readLeaderboard();
         const aRow = upsertPlayer(lb, A);
         const bRow = upsertPlayer(lb, B);
 
@@ -1336,20 +1366,81 @@ function startRound(gameID) {
   });
 }
 
-// ===== Initialize data from Firebase on startup =====
+// ===== Initialize data: Restore from Firebase if available =====
 async function initializeData() {
-  console.log("[init] Loading data from Firebase...");
+  console.log("[init] Checking for data restoration from Firebase...");
+  
   try {
-    // Load leaderboard
-    const lb = await readLeaderboard();
-    console.log(`[init] ✅ Loaded leaderboard with ${Object.keys(lb.players).length} players`);
+    // محاولة استعادة Leaderboard من Firebase
+    try {
+      const firebaseLb = await readLeaderboardFromFirebase();
+      const localLb = readLeaderboard();
+      
+      // مقارنة التواريخ لتحديد الأحدث
+      const firebaseHasData = Object.keys(firebaseLb.players || {}).length > 0;
+      const localHasData = Object.keys(localLb.players || {}).length > 0;
+      
+      if (firebaseHasData) {
+        // الحصول على آخر تاريخ تحديث من Firebase
+        let firebaseLatestDate = null;
+        for (const player of Object.values(firebaseLb.players || {})) {
+          if (player.updatedAt) {
+            const date = new Date(player.updatedAt);
+            if (!firebaseLatestDate || date > firebaseLatestDate) {
+              firebaseLatestDate = date;
+            }
+          }
+        }
+        
+        // الحصول على آخر تاريخ تحديث من الملف المحلي
+        let localLatestDate = null;
+        for (const player of Object.values(localLb.players || {})) {
+          if (player.updatedAt) {
+            const date = new Date(player.updatedAt);
+            if (!localLatestDate || date > localLatestDate) {
+              localLatestDate = date;
+            }
+          }
+        }
+        
+        // إذا كان Firebase أحدث أو الملف المحلي فارغ، استعادة من Firebase
+        if (!localHasData || (firebaseLatestDate && (!localLatestDate || firebaseLatestDate > localLatestDate))) {
+          const jsonStr = JSON.stringify(firebaseLb, null, 2);
+          fs.writeFileSync(LEADERBOARD_PATH, jsonStr, "utf8");
+          console.log(`[init] ✅ Restored leaderboard from Firebase (${Object.keys(firebaseLb.players).length} players)`);
+        } else {
+          console.log(`[init] ℹ️ Using local leaderboard (${Object.keys(localLb.players).length} players)`);
+        }
+      } else {
+        console.log(`[init] ℹ️ No Firebase leaderboard data, using local (${Object.keys(localLb.players).length} players)`);
+      }
+    } catch (e) {
+      console.warn("[init] ⚠️ Could not restore leaderboard from Firebase:", e.message);
+      console.log("[init] ℹ️ Using local leaderboard file");
+    }
     
-    // Load abilities
-    const abilities = await readAbilitiesFile();
-    console.log(`[init] ✅ Loaded ${abilities.length} abilities`);
+    // محاولة استعادة Abilities من Firebase
+    try {
+      const firebaseAbilities = await readAbilitiesFromFirebase();
+      const localAbilities = readAbilitiesFile();
+      
+      // إذا كان Firebase يحتوي على بيانات أكثر أو الملف المحلي فارغ، استعادة من Firebase
+      if (firebaseAbilities.length > 0 && (localAbilities.length === 0 || firebaseAbilities.length > localAbilities.length)) {
+        const jsonStr = JSON.stringify({ abilities: firebaseAbilities }, null, 2);
+        fs.writeFileSync(ABILITIES_PATH, jsonStr, "utf8");
+        console.log(`[init] ✅ Restored abilities from Firebase (${firebaseAbilities.length} abilities)`);
+      } else {
+        console.log(`[init] ℹ️ Using local abilities (${localAbilities.length} abilities)`);
+      }
+    } catch (e) {
+      console.warn("[init] ⚠️ Could not restore abilities from Firebase:", e.message);
+      console.log("[init] ℹ️ Using local abilities file");
+    }
+    
+    console.log("[init] ✅ Data initialization complete");
   } catch (e) {
-    console.error("[init] ❌ Failed to load data from Firebase:", e.message);
-    console.warn("[init] ⚠️ Server will continue with empty data. Check Firebase configuration.");
+    console.error("[init] ❌ Error during data initialization:", e.message);
+    console.warn("[init] ⚠️ Server will continue with local files only");
   }
 }
 

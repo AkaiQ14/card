@@ -22,8 +22,9 @@ function initializeFirebase() {
         });
         console.log("[firebase] ✅ Initialized with Service Account Key");
       } catch (e) {
-        console.error("[firebase] ❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:", e.message);
-        throw e;
+        console.warn("[firebase] ⚠️ Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:", e.message);
+        console.warn("[firebase] ⚠️ Firebase backup will be disabled");
+        return null;
       }
     } else {
       // طريقة 2: استخدام Application Default Credentials (للتطوير المحلي)
@@ -33,39 +34,45 @@ function initializeFirebase() {
       const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
       if (projectId && clientEmail && privateKey) {
-        firebaseApp = admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId,
-            clientEmail,
-            privateKey,
-          }),
-        });
-        console.log("[firebase] ✅ Initialized with individual env vars");
+        try {
+          firebaseApp = admin.initializeApp({
+            credential: admin.credential.cert({
+              projectId,
+              clientEmail,
+              privateKey,
+            }),
+          });
+          console.log("[firebase] ✅ Initialized with individual env vars");
+        } catch (e) {
+          console.warn("[firebase] ⚠️ Failed to initialize with env vars:", e.message);
+          console.warn("[firebase] ⚠️ Firebase backup will be disabled");
+          return null;
+        }
       } else {
-        // طريقة 3: Application Default Credentials (للتطوير المحلي)
-        firebaseApp = admin.initializeApp();
-        console.log("[firebase] ✅ Initialized with Application Default Credentials");
+        // Firebase غير مُعد - هذا طبيعي، سيعمل المشروع بدون Firebase
+        console.log("[firebase] ℹ️ Firebase not configured (backup disabled)");
+        return null;
       }
     }
 
     db = admin.firestore();
     return { app: firebaseApp, db };
   } catch (error) {
-    console.error("[firebase] ❌ Initialization failed:", error.message);
-    throw error;
+    console.warn("[firebase] ⚠️ Firebase initialization failed:", error.message);
+    console.warn("[firebase] ⚠️ Server will continue without Firebase backup");
+    return null;
   }
 }
 
-// Initialize on module load
-try {
-  initializeFirebase();
-} catch (e) {
-  console.warn("[firebase] ⚠️ Firebase not initialized. Will retry on first use.");
-}
+// Initialize on module load (optional - won't fail if not configured)
+initializeFirebase();
 
 function getFirestore() {
   if (!db) {
-    initializeFirebase();
+    const result = initializeFirebase();
+    if (!result || !result.db) {
+      return null;
+    }
   }
   return db;
 }
