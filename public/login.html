@@ -1,14 +1,62 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <title>QG14 Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+    }
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    
+    .gradient-bg {
+      background: linear-gradient(-45deg, #4B0E1F, #8B1538, #C41E3A, #4B0E1F);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+    }
+    
+    .modern-card {
+      background: linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px 0 rgba(236, 72, 153, 0.3),
+                  0 0 0 1px rgba(236, 72, 153, 0.15);
+    }
+    
+    .modern-input {
+      background: rgba(55, 65, 81, 0.5);
+      border: 1px solid rgba(75, 85, 99, 0.5);
+      transition: all 0.3s ease;
+    }
+    
+    .modern-input:focus {
+      background: rgba(55, 65, 81, 0.7);
+      border-color: rgb(236, 72, 153);
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+    }
+    
+    .modern-button {
+      background: linear-gradient(135deg, rgb(219, 39, 119) 0%, rgb(190, 24, 93) 100%);
+      transition: all 0.3s ease;
+    }
+    
+    .modern-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(236, 72, 153, 0.3);
+    }
+  </style>
 </head>
-  <body class="bg-[#4B0E1F] text-white flex items-center justify-center min-h-screen p-6">
-  <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md space-y-6 text-center">
-    <h1 class="text-3xl font-bold text-pink-500">QG14 Card Clash</h1>
+<body class="gradient-bg text-white flex items-center justify-center min-h-screen p-6">
+  <div class="modern-card p-8 rounded-2xl w-full max-w-md space-y-6 text-center">
+    <h1 class="text-4xl font-extrabold text-pink-500">QG14 Card Clash</h1>
     <p class="text-gray-300">تسجيل الدخول لبدء اللعبة</p>
 
     <div class="space-y-4">
@@ -16,17 +64,17 @@
         type="text"
         id="username"
         placeholder="اسم المستخدم"
-        class="w-full p-3 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+        class="modern-input w-full p-3 rounded-lg text-white focus:outline-none placeholder-gray-400"
       />
       <input
         type="password"
         id="password"
         placeholder="كلمة المرور"
-        class="w-full p-3 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+        class="modern-input w-full p-3 rounded text-white focus:outline-none"
       />
       <button
         onclick="login()"
-        class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 rounded transition"
+        class="modern-button w-full text-white font-bold py-3 rounded"
       >
         دخول
       </button>
@@ -52,8 +100,14 @@
         error.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة";
       }
     }
+    
+    document.getElementById("password").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") login();
+    });
+    
+    document.getElementById("username").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") login();
+    });
   </script>
-  <script src="copyright.js"></script>
-  <script src="security.js"></script>
 </body>
 </html>
