@@ -194,29 +194,4 @@ function confirmSelection() {
   }
 }
 
-function randomSelect() {
-  // لو كان في اختيارات سابقة، نفكها (كضغط يدوي)
-  [...document.querySelectorAll("#boxGrid button")].forEach(btn => {
-    const index = Number(btn.dataset.index);
-    if (selectedBoxes.includes(index)) {
-      toggleBox(index, btn);
-    }
-  });
-
-  // الأزرار الصفراء فقط (الموجودة على الشاشة)
-  const buttons = [...document.querySelectorAll("#boxGrid button")];
-
-  // ترتيب عشوائي للأزرار فقط (لا صور ولا توزيع)
-  buttons.sort(() => Math.random() - 0.5);
-
-  // ضغط يدوي تلقائي
-  for (const btn of buttons) {
-    if (selectedBoxes.length >= roundCount) break;
-    const index = Number(btn.dataset.index);
-    toggleBox(index, btn);
-  }
-}
-
-window.randomSelect = randomSelect;
-
 window.confirmSelection = confirmSelection;
