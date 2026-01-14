@@ -195,35 +195,28 @@ function confirmSelection() {
 }
 
 function randomSelect() {
-  // فك أي اختيارات حالية (كضغط يدوي)
-  document.querySelectorAll("#boxGrid button").forEach(btn => {
+  // لو كان في اختيارات سابقة، نفكها (كضغط يدوي)
+  [...document.querySelectorAll("#boxGrid button")].forEach(btn => {
     const index = Number(btn.dataset.index);
     if (selectedBoxes.includes(index)) {
       toggleBox(index, btn);
     }
   });
 
-  // جميع الأزرار الصفراء المتاحة
-  const buttons = Array.from(
-    document.querySelectorAll("#boxGrid button")
-  );
+  // الأزرار الصفراء فقط (الموجودة على الشاشة)
+  const buttons = [...document.querySelectorAll("#boxGrid button")];
 
-  // خلط عشوائي
-  for (let i = buttons.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [buttons[i], buttons[j]] = [buttons[j], buttons[i]];
-  }
+  // ترتيب عشوائي للأزرار فقط (لا صور ولا توزيع)
+  buttons.sort(() => Math.random() - 0.5);
 
-  // اختيار مثل الضغط اليدوي تمامًا
-  for (let i = 0; i < buttons.length && selectedBoxes.length < roundCount; i++) {
-    const btn = buttons[i];
+  // ضغط يدوي تلقائي
+  for (const btn of buttons) {
+    if (selectedBoxes.length >= roundCount) break;
     const index = Number(btn.dataset.index);
     toggleBox(index, btn);
   }
 }
 
 window.randomSelect = randomSelect;
-
-
 
 window.confirmSelection = confirmSelection;
