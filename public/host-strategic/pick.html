@@ -15,14 +15,24 @@
     <!-- Boxes inserted via JS -->
   </div>
 
-  <button
-    id="confirmBtn"
-    onclick="confirmSelection()"
-    class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded text-lg font-bold mt-6 hidden"
-  >
-    تأكيد الإختيارات
-  </button>
-
+  <div class="flex gap-4 mt-6">
+    <button
+      id="randomBtn"
+      onclick="randomSelect()"
+      class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded text-lg font-bold"
+    >
+      اختيار عشوائي
+    </button>
+  
+    <button
+      id="confirmBtn"
+      onclick="confirmSelection()"
+      class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded text-lg font-bold hidden"
+    >
+      تأكيد الإختيارات
+    </button>
+  </div>
+  
   <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
      class="fixed bottom-4 right-4 w-40 h-auto opacity-90 pointer-events-none" />
 

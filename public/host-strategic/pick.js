@@ -194,4 +194,30 @@ function confirmSelection() {
   }
 }
 
+function randomSelect() {
+  // فك أي اختيار سابق (كأن اللاعب ضغط إلغاء)
+  document.querySelectorAll("#boxGrid button").forEach(btn => {
+    const index = Number(btn.dataset.index);
+    if (selectedBoxes.includes(index)) {
+      toggleBox(index, btn);
+    }
+  });
+
+  // الأزرار الصفراء الموجودة فقط
+  const buttons = Array.from(
+    document.querySelectorAll("#boxGrid button")
+  );
+
+  // ترتيب عشوائي للأزرار فقط (لا صور – لا توزيع)
+  buttons.sort(() => Math.random() - 0.5);
+
+  // اختيار كأنه ضغط يدوي
+  for (const btn of buttons) {
+    if (selectedBoxes.length >= roundCount) break;
+    const index = Number(btn.dataset.index);
+    toggleBox(index, btn);
+  }
+}
+
+window.randomSelect = randomSelect;
 window.confirmSelection = confirmSelection;
