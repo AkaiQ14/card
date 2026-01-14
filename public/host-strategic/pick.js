@@ -194,4 +194,44 @@ function confirmSelection() {
   }
 }
 
+function randomSelect() {
+  // مسح الاختيارات السابقة
+  selectedBoxes = [];
+
+  // إزالة التأثير من كل الأزرار
+  document.querySelectorAll("#boxGrid button").forEach(btn => {
+    btn.classList.remove("ring-4", "ring-yellow-400", "bg-[#B8860B]");
+    btn.classList.add("bg-amber-400");
+  });
+
+  // جميع الأرقام المتاحة
+  const available = Object.keys(imageMap).map(Number);
+
+  // خلط عشوائي
+  for (let i = available.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [available[i], available[j]] = [available[j], available[i]];
+  }
+
+  // اختيار العدد المطلوب
+  selectedBoxes = available.slice(0, roundCount);
+
+  // تفعيلها بصريًا
+  selectedBoxes.forEach(index => {
+    const btn = document.querySelector(
+      `#boxGrid button[data-index="${index}"]`
+    );
+    if (btn) {
+      btn.classList.remove("bg-amber-400");
+      btn.classList.add("ring-4", "ring-yellow-400", "bg-[#B8860B]");
+    }
+  });
+
+  // إظهار زر التأكيد
+  confirmBtn.classList.remove("hidden");
+}
+
+window.randomSelect = randomSelect;
+
+
 window.confirmSelection = confirmSelection;
