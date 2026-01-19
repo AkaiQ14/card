@@ -113,6 +113,9 @@ scoreBox.innerHTML = `
 `;
 
 function playAgain() {
+  const gid = localStorage.getItem("gameID") || "default";
+  localStorage.removeItem("gameUsedImages:" + gid + ":player1");
+  localStorage.removeItem("gameUsedImages:" + gid + ":player2");
   [
     "gameUsedImages","globalUsed","picks","scores","currentRound","round",
     "player1Picks","player2Picks","player1Filenames","player2Filenames",

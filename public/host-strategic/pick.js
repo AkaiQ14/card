@@ -12,7 +12,7 @@ const confirmBtn  = document.getElementById("confirmBtn");
 
 let imageMap = {};
 let selectedBoxes = [];
-const gameID = localStorage.getItem("gameID");
+const gameID = localStorage.getItem("gameID") || "default";
 const socket = io();
 
 const usedImages = new Set();
@@ -25,17 +25,34 @@ const LEGENDARY_RATE = Math.max(
 );
 
 const playerName = currentPlayer === 1 ? player1 : player2;
+const playerKey  = currentPlayer === 1 ? "player1" : "player2";
+
 instruction.textContent = `اللاعب ${playerName} اختر ${roundCount} بطاقات`;
+
+// =============================================================
+// IMPORTANT FAIRNESS FIX
+// -------------------------------------------------------------
+// Previously, both players shared ONE "gameUsedImages" list.
+// That made player #2 see a smaller pool (because player #1's
+// picks were removed), which effectively reduced player #2's
+// chance to get legendary cards.
+//
+// Now: we keep USED images PER PLAYER PER GAME.
+// This guarantees each player gets an independent 0.10 roll
+// from the legendary folder (subject only to that player's own
+// previous picks in this same game).
+// =============================================================
+const USED_KEY = `gameUsedImages:${gameID}:${playerKey}`;
 
 // ---------- helpers ----------
 function loadUsed() {
-  const arr = JSON.parse(localStorage.getItem("gameUsedImages") || "[]");
+  const arr = JSON.parse(localStorage.getItem(USED_KEY) || "[]");
   return new Set(arr.map(String));
 }
 function saveUsed(keys) {
-  const prev = JSON.parse(localStorage.getItem("gameUsedImages") || "[]");
+  const prev = JSON.parse(localStorage.getItem(USED_KEY) || "[]");
   const merged = [...new Set([...prev, ...keys.map(String)])];
-  localStorage.setItem("gameUsedImages", JSON.stringify(merged));
+  localStorage.setItem(USED_KEY, JSON.stringify(merged));
 }
 function shuffleInPlace(a) {
   for (let i = a.length - 1; i > 0; i--) {
@@ -62,7 +79,8 @@ async function fetchFolderList(folder) {
 
 async function loadAndRender() {
   try {
-    const usedGlobally = loadUsed();
+    // USED only for THIS player in THIS game
+    const usedForThisPlayer = loadUsed();
 
     const [legendaryFiles, normalFiles] = await Promise.all([
       fetchFolderList("legendary").catch(() => []),
@@ -71,11 +89,11 @@ async function loadAndRender() {
 
     let legendaryPool = legendaryFiles
       .map((f) => ({ folder: "legendary", filename: f, key: `legendary/${f}` }))
-      .filter((it) => !usedGlobally.has(it.key));
+      .filter((it) => !usedForThisPlayer.has(it.key));
 
     let normalPool = normalFiles
       .map((f) => ({ folder: "normal", filename: f, key: `normal/${f}` }))
-      .filter((it) => !usedGlobally.has(it.key));
+      .filter((it) => !usedForThisPlayer.has(it.key));
 
     if (legendaryPool.length + normalPool.length < BOARD_SIZE) {
       boxGrid.innerHTML = `<p class="text-red-500 text-lg">لا توجد صور كافية للاختيار.</p>`;
@@ -101,9 +119,9 @@ async function loadAndRender() {
         chosen = popRandom(union);
         if (!chosen) break;
         if (chosen.folder === "legendary") {
-          legendaryPool = legendaryPool.filter(x => x.key !== chosen.key);
+          legendaryPool = legendaryPool.filter((x) => x.key !== chosen.key);
         } else {
-          normalPool = normalPool.filter(x => x.key !== chosen.key);
+          normalPool = normalPool.filter((x) => x.key !== chosen.key);
         }
       }
 
@@ -119,7 +137,7 @@ async function loadAndRender() {
         folder: img.folder,
         filename: img.filename,
         key: img.key,
-        fullPath: `/images/${img.folder}/${encodeURIComponent(img.filename)}`
+        fullPath: `/images/${img.folder}/${encodeURIComponent(img.filename)}`,
       };
     }
 
@@ -176,13 +194,11 @@ function confirmSelection() {
   keys.forEach((k) => usedImages.add(k));
   saveUsed(keys);
 
-  const playerKey = currentPlayer === 1 ? "player1" : "player2";
-
   socket.emit("playerSubmitPicks", {
     gameID,
     playerName,
     playerKey,
-    picks
+    picks,
   });
 
   if (currentPlayer === 1) {
@@ -196,7 +212,7 @@ function confirmSelection() {
 
 function randomSelect() {
   // فك أي اختيار سابق (كأن اللاعب ضغط إلغاء)
-  document.querySelectorAll("#boxGrid button").forEach(btn => {
+  document.querySelectorAll("#boxGrid button").forEach((btn) => {
     const index = Number(btn.dataset.index);
     if (selectedBoxes.includes(index)) {
       toggleBox(index, btn);
@@ -204,9 +220,7 @@ function randomSelect() {
   });
 
   // الأزرار الصفراء الموجودة فقط
-  const buttons = Array.from(
-    document.querySelectorAll("#boxGrid button")
-  );
+  const buttons = Array.from(document.querySelectorAll("#boxGrid button"));
 
   // ترتيب عشوائي للأزرار فقط (لا صور – لا توزيع)
   buttons.sort(() => Math.random() - 0.5);
@@ -218,6 +232,3 @@ function randomSelect() {
     toggleBox(index, btn);
   }
 }
-
-window.randomSelect = randomSelect;
-window.confirmSelection = confirmSelection;
