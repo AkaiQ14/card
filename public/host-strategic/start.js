@@ -217,12 +217,7 @@ function showAnimeDropdowns() {
 }
 
 function startGame() {
-  (()=>{
-  const gid = localStorage.getItem("gameID") || "default";
-  localStorage.removeItem("gameUsedImages" );// legacy
-  localStorage.removeItem("gameUsedImages:" + gid + ":player1");
-  localStorage.removeItem("gameUsedImages:" + gid + ":player2");
-})();
+  localStorage.removeItem("gameUsedImages");
 
   const selectedAnime = document.getElementById("singleAnimeSelect")?.value || "rarities";
   const roundCount = parseInt(localStorage.getItem("totalRounds") || "3", 10);
