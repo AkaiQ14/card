@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
@@ -6,8 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
+  
   </head>
-  <body class="bg-[#4B0E1F] text-white min-h-screen p-6 flex flex-col items-center justify-center space-y-6">
+  <body class="bg-[#4B0E1F] bg-gradient-to-b from-[#4B0E1F] via-[#3a0b18] to-[#12040a] text-white min-h-screen p-6 flex flex-col items-center justify-center space-y-6">
     <h1 class="text-4xl font-bold text-center">QG14 Card Clash</h1>
 
     <!-- Top-center timer + controls -->
@@ -25,13 +26,13 @@
       <div class="flex items-center gap-2">
         <button
           id="startTimerBtn"
-          class="bg-yellow-600 hover:bg-yellow-700 px-5 py-1.5 rounded-lg text-base font-bold"
+          class="btn-gradient bg-yellow-500 hover:bg-yellow-600 px-5 py-2 rounded-xl text-base font-extrabold shadow-lg shadow-black/20"
         >
           ابدأ
         </button>
         <button
           id="pauseTimerBtn"
-          class="bg-gray-300 hover:bg-gray-200 text-black px-5 py-1.5 rounded-lg text-base font-bold disabled:opacity-60"
+          class="btn-gradient bg-gray-200 hover:bg-white text-black px-5 py-2 rounded-xl text-base font-extrabold disabled:opacity-60 shadow-lg shadow-black/10"
           disabled
         >
           إيقاف
@@ -48,14 +49,14 @@
     <!-- روابط النسخ + حالة الاستلام + بدء -->
     <div class="space-y-4 w-full max-w-md text-center">
       <div class="flex items-center justify-between gap-4">
-        <button id="copyP1" class="flex-1 bg-purple-600 hover:bg-purple-700 py-2 rounded text-lg">
+        <button id="copyP1" class="btn-gradient flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-2.5 rounded-xl text-lg font-bold shadow-lg shadow-black/20">
           نسخ رابط ترتيب البطاقات
         </button>
         <span id="statusP1" class="text-green-400 hidden">✅ تم الاستلام</span>
       </div>
 
       <div class="flex items-center justify-between gap-4">
-        <button id="copyP2" class="flex-1 bg-indigo-600 hover:bg-indigo-700 py-2 rounded text-lg">
+        <button id="copyP2" class="btn-gradient flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 py-2.5 rounded-xl text-lg font-bold shadow-lg shadow-black/20">
           نسخ رابط ترتيب البطاقات
         </button>
         <span id="statusP2" class="text-green-400 hidden">✅ تم الاستلام</span>
@@ -63,7 +64,7 @@
 
       <button
         id="startBtn"
-        class="w-full bg-green-600 hover:bg-green-700 py-2 rounded text-lg disabled:opacity-50"
+        class="btn-gradient w-full py-3 rounded-2xl text-xl font-extrabold bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-xl shadow-black/25 disabled:opacity-40 disabled:hover:scale-100"
         disabled
       >
         بدء المعركة
@@ -74,21 +75,21 @@
     <div class="w-full max-w-5xl mt-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- يمين: اللاعب الأول -->
-        <div class="rounded-2xl border-2 border-yellow-600 bg-black/20 p-4">
+        <div class="rounded-2xl p-6 border-2 border-yellow-700 bg-black/20 shadow-xl shadow-black/30">
           <div class="flex items-center justify-between text-base font-bold mb-2">
             <span id="p1NameBox">قدرات اللاعب الأول</span>
             <span class="opacity-70">عرض فقط</span>
           </div>
-          <div id="p1AbilitiesView" class="space-y-2.5 min-h-10"></div>
+          <div id="p1AbilitiesView" class="space-y-4 min-h-10"></div>
         </div>
 
         <!-- يسار: اللاعب الثاني -->
-        <div class="rounded-2xl border-2 border-yellow-600 bg-black/20 p-4">
+        <div class="rounded-2xl p-6 border-2 border-yellow-700 bg-black/20 shadow-xl shadow-black/30">
           <div class="flex items-center justify-between text-base font-bold mb-2">
             <span id="p2NameBox">قدرات اللاعب الثاني</span>
             <span class="opacity-70">عرض فقط</span>
           </div>
-          <div id="p2AbilitiesView" class="space-y-2.5 min-h-10"></div>
+          <div id="p2AbilitiesView" class="space-y-4 min-h-10"></div>
         </div>
       </div>
     </div>
