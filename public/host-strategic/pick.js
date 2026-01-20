@@ -19,10 +19,7 @@ const usedImages = new Set();
 const BOARD_SIZE = 20;
 
 // Per-box legendary probability (10%)
-const LEGENDARY_RATE = Math.max(
-  0,
-  Math.min(1, parseFloat(localStorage.getItem("legendaryRate") || "0.10"))
-);
+const LEGENDARY_RATE = 0.1; // 10% حظ ليجندري
 
 const playerName = currentPlayer === 1 ? player1 : player2;
 instruction.textContent = `اللاعب ${playerName} اختر ${roundCount} بطاقات`;
