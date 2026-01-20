@@ -197,11 +197,11 @@ function confirmSelection() {
 }
 
 function randomSelect() {
-  // تشغيل صوت الاختيار العشوائي
+  // تشغيل الصوت
   randomSound.currentTime = 0;
   randomSound.play();
 
-  // فك أي اختيار سابق
+  // إلغاء أي اختيار سابق
   document.querySelectorAll("#boxGrid button").forEach(btn => {
     const index = Number(btn.dataset.index);
     if (selectedBoxes.includes(index)) {
@@ -209,21 +209,21 @@ function randomSelect() {
     }
   });
 
-  // الأزرار الصفراء فقط
-  const buttons = Array.from(
-    document.querySelectorAll("#boxGrid button")
-  );
+  // جميع الأرقام كما هي (بدون ترتيب/خلط)
+  const indices = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1);
 
-  // ترتيب عشوائي للأزرار فقط (لا صور ولا توزيع)
-  buttons.sort(() => Math.random() - 0.5);
+  // اختيار أرقام عشوائية فقط
+  while (selectedBoxes.length < roundCount && indices.length) {
+    const r = Math.floor(Math.random() * indices.length);
+    const index = indices.splice(r, 1)[0];
 
-  // اختيار كأنه ضغط يدوي
-  for (const btn of buttons) {
-    if (selectedBoxes.length >= roundCount) break;
-    const index = Number(btn.dataset.index);
-    toggleBox(index, btn);
+    const btn = document.querySelector(
+      `#boxGrid button[data-index="${index}"]`
+    );
+    if (btn) toggleBox(index, btn);
   }
 }
+
 
 
 
