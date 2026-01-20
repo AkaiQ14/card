@@ -1,5 +1,5 @@
 // public/host-strategic/pick.js
-const randomSound = new Audio("/sounds/Random.mp3");
+const randomSound = new Audio("/sounds/random.mp3");
 randomSound.volume = 0.8; // اختياري
 
 const roundCount  = parseInt(localStorage.getItem("totalRounds") || "3", 10);
