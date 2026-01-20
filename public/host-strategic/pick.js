@@ -1,4 +1,6 @@
 // public/host-strategic/pick.js
+const randomSound = new Audio("/sounds/random.mp3");
+randomSound.volume = 1.0; // اختياري (0.0 – 1.0)
 
 const roundCount  = parseInt(localStorage.getItem("totalRounds") || "3", 10);
 const animeList   = JSON.parse(localStorage.getItem("animeList") || "[]");
@@ -161,6 +163,34 @@ function toggleBox(index, btn) {
   confirmBtn.classList.toggle("hidden", selectedBoxes.length !== roundCount);
 }
 
+function randomSelect() {
+  // 🔊 تشغيل الصوت
+  randomSound.currentTime = 0;
+  randomSound.play().catch(() => {});
+
+  // فك أي اختيار سابق
+  document.querySelectorAll("#boxGrid button").forEach(btn => {
+    const index = Number(btn.dataset.index);
+    if (selectedBoxes.includes(index)) {
+      toggleBox(index, btn);
+    }
+  });
+
+  const indices = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1);
+
+  while (selectedBoxes.length < roundCount && indices.length) {
+    const r = Math.floor(Math.random() * indices.length);
+    const index = indices.splice(r, 1)[0];
+
+    const btn = document.querySelector(
+      `#boxGrid button[data-index="${index}"]`
+    );
+    if (btn) toggleBox(index, btn);
+  }
+}
+
+
+
 function confirmSelection() {
   if (selectedBoxes.length !== roundCount) {
     alert("اختر العدد الصحيح من البطاقات.");
@@ -192,3 +222,5 @@ function confirmSelection() {
 }
 
 window.confirmSelection = confirmSelection;
+window.randomSelect = randomSelect;
+
