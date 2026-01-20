@@ -201,7 +201,8 @@ function renderVsRow() {
     "دفاع",
     "هجوم",
     "زعيم",
-    "مجموعة"
+    "مجموعة",
+    "تراكم"
   ];
 
   // ===== NEW: per-player quick counters + last selected persistence =====

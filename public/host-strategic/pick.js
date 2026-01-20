@@ -109,8 +109,6 @@ async function loadAndRender() {
       combined.push(chosen);
     }
 
-    shuffleInPlace(combined);
-
     imageMap = {};
     for (let i = 1; i <= combined.length; i++) {
       const img = combined[i - 1];
