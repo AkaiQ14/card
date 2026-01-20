@@ -1,4 +1,6 @@
 // public/host-strategic/pick.js
+const randomSound = new Audio("/sounds/Random.mp3");
+randomSound.volume = 0.8; // اختياري
 
 const roundCount  = parseInt(localStorage.getItem("totalRounds") || "3", 10);
 const animeList   = JSON.parse(localStorage.getItem("animeList") || "[]");
@@ -195,7 +197,11 @@ function confirmSelection() {
 }
 
 function randomSelect() {
-  // فك أي اختيار سابق (كأن اللاعب ضغط إلغاء)
+  // تشغيل صوت الاختيار العشوائي
+  randomSound.currentTime = 0;
+  randomSound.play();
+
+  // فك أي اختيار سابق
   document.querySelectorAll("#boxGrid button").forEach(btn => {
     const index = Number(btn.dataset.index);
     if (selectedBoxes.includes(index)) {
@@ -203,12 +209,12 @@ function randomSelect() {
     }
   });
 
-  // الأزرار الصفراء الموجودة فقط
+  // الأزرار الصفراء فقط
   const buttons = Array.from(
     document.querySelectorAll("#boxGrid button")
   );
 
-  // ترتيب عشوائي للأزرار فقط (لا صور – لا توزيع)
+  // ترتيب عشوائي للأزرار فقط (لا صور ولا توزيع)
   buttons.sort(() => Math.random() - 0.5);
 
   // اختيار كأنه ضغط يدوي
@@ -218,6 +224,7 @@ function randomSelect() {
     toggleBox(index, btn);
   }
 }
+
 
 window.randomSelect = randomSelect;
 window.confirmSelection = confirmSelection;
