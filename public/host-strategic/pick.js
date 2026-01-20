@@ -82,32 +82,30 @@ async function loadAndRender() {
     }
 
     // Per-box roll for legendary
-    const combined = [];
-    for (let i = 0; i < BOARD_SIZE; i++) {
-      const wantLegendary = Math.random() < LEGENDARY_RATE;
-      let chosen = null;
+    // ✅ 10% فقط أن تظهر أي Legendary في كامل اللوحة
+const showAnyLegendary = Math.random() < 0.10;
 
-      if (wantLegendary) {
-        chosen = popRandom(legendaryPool);
-        if (!chosen) chosen = popRandom(normalPool);
-      } else {
-        chosen = popRandom(normalPool);
-        if (!chosen) chosen = popRandom(legendaryPool);
-      }
+// كم Legendary داخل اللوحة إذا قررنا يظهر؟
+const legendaryCount = showAnyLegendary ? 1 : 0; // اجعله 2 إذا تبي نادر لكن أكثر
 
-      if (!chosen) {
-        const union = [...legendaryPool, ...normalPool];
-        chosen = popRandom(union);
-        if (!chosen) break;
-        if (chosen.folder === "legendary") {
-          legendaryPool = legendaryPool.filter(x => x.key !== chosen.key);
-        } else {
-          normalPool = normalPool.filter(x => x.key !== chosen.key);
-        }
-      }
+const combined = [];
 
-      combined.push(chosen);
-    }
+// اسحب Legendary (إن وجد)
+for (let i = 0; i < legendaryCount; i++) {
+  const chosen = popRandom(legendaryPool) || popRandom(normalPool);
+  if (chosen) combined.push(chosen);
+}
+
+// كمّل الباقي Normal
+while (combined.length < BOARD_SIZE) {
+  const chosen = popRandom(normalPool) || popRandom(legendaryPool);
+  if (!chosen) break;
+  combined.push(chosen);
+}
+
+// خلط أماكنهم فقط (اختياري)
+shuffleInPlace(combined);
+
 
     imageMap = {};
     for (let i = 1; i <= combined.length; i++) {
