@@ -1,6 +1,6 @@
 // public/host-strategic/pick.js
 const randomSound = new Audio("/sounds/random.mp3");
-randomSound.volume = 0.8; // اختياري
+randomSound.volume = 0.20; // اختياري
 
 const roundCount  = parseInt(localStorage.getItem("totalRounds") || "3", 10);
 const animeList   = JSON.parse(localStorage.getItem("animeList") || "[]");
@@ -226,5 +226,6 @@ function randomSelect() {
 }
 
 
-window.randomSelect = randomSelect;
+
 window.confirmSelection = confirmSelection;
+window.randomSelect = randomSelect;

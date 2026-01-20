@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    
     :root{
       --gold:#FFD700;
       --green:#0b6e3f;
@@ -56,6 +57,57 @@
       max-height: var(--ability-max-h);
       overflow-y: auto; /* scrollable within fixed height */
     }
+    /* hide native spinner completely */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    /* custom spinner wrapper */
+    .amount-wrap {
+      display: flex;
+      align-items: center;
+      border: 2px solid #FFD700;
+      border-radius: 10px;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    .amount-wrap input {
+      width: 48px;
+      text-align: center;
+      background: transparent;
+      color: white;
+      font-weight: 800;
+      border: none;
+      outline: none;
+    }
+
+    .amount-arrows {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .amount-arrows button {
+      width: 26px;
+      height: 18px;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+      color: #FFD700;
+      background: #3a0b18;
+      border-left: 2px solid #FFD700;
+    }
+
+    .amount-arrows button:hover {
+      background: #5a1626;
+    }
+
+    
   </style>
 </head>
 <body class="bg-[#4B0E1F] text-white min-h-screen no-scrollbar">

@@ -182,6 +182,27 @@ function renderVsRow() {
   }
   const vsRow = document.getElementById("vsRow"); vsRow.innerHTML = "";
   vsRow.className = "flex justify-center items-center gap-6 md:gap-8 flex-wrap";
+
+  // ✅ Notes quick category +/- helper (writes into notes box)
+  const NOTE_CATEGORIES = [
+    "عناصر",
+    "سلاح",
+    "ساحر",
+    "حيوان",
+    "فضائي",
+    "بشري",
+    "ماء",
+    "نار",
+    "ثلج",
+    "برق",
+    "ارض",
+    "بطل",
+    "شرير",
+    "دفاع",
+    "هجوم",
+    "زعيم",
+    "مجموعة"
+  ];
   const side = (name, mediaUrl, pos /* 'left' | 'right' */) => {
     const wrap = document.createElement("div"); wrap.className = "flex flex-col items-center";
     const label = document.createElement("div"); label.className = "text-yellow-300 font-extrabold text-xl mb-2"; label.textContent = name;
@@ -193,12 +214,146 @@ function renderVsRow() {
       if (typeof window.WebmSfx.markSide === "function") window.WebmSfx.markSide(pos, mediaUrl);
     }
 
+    // Notes + quick category selector (+/-)
+    const notesWrap = document.createElement("div");
+    notesWrap.className = "mt-3 w-80 md:w-96";
+
+    const controls = document.createElement("div");
+    controls.className = "mb-2 flex items-center gap-2";
+
+    const catSelect = document.createElement("select");
+    const targetSelect = document.createElement("select");
+    targetSelect.className =
+      "bg-transparent text-white border-2 border-yellow-600 rounded-lg px-2 py-2 text-sm";
+
+    [
+      { value: "self", label: "لك" },
+      { value: "enemy", label: "للخصم" },
+      { value: "both", label: "للكل" }
+    ].forEach(o => {
+      const opt = document.createElement("option");
+      opt.value = o.value;
+      opt.textContent = o.label;
+      opt.style.background = "#3a0b18";
+      targetSelect.appendChild(opt);
+    });
+
+    catSelect.className = "flex-1 bg-transparent text-white border-2 border-yellow-600 rounded-lg px-2 py-2 text-sm";
+    NOTE_CATEGORIES.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      opt.style.background = "#3a0b18"; // improves readability in some browsers
+      catSelect.appendChild(opt);
+    });
+
+    const amountWrap = document.createElement("div");
+    amountWrap.className = "amount-wrap";
+
+    const amount = document.createElement("input");
+    amount.type = "number";
+    amount.value = "1";
+    amount.min = "1";
+    amount.max = "99";
+
+    const arrows = document.createElement("div");
+    arrows.className = "amount-arrows";
+
+    const up = document.createElement("button");
+    up.type = "button";
+    up.textContent = "▲";
+
+    const down = document.createElement("button");
+    down.type = "button";
+    down.textContent = "▼";
+
+    const clamp = () => {
+      let n = parseInt(amount.value || "1", 10);
+      if (!Number.isFinite(n) || n < 1) n = 1;
+      if (n > 99) n = 99;
+      amount.value = n;
+    };
+
+    up.onclick = () => { amount.value++; clamp(); };
+    down.onclick = () => { amount.value--; clamp(); };
+    amount.addEventListener("input", clamp);
+
+    arrows.appendChild(up);
+    arrows.appendChild(down);
+
+    amountWrap.appendChild(amount);
+    amountWrap.appendChild(arrows);
+
+
+    const btnPlus = document.createElement("button");
+    btnPlus.type = "button";
+    btnPlus.className = "btn-gold btn-ico btn-inc w-10 h-10";
+    btnPlus.innerHTML = "<span class='text-2xl leading-none'>+</span>";
+
+    const btnMinus = document.createElement("button");
+    btnMinus.type = "button";
+    btnMinus.className = "btn-gold btn-ico btn-dec w-10 h-10";
+    btnMinus.innerHTML = "<span class='text-2xl leading-none'>−</span>";
+
     const notes = document.createElement("textarea");
-    notes.className = "mt-3 w-80 md:w-96 h-32 bg-transparent text-white border-2 border-yellow-600 rounded-lg p-3 placeholder:opacity-70 overflow-y-auto no-scrollbar";
-    notes.placeholder = "ملاحظات"; notes.value = localStorage.getItem(NOTES_KEY(name)) || "";
+    notes.className = "w-full h-24 bg-transparent text-white border-2 border-yellow-600 rounded-lg p-3 placeholder:opacity-70 overflow-y-auto no-scrollbar";
+    notes.placeholder = "ملاحظات";
+    notes.value = localStorage.getItem(NOTES_KEY(name)) || "";
     notes.addEventListener("input", () => { localStorage.setItem(NOTES_KEY(name), notes.value); broadcast(); });
 
-    wrap.appendChild(label); wrap.appendChild(card); wrap.appendChild(notes); return wrap;
+    const readAmount = () => {
+      const n = parseInt(String(amount.value || "1"), 10);
+      if (!Number.isFinite(n) || n <= 0) return 1;
+      return Math.min(99, n);
+    };
+    const appendLine = (sign) => {
+      const cat = String(catSelect.value || "").trim();
+      const n = readAmount();
+      if (!cat) return;
+
+      const line = `${sign}${n} ${cat}`;
+      const target = targetSelect.value;
+
+      const selfPlayer  = name;
+      const enemyPlayer = pos === "left" ? player1 : player2;
+
+      const writeTo = (playerName) => {
+        const key = NOTES_KEY(playerName);
+        const base = String(localStorage.getItem(key) || "");
+        const next = base && base.trim().length
+          ? base.replace(/\s*$/, "") + "\n" + line
+          : line;
+        localStorage.setItem(key, next);
+      };
+
+      if (target === "self") {
+        writeTo(selfPlayer);
+      } else if (target === "enemy") {
+        writeTo(enemyPlayer);
+      } else if (target === "both") {
+        writeTo(selfPlayer);
+        writeTo(enemyPlayer);
+      }
+
+      // 🔁 الحل الجذري: إعادة رسم الواجهة كاملة
+      renderVsRow();
+      broadcast();
+    };
+
+
+
+    btnPlus.addEventListener("click", () => appendLine("+"));
+    btnMinus.addEventListener("click", () => appendLine("-"));
+
+    controls.appendChild(catSelect);
+    controls.appendChild(targetSelect);
+    controls.appendChild(amountWrap);
+    controls.appendChild(btnMinus);
+    controls.appendChild(btnPlus);
+    notesWrap.appendChild(controls);
+    notesWrap.appendChild(notes);
+
+    wrap.appendChild(label); wrap.appendChild(card); wrap.appendChild(notesWrap); return wrap;
   };
 
   const left  = side(player2, picks?.[player2]?.[round], "left");
