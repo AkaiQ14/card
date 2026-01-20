@@ -194,9 +194,4 @@ function confirmSelection() {
   }
 }
 
-
-
-
-
-
 window.confirmSelection = confirmSelection;
