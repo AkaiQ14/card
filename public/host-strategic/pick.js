@@ -1,6 +1,4 @@
 // public/host-strategic/pick.js
-const randomSound = new Audio("/sounds/random.mp3");
-randomSound.volume = 0.20; // اختياري
 
 const roundCount  = parseInt(localStorage.getItem("totalRounds") || "3", 10);
 const animeList   = JSON.parse(localStorage.getItem("animeList") || "[]");
@@ -196,36 +194,9 @@ function confirmSelection() {
   }
 }
 
-function randomSelect() {
-  // تشغيل الصوت
-  randomSound.currentTime = 0;
-  randomSound.play();
 
-  // إلغاء أي اختيار سابق
-  document.querySelectorAll("#boxGrid button").forEach(btn => {
-    const index = Number(btn.dataset.index);
-    if (selectedBoxes.includes(index)) {
-      toggleBox(index, btn);
-    }
-  });
-
-  // جميع الأرقام كما هي (بدون ترتيب/خلط)
-  const indices = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1);
-
-  // اختيار أرقام عشوائية فقط
-  while (selectedBoxes.length < roundCount && indices.length) {
-    const r = Math.floor(Math.random() * indices.length);
-    const index = indices.splice(r, 1)[0];
-
-    const btn = document.querySelector(
-      `#boxGrid button[data-index="${index}"]`
-    );
-    if (btn) toggleBox(index, btn);
-  }
-}
 
 
 
 
 window.confirmSelection = confirmSelection;
-window.randomSelect = randomSelect;
