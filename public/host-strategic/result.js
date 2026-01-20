@@ -203,6 +203,90 @@ function renderVsRow() {
     "زعيم",
     "مجموعة"
   ];
+
+  // ===== NEW: per-player quick counters + last selected persistence =====
+  const NOTE_STATE_KEY = (player) => `noteState:${player}`;
+  const QUICK_COUNTS_KEY = (player) => `quickCounts:${player}`;
+
+  function loadNoteState(player) {
+    try { return JSON.parse(localStorage.getItem(NOTE_STATE_KEY(player)) || "{}") || {}; }
+    catch { return {}; }
+  }
+  function saveNoteState(player, state) {
+    localStorage.setItem(NOTE_STATE_KEY(player), JSON.stringify(state || {}));
+  }
+
+  function loadQuickCounts(player) {
+    try { return JSON.parse(localStorage.getItem(QUICK_COUNTS_KEY(player)) || "{}") || {}; }
+    catch { return {}; }
+  }
+  function saveQuickCounts(player, obj) {
+    localStorage.setItem(QUICK_COUNTS_KEY(player), JSON.stringify(obj || {}));
+  }
+
+  // rebuild textarea: quick lines first + keep any manual notes below
+  function rebuildNotesText(player) {
+    const counts = loadQuickCounts(player);
+
+    const quickLines = NOTE_CATEGORIES
+      .map(cat => {
+        const v = Number(counts[cat] || 0);
+        if (!v) return null;
+        const sign = v > 0 ? "+" : "−"; // أو استخدم "-" لو تفضّل
+        return `${sign}${Math.abs(v)} ${cat}`;
+      })
+      .filter(Boolean);
+
+    const key = NOTES_KEY(player);
+    const base = String(localStorage.getItem(key) || "");
+
+    // احذف أي أسطر سريعة قديمة: +رقم فئة أو -رقم فئة
+    const restLines = base
+      .split("\n")
+      .filter(line => !/^[+\-−]\s*\d+\s+/.test(line.trim()))
+      .join("\n")
+      .trim();
+
+    const next = quickLines.length
+      ? (restLines ? quickLines.join("\n") + "\n" + restLines : quickLines.join("\n"))
+      : restLines;
+
+    localStorage.setItem(key, next);
+    return next;
+  }
+
+
+  function applyDelta(player, cat, delta) {
+    const counts = loadQuickCounts(player);
+    const cur = Number(counts[cat] || 0);
+    const next = cur + delta;
+
+    if (next === 0) delete counts[cat];
+    else counts[cat] = Math.max(-999, Math.min(999, next)); // حدود اختيارية
+
+    saveQuickCounts(player, counts);
+    return rebuildNotesText(player);
+  }
+
+
+  function removeNegativeLine(player, cat) {
+    const key = NOTES_KEY(player);
+    const base = String(localStorage.getItem(key) || "");
+
+    const cleaned = base
+      .split("\n")
+      .filter(line => {
+        const t = line.trim();
+        // احذف فقط السطر: -رقم <اسم الفئة>
+        return !new RegExp(`^-[ ]*\\d+[ ]+${cat}$`).test(t);
+      })
+      .join("\n")
+      .trim();
+
+    localStorage.setItem(key, cleaned);
+    return cleaned;
+  }
+
   const side = (name, mediaUrl, pos /* 'left' | 'right' */) => {
     const wrap = document.createElement("div"); wrap.className = "flex flex-col items-center";
     const label = document.createElement("div"); label.className = "text-yellow-300 font-extrabold text-xl mb-2"; label.textContent = name;
@@ -284,7 +368,6 @@ function renderVsRow() {
     amountWrap.appendChild(amount);
     amountWrap.appendChild(arrows);
 
-
     const btnPlus = document.createElement("button");
     btnPlus.type = "button";
     btnPlus.className = "btn-gold btn-ico btn-inc w-10 h-10";
@@ -301,49 +384,63 @@ function renderVsRow() {
     notes.value = localStorage.getItem(NOTES_KEY(name)) || "";
     notes.addEventListener("input", () => { localStorage.setItem(NOTES_KEY(name), notes.value); broadcast(); });
 
+    // ✅ restore last selected state for THIS player side (cat/target/amount)
+    const st = loadNoteState(name);
+    if (st && typeof st === "object") {
+      if (st.cat && NOTE_CATEGORIES.includes(st.cat)) catSelect.value = st.cat;
+      if (st.target) targetSelect.value = st.target;
+      if (st.amount) amount.value = String(st.amount);
+    }
+    clamp();
+
+    // ✅ keep saving selections so they don't reset after renderVsRow()
+    catSelect.addEventListener("change", () => saveNoteState(name, { ...loadNoteState(name), cat: catSelect.value }));
+    targetSelect.addEventListener("change", () => saveNoteState(name, { ...loadNoteState(name), target: targetSelect.value }));
+    amount.addEventListener("input", () => saveNoteState(name, { ...loadNoteState(name), amount: amount.value }));
+
     const readAmount = () => {
       const n = parseInt(String(amount.value || "1"), 10);
       if (!Number.isFinite(n) || n <= 0) return 1;
       return Math.min(99, n);
     };
-    const appendLine = (sign) => {
+
+    // ✅ NEW: arithmetic counter +/- (no duplicate lines; decreases remove)
+    const adjustCounter = (sign) => {
       const cat = String(catSelect.value || "").trim();
-      const n = readAmount();
       if (!cat) return;
 
-      const line = `${sign}${n} ${cat}`;
+      const n = readAmount();
+      const delta = sign === "+" ? n : -n;
       const target = targetSelect.value;
+
+      // persist last-used selection for this player side
+      saveNoteState(name, { cat: catSelect.value, target: targetSelect.value, amount: amount.value });
 
       const selfPlayer  = name;
       const enemyPlayer = pos === "left" ? player1 : player2;
 
-      const writeTo = (playerName) => {
-        const key = NOTES_KEY(playerName);
-        const base = String(localStorage.getItem(key) || "");
-        const next = base && base.trim().length
-          ? base.replace(/\s*$/, "") + "\n" + line
-          : line;
-        localStorage.setItem(key, next);
+      const updateOne = (playerName) => {
+        const txt = applyDelta(playerName, cat, delta);
+        // If this side belongs to the same player, update the visible textarea immediately
+        if (playerName === name) notes.value = txt;
       };
 
       if (target === "self") {
-        writeTo(selfPlayer);
+        updateOne(selfPlayer);
       } else if (target === "enemy") {
-        writeTo(enemyPlayer);
+        updateOne(enemyPlayer);
       } else if (target === "both") {
-        writeTo(selfPlayer);
-        writeTo(enemyPlayer);
+        updateOne(selfPlayer);
+        updateOne(enemyPlayer);
       }
 
-      // 🔁 الحل الجذري: إعادة رسم الواجهة كاملة
+      // redraw + broadcast (keeps UI synced)
       renderVsRow();
       broadcast();
     };
 
-
-
-    btnPlus.addEventListener("click", () => appendLine("+"));
-    btnMinus.addEventListener("click", () => appendLine("-"));
+    btnPlus.addEventListener("click", () => adjustCounter("+"));
+    btnMinus.addEventListener("click", () => adjustCounter("-"));
 
     controls.appendChild(catSelect);
     controls.appendChild(targetSelect);
