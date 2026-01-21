@@ -187,6 +187,7 @@ function renderVsRow() {
   const NOTE_CATEGORIES = [
     "عناصر",
     "سلاح",
+    "غير حي",
     "ساحر",
     "حيوان",
     "فضائي",
@@ -226,48 +227,42 @@ function renderVsRow() {
   }
 
   // rebuild textarea: quick lines first + keep any manual notes below
-  function rebuildNotesText(player) {
-    const counts = loadQuickCounts(player);
-
-    const quickLines = NOTE_CATEGORIES
-      .map(cat => {
-        const v = Number(counts[cat] || 0);
-        if (!v) return null;
-        const sign = v > 0 ? "+" : "−"; // أو استخدم "-" لو تفضّل
-        return `${sign}${Math.abs(v)} ${cat}`;
-      })
-      .filter(Boolean);
-
-    const key = NOTES_KEY(player);
-    const base = String(localStorage.getItem(key) || "");
-
-    // احذف أي أسطر سريعة قديمة: +رقم فئة أو -رقم فئة
-    const restLines = base
-      .split("\n")
-      .filter(line => !/^[+\-−]\s*\d+\s+/.test(line.trim()))
-      .join("\n")
-      .trim();
-
-    const next = quickLines.length
-      ? (restLines ? quickLines.join("\n") + "\n" + restLines : quickLines.join("\n"))
-      : restLines;
-
-    localStorage.setItem(key, next);
-    return next;
-  }
-
-
+  
   function applyDelta(player, cat, delta) {
-    const counts = loadQuickCounts(player);
-    const cur = Number(counts[cat] || 0);
-    const next = cur + delta;
+    const key = NOTES_KEY(player);
+    const base = String(localStorage.getItem(key) || "").replace(/\r/g, "");
+    const lines = base.split("\n").filter(Boolean);
 
-    if (next === 0) delete counts[cat];
-    else counts[cat] = Math.max(-999, Math.min(999, next)); // حدود اختيارية
+    let found = false;
+    const nextLines = [];
 
-    saveQuickCounts(player, counts);
-    return rebuildNotesText(player);
+    for (let line of lines) {
+      const m = line.match(/^([+\-])(\d+)\s+(.*)$/);
+      if (m && m[3] === cat) {
+        const cur = (m[1] === "-" ? -1 : 1) * parseInt(m[2], 10);
+        const next = cur + delta;
+
+        if (next !== 0) {
+          const sign = next > 0 ? "+" : "-";
+          nextLines.push(`${sign}${Math.abs(next)} ${cat}`);
+        }
+        found = true;
+      } else {
+        nextLines.push(line); // ✅ لا نلمس باقي السطور
+      }
+    }
+
+    // لو ما كان موجود أصلاً
+    if (!found && delta !== 0) {
+      const sign = delta > 0 ? "+" : "-";
+      nextLines.unshift(`${sign}${Math.abs(delta)} ${cat}`);
+    }
+
+    const result = nextLines.join("\n");
+    localStorage.setItem(key, result);
+    return result;
   }
+
 
 
   function removeNegativeLine(player, cat) {

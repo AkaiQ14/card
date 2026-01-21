@@ -21,7 +21,7 @@ const usedImages = new Set();
 const BOARD_SIZE = 20;
 
 // Per-box legendary probability (10%)
-const LEGENDARY_RATE = 0.1; // 10% حظ ليجندري
+const LEGENDARY_RATE = 0.1; // 10% لكل خانة
 
 const playerName = currentPlayer === 1 ? player1 : player2;
 instruction.textContent = `اللاعب ${playerName} اختر ${roundCount} بطاقات`;
@@ -82,30 +82,36 @@ async function loadAndRender() {
     }
 
     // Per-box roll for legendary
-    // ✅ 10% فقط أن تظهر أي Legendary في كامل اللوحة
-const showAnyLegendary = Math.random() < 0.10;
+    const combined = [];
 
-// كم Legendary داخل اللوحة إذا قررنا يظهر؟
-const legendaryCount = showAnyLegendary ? 1 : 0; // اجعله 2 إذا تبي نادر لكن أكثر
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      const rollLegendary = Math.random() < LEGENDARY_RATE;
 
-const combined = [];
+      let chosen;
 
-// اسحب Legendary (إن وجد)
-for (let i = 0; i < legendaryCount; i++) {
-  const chosen = popRandom(legendaryPool) || popRandom(normalPool);
-  if (chosen) combined.push(chosen);
-}
+      if (rollLegendary) {
+        // 10% → legendary
+        chosen = popRandom(legendaryPool);
 
-// كمّل الباقي Normal
-while (combined.length < BOARD_SIZE) {
-  const chosen = popRandom(normalPool) || popRandom(legendaryPool);
-  if (!chosen) break;
-  combined.push(chosen);
-}
+        // لو legendary خلص، اسحب normal بدلها
+        if (!chosen) {
+          chosen = popRandom(normalPool);
+        }
+      } else {
+        // 90% → normal
+        chosen = popRandom(normalPool);
 
-// خلط أماكنهم فقط (اختياري)
-shuffleInPlace(combined);
+        // لو normal خلص، اسحب legendary بدلها
+        if (!chosen) {
+          chosen = popRandom(legendaryPool);
+        }
+      }
 
+      // أمان إضافي (نادرًا يُستخدم)
+      if (!chosen) break;
+
+      combined.push(chosen);
+    }
 
     imageMap = {};
     for (let i = 1; i <= combined.length; i++) {
@@ -219,4 +225,3 @@ function confirmSelection() {
 
 window.confirmSelection = confirmSelection;
 window.randomSelect = randomSelect;
-

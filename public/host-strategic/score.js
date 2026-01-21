@@ -113,13 +113,29 @@ scoreBox.innerHTML = `
 `;
 
 function playAgain() {
+  const p1 = localStorage.getItem("player1");
+  const p2 = localStorage.getItem("player2");
+
   [
+    // مفاتيح اللعبة العامة
     "gameUsedImages","globalUsed","picks","scores","currentRound","round",
     "player1Picks","player2Picks","player1Filenames","player2Filenames",
-    "player1Animes","player2Animes","usedImages","animeList","gameID"
-  ].forEach(k => localStorage.removeItem(k));
+    "player1Animes","player2Animes","usedImages","animeList","gameID",
+
+    // 👇 مفاتيح الملاحظات والإضافات الحسابية (RESET كامل)
+    p1 && `notes:${p1}`,
+    p2 && `notes:${p2}`,
+    p1 && `notesManual:${p1}`,
+    p2 && `notesManual:${p2}`,
+    p1 && `quickCounts:${p1}`,
+    p2 && `quickCounts:${p2}`,
+    p1 && `noteState:${p1}`,
+    p2 && `noteState:${p2}`
+  ].filter(Boolean).forEach(k => localStorage.removeItem(k));
+
   location.href = "start.html";
 }
+
 
 // === Add 1 tournament point to winner (leaderboard) ===
 async function addPoint(playerName) {
