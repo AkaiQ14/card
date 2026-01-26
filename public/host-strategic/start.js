@@ -1,512 +1,271 @@
 // public/host-strategic/start.js
-
 const socket = io();
 let createdGameID = null;
 
-socket.on("diagEvent", ({ message }) =>
-  console.log("📊 Server diag:", message)
-);
+socket.on("diagEvent", ({ message }) => console.log("📊 Server diag:", message));
 
 socket.emit("createGame");
-
 socket.on("gameCreated", (gameID) => {
   createdGameID = gameID;
   localStorage.setItem("gameID", gameID);
   sendGameMeta();
 });
 
+// Single fixed source now: rarities = normal + legendary
+const allAnimeOptions = ["Rarities (Normal + Legendary)"];
 
-/* =================== CONSTANTS =================== */
-
-const ABILITIES_MASTER_KEY = "abilitiesMasterList";
+/* ========= Abilities: server is source of truth ========= */
+const ABILITIES_MASTER_KEY = "abilitiesMasterList"; // local mirror only
 
 const P1_ABILITIES_KEY = "player1Abilities";
 const P2_ABILITIES_KEY = "player2Abilities";
 
-
-/* =================== GAME META =================== */
-
 function sendGameMeta() {
-  const gameID =
-    localStorage.getItem("gameID") || createdGameID;
-
+  const gameID = localStorage.getItem("gameID") || createdGameID;
   if (!gameID) return;
+  const count = !!document.getElementById("countLeaderboard")?.checked;
 
-  const count =
-    !!document.getElementById("countLeaderboard")?.checked;
-
-  localStorage.setItem(
-    "countInLeaderboard",
-    String(count)
-  );
-
-  socket.emit("setGameMeta", {
-    gameID,
-    mode: "strategic",
-    countLeaderboard: count,
-  });
+  localStorage.setItem("countInLeaderboard", String(count));
+  socket.emit("setGameMeta", { gameID, mode: "strategic", countLeaderboard: count });
 }
 
 document.addEventListener("change", (e) => {
-  if (e.target?.id === "countLeaderboard") {
-    sendGameMeta();
-  }
+  if (e.target && e.target.id === "countLeaderboard") sendGameMeta();
 });
 
-
-/* =================== LOCAL STORAGE =================== */
-
+// ===== Local mirror helpers =====
 function loadMasterAbilities() {
   try {
-    const raw =
-      localStorage.getItem(ABILITIES_MASTER_KEY);
-
+    const raw = localStorage.getItem(ABILITIES_MASTER_KEY);
     const arr = raw ? JSON.parse(raw) : [];
-
     return Array.isArray(arr) ? arr : [];
-
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
-
 function saveMasterAbilities(list) {
-  const clean = list
-    .map((s) => String(s).trim())
-    .filter(Boolean);
-
-  localStorage.setItem(
-    ABILITIES_MASTER_KEY,
-    JSON.stringify(clean)
-  );
-
+  const clean = list.map(s => String(s).trim()).filter(Boolean);
+  localStorage.setItem(ABILITIES_MASTER_KEY, JSON.stringify(clean));
   return clean;
 }
 
-
-/* =================== FETCH ABILITIES =================== */
-
+// ===== Server fetchers =====
 async function fetchServerAbilities() {
   try {
-    const r = await fetch("../abilities.json");
-
+    const r = await fetch("/api/abilities");
     const data = await r.json();
-
-    const list = Array.isArray(data?.abilities)
-      ? data.abilities
-      : [];
-
+    const list = Array.isArray(data?.abilities) ? data.abilities : [];
     saveMasterAbilities(list);
-
     renderAbilityList();
-
-    console.log("Loaded abilities:", list.length);
-
   } catch (e) {
-    console.warn("[abilities]", e.message);
+    console.warn("[abilities] fetch failed:", e.message);
     renderAbilityList();
   }
 }
-
-
-/* =================== SERVER ACTIONS =================== */
-
 async function addAbilityOnServer(text) {
   const r = await fetch("/api/abilities/add", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ text }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text })
   });
-
   if (!r.ok) throw new Error("add failed");
-
   const data = await r.json();
-
-  const list = Array.isArray(data?.abilities)
-    ? data.abilities
-    : [];
-
+  const list = Array.isArray(data?.abilities) ? data.abilities : [];
   saveMasterAbilities(list);
-
   renderAbilityList();
 }
-
 async function deleteAbilityOnServer(index) {
-  const r = await fetch(
-    `/api/abilities/${index}`,
-    { method: "DELETE" }
-  );
-
+  const r = await fetch(`/api/abilities/${index}`, { method: "DELETE" });
   if (!r.ok) throw new Error("delete failed");
-
   const data = await r.json();
-
-  const list = Array.isArray(data?.abilities)
-    ? data.abilities
-    : [];
-
+  const list = Array.isArray(data?.abilities) ? data.abilities : [];
   saveMasterAbilities(list);
-
   renderAbilityList();
 }
 
-
-/* =================== RENDER LIST =================== */
-
+// ===== UI list rendering =====
 function renderAbilityList() {
-  const ul =
-    document.getElementById("abilityList");
-
+  const ul = document.getElementById("abilityList");
   if (!ul) return;
-
   const list = loadMasterAbilities();
-
   ul.innerHTML = "";
-
   list.forEach((text, idx) => {
-
     const li = document.createElement("li");
+    li.className = "flex items-center justify-between gap-2 bg-gray-800 rounded px-2 py-1";
 
-    li.className =
-      "flex items-center justify-between gap-2 bg-gray-800 rounded px-2 py-1";
-
-    const span =
-      document.createElement("span");
-
+    const span = document.createElement("span");
     span.textContent = text;
-
     span.className = "opacity-90";
 
-
-    const del =
-      document.createElement("button");
-
+    const del = document.createElement("button");
     del.textContent = "✕";
-
-    del.className =
-      "px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-700";
-
+    del.title = "حذف (يحفظ في الملف)";
+    del.className = "px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-700";
     del.onclick = async () => {
-
       const arr = loadMasterAbilities();
-
       if (arr.length <= 6) {
-        alert("يجب بقاء ٦ قدرات على الأقل");
+        alert("لا يمكن حذف المزيد، يجب أن تبقى ٦ قدرات على الأقل.");
         return;
       }
-
-      if (!confirm(`حذف:\n${text}?`)) return;
-
+      const ok = confirm(`هل تريد حذف القدرة التالية نهائيًا من القائمة؟\n\n"${text}"`);
+      if (!ok) return;
       try {
         await deleteAbilityOnServer(idx);
-      } catch {
-        alert("تعذر الحذف");
+      } catch (e) {
+        console.error(e);
+        alert("تعذر حذف القدرة من الملف.");
       }
     };
 
-    li.append(span, del);
-
+    li.appendChild(span);
+    li.appendChild(del);
     ul.appendChild(li);
   });
 }
 
-
-/* =================== ADD / RESET =================== */
-
 async function addAbilityFromInput() {
-  const input =
-    document.getElementById("newAbilityInput");
-
-  const val = input.value.trim();
-
+  const input = document.getElementById("newAbilityInput");
+  const val = (input?.value || "").trim();
   if (!val) return;
-
   try {
-    await addAbilityOnServer(val);
+    await addAbilityOnServer(val); // persists to abilities.json
     input.value = "";
-  } catch {
-    alert("فشل الحفظ");
+  } catch (e) {
+    console.error(e);
+    alert("تعذر حفظ القدرة الجديدة.");
   }
 }
 
+// read from abilities.json (server)
 function resetAbilitiesToDefault() {
-  fetchServerAbilities();
+  fetchServerAbilities(); // refresh local mirror from file
 }
 
-
-/* =================== DEALING =================== */
-
+// ===== dealing =====
 function sampleUnique(arr, count) {
   const a = arr.slice();
-
-  for (let i = 0; i < count; i++) {
-
-    const j =
-      i + Math.floor(Math.random() * (a.length - i));
-
+  for (let i = 0; i < Math.min(count, a.length); i++) {
+    const j = i + Math.floor(Math.random() * (a.length - i));
     [a[i], a[j]] = [a[j], a[i]];
   }
-
-  return a.slice(0, count);
+  return a.slice(0, Math.min(count, a.length));
 }
-
-
-/* ====== DEAL + MODAL ====== */
 
 function dealAbilitiesToPlayers() {
-
   const master = loadMasterAbilities();
-
-  const unique = [...new Set(master)];
+  const unique = Array.from(new Set(master));
+  const status = document.getElementById("dealStatus");
 
   if (unique.length < 6) {
-    document.getElementById("dealStatus").textContent =
-      "يجب وجود ٦ قدرات على الأقل";
+    status.textContent = "يجب أن تحتوي القائمة على ٦ قدرات على الأقل.";
     return;
   }
 
+  const pickedForP1 = sampleUnique(unique, 3);
+  const remaining = unique.filter((x) => !pickedForP1.includes(x));
+  const pickedForP2 = sampleUnique(remaining, 3);
 
-  const p1 = sampleUnique(unique, 3);
+  const wrap = (arr) => arr.map((text) => ({ text, used: false }));
 
-  const rest =
-    unique.filter((x) => !p1.includes(x));
+  localStorage.setItem(P1_ABILITIES_KEY, JSON.stringify(wrap(pickedForP1)));
+  localStorage.setItem(P2_ABILITIES_KEY, JSON.stringify(wrap(pickedForP2)));
 
-  const p2 = sampleUnique(rest, 3);
-
-
-  // Save
-  localStorage.setItem(
-    P1_ABILITIES_KEY,
-    JSON.stringify(p1.map(t => ({ text: t })))
-  );
-
-  localStorage.setItem(
-    P2_ABILITIES_KEY,
-    JSON.stringify(p2.map(t => ({ text: t })))
-  );
-
-
-  // Show Modal
-  openAbilitiesModal(p1, p2);
+  document.getElementById("p1AbilitiesPreview").innerHTML = pickedForP1.map((t) => `<li>${t}</li>`).join("");
+  document.getElementById("p2AbilitiesPreview").innerHTML = pickedForP2.map((t) => `<li>${t}</li>`).join("");
 }
 
-
-/* =================== MODAL =================== */
-
-function openAbilitiesModal(p1, p2) {
-
-  const modal =
-    document.getElementById("abilitiesModal");
-
-  modal.classList.remove("hidden");
-  modal.classList.add("flex");
-
-
-  // Names
-  document.getElementById("modalP1Name").textContent =
-    localStorage.getItem("player1");
-
-  document.getElementById("modalP2Name").textContent =
-    localStorage.getItem("player2");
-
-
-  // Lists
-  document.getElementById("modalP1Abilities").innerHTML =
-    p1.map(a => `<li>${a}</li>`).join("");
-
-  document.getElementById("modalP2Abilities").innerHTML =
-    p2.map(a => `<li>${a}</li>`).join("");
-}
-
-
-function closeAbilitiesModal() {
-
-  const modal =
-    document.getElementById("abilitiesModal");
-
-  modal.classList.add("hidden");
-  modal.classList.remove("flex");
-}
-
-
-/* =================== FLOW =================== */
-
+/* ========= Flow ========= */
 function showAnimeDropdowns() {
+  const p1 = document.getElementById("p1").value.trim();
+  const p2 = document.getElementById("p2").value.trim();
+  const roundCount = parseInt(document.getElementById("roundCount").value, 10);
 
-  const p1 =
-    document.getElementById("p1").value.trim();
-
-  const p2 =
-    document.getElementById("p2").value.trim();
-
-  const round =
-    parseInt(document.getElementById("roundCount").value);
-
-
-  if (!p1 || !p2 || !round) {
-    alert("املأ جميع الحقول");
+  if (!p1 || !p2 || isNaN(roundCount) || roundCount <= 0) {
+    alert("الرجاء إدخال جميع الحقول بشكل صحيح.");
     return;
   }
-
 
   localStorage.setItem("player1", p1);
   localStorage.setItem("player2", p2);
-  localStorage.setItem("totalRounds", round);
+  localStorage.setItem("totalRounds", roundCount.toString());
 
+  ["usedImages","player1Picks","player2Picks","currentPlayer",P1_ABILITIES_KEY,P2_ABILITIES_KEY].forEach((k) => localStorage.removeItem(k));
 
-  [
-    "usedImages",
-    "player1Picks",
-    "player2Picks",
-    "currentPlayer",
-    P1_ABILITIES_KEY,
-    P2_ABILITIES_KEY
-  ].forEach(k =>
-    localStorage.removeItem(k)
-  );
+  document.getElementById("inputPhase").classList.add("hidden");
+  document.getElementById("animePhase").classList.remove("hidden");
 
-
-  document.getElementById("inputPhase")
-    .classList.add("hidden");
-
-  document.getElementById("animePhase")
-    .classList.remove("hidden");
-
-  // Hide main logo in anime phase
-  const logo = document.getElementById("mainLogo");
-  if (logo) logo.classList.add("hidden");
-
-
-  const select =
-    document.getElementById("singleAnimeSelect");
-
+  const select = document.getElementById("singleAnimeSelect");
   select.innerHTML = "";
+  const option = document.createElement("option");
+  option.value = "rarities";
+  option.textContent = "Rarities (Normal + Legendary)";
+  select.appendChild(option);
+  select.value = "rarities";
 
-  const opt =
-    document.createElement("option");
+  document.getElementById("p1NamePreview").textContent = `${p1} — القدرات`;
+  document.getElementById("p2NamePreview").textContent = `${p2} — القدرات`;
 
-  opt.value = "rarities";
-  opt.textContent = "Rarities";
-
-  select.appendChild(opt);
-
-
+  // Abilities UI (server-driven)
   fetchServerAbilities();
 
+  const addBtn = document.getElementById("addAbilityBtn");
+  if (addBtn) addBtn.onclick = addAbilityFromInput;
 
-  document.getElementById("addAbilityBtn").onclick =
-    addAbilityFromInput;
+  const resetBtn = document.getElementById("resetAbilitiesBtn");
+  if (resetBtn) resetBtn.onclick = resetAbilitiesToDefault;
 
-  document.getElementById("resetAbilitiesBtn").onclick =
-    resetAbilitiesToDefault;
-
-  document.getElementById("dealAbilitiesBtn").onclick =
-    dealAbilitiesToPlayers;
-
-
-  document.getElementById("closeAbilitiesModal").onclick =
-    closeAbilitiesModal;
-
-  document.getElementById("confirmAbilitiesBtn").onclick =
-    closeAbilitiesModal;
+  const dealBtn = document.getElementById("dealAbilitiesBtn");
+  if (dealBtn) dealBtn.onclick = dealAbilitiesToPlayers;
 }
 
-
-/* =================== START GAME =================== */
-
 function startGame() {
+  localStorage.removeItem("gameUsedImages");
 
-  const p1 =
-    JSON.parse(localStorage.getItem(P1_ABILITIES_KEY) || "[]");
+  const selectedAnime = document.getElementById("singleAnimeSelect")?.value || "rarities";
+  const roundCount = parseInt(localStorage.getItem("totalRounds") || "3", 10);
+  const countFlag = !!document.getElementById("countLeaderboard")?.checked;
 
-  const p2 =
-    JSON.parse(localStorage.getItem(P2_ABILITIES_KEY) || "[]");
-
-  if (p1.length !== 3 || p2.length !== 3) {
-    alert("وزع القدرات أولاً");
+  const p1Abs = JSON.parse(localStorage.getItem(P1_ABILITIES_KEY) || "[]");
+  const p2Abs = JSON.parse(localStorage.getItem(P2_ABILITIES_KEY) || "[]");
+  if (p1Abs.length !== 3 || p2Abs.length !== 3) {
+    alert("يجب توزيع ٣ قدرات لكل لاعب قبل بدء اللعبة.");
     return;
   }
 
+  const animeList = Array(roundCount).fill(selectedAnime || "rarities");
 
-  const round =
-    parseInt(localStorage.getItem("totalRounds"));
+  const gameID = localStorage.getItem("gameID");
+  const player1 = localStorage.getItem("player1");
+  const player2 = localStorage.getItem("player2");
 
-  const anime =
-    document.getElementById("singleAnimeSelect").value;
+  localStorage.setItem("animeList", JSON.stringify(animeList));
+  localStorage.setItem("round", "0");
+  localStorage.setItem("usedImages", "[]");
+  localStorage.setItem("currentPlayer", "1");
+  localStorage.setItem("player1Picks", JSON.stringify([]));
+  localStorage.setItem("player2Picks", JSON.stringify([]));
+  localStorage.setItem("player1Filenames", JSON.stringify([]));
+  localStorage.setItem("player2Filenames", JSON.stringify([]));
+  localStorage.setItem("player1Animes", JSON.stringify([]));
+  localStorage.setItem("player2Animes", JSON.stringify([]));
 
-  const gameID =
-    localStorage.getItem("gameID");
-
-  const player1 =
-    localStorage.getItem("player1");
-
-  const player2 =
-    localStorage.getItem("player2");
-
-
-  const animeList =
-    Array(round).fill(anime);
-
-
-  socket.emit("setGameMeta", {
-    gameID,
-    mode: "strategic"
-  });
-
-  socket.emit("manualAddPlayers", {
-    gameID,
-    playerNames: [player1, player2]
-  });
-
-  socket.emit("setAnimeList", {
-    gameID,
-    animeList
-  });
+  socket.emit("setGameMeta", { gameID, mode: "strategic", countLeaderboard: countFlag });
+  socket.emit("manualAddPlayers", { gameID, playerNames: [player1, player2] });
+  socket.emit("setAnimeList", { gameID, animeList });
 
   socket.emit("setAbilities", {
     gameID,
     abilities: {
-      [player1]: p1.map(a => a.text),
-      [player2]: p2.map(a => a.text),
-    }
+      [player1]: p1Abs.map(a => a.text),
+      [player2]: p2Abs.map(a => a.text),
+    },
   });
 
+  const base = `${window.location.origin}/host-strategic/order.html`;
+  console.log("Player 1 link:", `${base}?game=${gameID}&player=player1&name=${encodeURIComponent(player1)}`);
+  console.log("Player 2 link:", `${base}?game=${gameID}&player=player2&name=${encodeURIComponent(player2)}`);
 
   window.location.href = "pick.html";
 }
 
-
-/* =================== EXPORT =================== */
-
+// expose for inline handlers
 window.showAnimeDropdowns = showAnimeDropdowns;
 window.startGame = startGame;
-
-// ===== Modal Continue Button =====
-
-document.addEventListener("DOMContentLoaded", () => {
-
-  const confirmBtn = document.getElementById("confirmAbilitiesBtn");
-
-  if (confirmBtn) {
-    confirmBtn.onclick = () => {
-
-      // تأكد أن القدرات موزعة
-      const p1 = JSON.parse(localStorage.getItem(P1_ABILITIES_KEY) || "[]");
-      const p2 = JSON.parse(localStorage.getItem(P2_ABILITIES_KEY) || "[]");
-
-      if (p1.length !== 3 || p2.length !== 3) {
-        alert("يجب توزيع القدرات أولاً.");
-        return;
-      }
-
-      // اغلاق النافذة
-      document.getElementById("abilitiesModal").classList.add("hidden");
-
-      // الانتقال للصفحة التالية
-      window.location.href = "pick.html";
-    };
-  }
-
-});

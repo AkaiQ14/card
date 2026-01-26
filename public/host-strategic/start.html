@@ -1,718 +1,106 @@
-      <!DOCTYPE html>
-      <html lang="ar" dir="rtl">
-      <head>
-      <meta charset="UTF-8">
-      <title>QG14 Card Clash</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-      <script src="https://cdn.tailwindcss.com"></script>
-      <script src="/socket.io/socket.io.js"></script>
-
-      <style>
-
-        /* RESET PAGE */
-        html, body {
-          width: 100%;
-          height: 100%;
-          margin: 0;
-          padding: 0;
-          overflow-x: hidden;
-        }
-
-
-      /* ===== Fonts & Base ===== */
-      body {
-        font-family: "Cairo", system-ui, sans-serif;
-      }
-
-      /* ===== Background ===== */
-      .bg-game {
-        background:
-          linear-gradient(180deg,#3f0d1c,#1a050b),
-          radial-gradient(circle at top,rgba(234,172,87,.12),transparent 60%);
-      }
-
-      /* ===== Main Card ===== */
-      .game-card {
-        background: linear-gradient(180deg,#4b0e1f,#2a0712);
-        border: 1px solid rgba(234,172,87,.4);
-        border-radius: 22px;
-        box-shadow:
-          0 25px 50px rgba(0,0,0,.6),
-          inset 0 0 30px rgba(255,255,255,.02);
-        padding: 32px 28px;
-        animation: fade .8s ease;
-      }
-
-      @keyframes fade {
-        from {opacity:0; transform:translateY(20px)}
-        to {opacity:1; transform:none}
-      }
-
-      /* ===== Inputs ===== */
-      .game-input {
-        background: #0f1420;
-        border: 1px solid rgba(255,255,255,.08);
-        border-radius: 12px;
-        padding: 12px 14px;
-        color: #fff;
-        transition: .25s;
-      }
-
-      .game-input:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 2px rgba(59,130,246,.25);
-      }
-
-      .game-input:hover {
-        border-color: #eaac57;
-      }
-
-      /* ===== Section Title ===== */
-      .section-title {
-        font-size: .85rem;
-        color: #f3c77a;
-        margin-bottom: 6px;
-        font-weight: 600;
-      }
-
-      /* ===== Premium Checkbox Button ===== */
-      .check-btn {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-
-        padding: 8px 14px;
-        border-radius: 10px;
-
-        background: rgba(255,255,255,.05);
-        border: 1px solid rgba(255,255,255,.15);
-
-        font-size: 0.85rem;
-        font-weight: 600;
-
-        cursor: pointer;
-        user-select: none;
-
-        transition: .25s;
-      }
-
-      .check-btn input {
-        display: none;
-      }
-
-      .check-btn .icon {
-        width: 16px;
-        height: 16px;
-        border-radius: 4px;
-
-        border: 1.5px solid rgba(255,255,255,.5);
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        font-size: 12px;
-        opacity: .5;
-
-        transition: .25s;
-      }
-
-      .check-btn input:checked + .icon {
-        background: linear-gradient(135deg,#eaac57,#c48a3f);
-        border-color: #eaac57;
-        color: #111;
-        opacity: 1;
-
-        box-shadow: 0 0 10px rgba(234,172,87,.6);
-      }
-
-      .check-btn input:checked ~ span {
-        color: #f3c77a;
-      }
-
-      .check-btn:hover {
-        background: rgba(255,255,255,.08);
-        border-color: #eaac57;
-      }
-
-      /* ===== Start Button ===== */
-      .start-btn {
-        background: linear-gradient(135deg,#5a1226,#2f0815);
-        border: 1px solid rgba(234,172,87,.6);
-
-        border-radius: 14px;
-        padding: 14px;
-
-        font-weight: 700;
-        letter-spacing: .5px;
-        font-size: 1rem;
-
-        color: #f3c77a;
-
-        transition: .25s;
-      }
-
-        .start-btn:hover {
-          background: linear-gradient(135deg,#6b1530,#3a0a1a);
-
-          box-shadow:
-            0 0 12px rgba(234,172,87,.45),
-            0 0 24px rgba(234,172,87,.2),
-            inset 0 0 6px rgba(255,255,255,.05);
-
-          transform: scale(1.03);
-        }
-
-
-      .start-btn:active {
-        transform: scale(.97);
-      }
-
-        /* ===== Anime Phase Card ===== */
-
-        .anime-card {
-          background: linear-gradient(180deg,#4b0e1f,#2a0712);
-          border: 1px solid rgba(234,172,87,.45);
-          border-radius: 14px;
-
-          box-shadow:
-            0 20px 45px rgba(0,0,0,.6),
-            inset 0 0 20px rgba(255,255,255,.03);
-
-          padding: 28px 26px;
-
-          animation: fade .7s ease;
-        }
-
-        /* Section Box */
-        .anime-box {
-          background: rgba(0,0,0,.35);
-          border: 1px solid rgba(255,255,255,.08);
-          border-radius: 8px;
-          padding: 14px;
-        }
-
-        /* Anime Buttons */
-        .anime-btn {
-          background: linear-gradient(135deg,#5a1226,#2f0815);
-          border: 1px solid rgba(234,172,87,.5);
-
-          color: #f3c77a;
-          font-weight: 600;
-
-          padding: 10px 16px;
-          border-radius: 8px;
-
-          transition: .25s;
-        }
-
-        .anime-btn:hover {
-          box-shadow: 0 0 12px rgba(234,172,87,.4);
-          transform: translateY(-1px);
-        }
-
-        /* Deal Button (Burgundy Gold) */
-
-        .deal-btn {
-          background: linear-gradient(135deg,#5a1226,#2f0815);
-          border: 1px solid rgba(234,172,87,.55);
-
-          color: #f3c77a;
-          font-weight: 700;
-
-          padding: 11px 20px;
-          border-radius: 10px;
-
-          letter-spacing: .3px;
-
-          transition: .25s;
-        }
-
-        .deal-btn:hover {
-          background: linear-gradient(135deg,#6b1530,#3a0a1a);
-
-          box-shadow:
-            0 0 12px rgba(234,172,87,.45),
-            0 0 22px rgba(234,172,87,.25);
-
-          transform: scale(1.04);
-        }
-
-        .deal-btn:active {
-          transform: scale(.96);
-        }
-
-
-        /* Start Button (Final) */
-        .start-game-btn {
-          background: linear-gradient(135deg,#5a1226,#2f0815);
-          border: 1px solid rgba(234,172,87,.6);
-
-          color: #f3c77a;
-          font-size: 1.05rem;
-          font-weight: 700;
-
-          padding: 14px;
-          border-radius: 10px;
-
-          transition: .25s;
-        }
-
-        .start-game-btn:hover {
-          box-shadow: 0 0 16px rgba(234,172,87,.45);
-          transform: scale(1.02);
-        }
-
-        /* ===== Ability List Panel ===== */
-
-        .ability-panel {
-          background: linear-gradient(180deg,#2a0712,#16040a);
-          border: 1px solid rgba(234,172,87,.35);
-          border-radius: 12px;
-
-          box-shadow:
-            inset 0 0 25px rgba(0,0,0,.6),
-            0 0 25px rgba(0,0,0,.4);
-
-          padding: 12px 10px;
-        }
-
-        /* List */
-        .ability-panel ul {
-          max-height: 180px;
-          overflow-y: auto;
-          padding-left: 6px;
-        }
-
-        /* Scrollbar */
-        .ability-panel ul::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .ability-panel ul::-webkit-scrollbar-track {
-          background: rgba(0,0,0,.4);
-          border-radius: 10px;
-        }
-
-        .ability-panel ul::-webkit-scrollbar-thumb {
-          background: linear-gradient(180deg,#eaac57,#c48a3f);
-          border-radius: 10px;
-        }
-
-        /* Item */
-        .ability-item {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-
-          background: rgba(255,255,255,.04);
-          border: 1px solid rgba(255,255,255,.08);
-
-          padding: 8px 10px;
-          border-radius: 8px;
-
-          transition: .2s;
-        }
-
-        .ability-item:hover {
-          background: rgba(234,172,87,.08);
-          border-color: rgba(234,172,87,.5);
-        }
-
-        /* Text */
-        .ability-text {
-          font-size: .8rem;
-          opacity: .95;
-          line-height: 1.4;
-        }
-
-        /* Delete Button */
-        .ability-del {
-          background: rgba(220,38,38,.9);
-          color: white;
-
-          border-radius: 6px;
-          width: 26px;
-          height: 26px;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          font-size: 14px;
-          font-weight: bold;
-
-          transition: .2s;
-        }
-
-        .ability-del:hover {
-          background: #dc2626;
-          box-shadow: 0 0 10px rgba(220,38,38,.5);
-        }
-
-        /* ===== Modal Overlay Blur ===== */
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-
-          background: transparent;
-
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-
-          z-index: 99999;
-        }
-        
-        /* ===== Modal Animation ===== */
-        @keyframes modalPop {
-          from {
-            opacity: 0;
-            transform: scale(0.85) translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-
-        /* Modal Box Animation */
-        .modal-box {
-          animation: modalPop .4s ease-out;
-        }
-
-        /* Player Cards Animation */
-        @keyframes cardFade {
-          from {
-            opacity: 0;
-            transform: translateY(25px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .player-card {
-          animation: cardFade .5s ease forwards;
-        }
-
-        .player-card.delay {
-          animation-delay: .15s;
-        }
-
-
-
-
-      </style>
-      </head>
-
-      <body class="bg-game min-h-screen flex items-center justify-center text-white">
-
-        <div class="w-full max-w-2xl -mt-32">
-
-        <!-- Floating Logo Above Card -->
-
-          <div id="mainLogo" class="flex justify-center mb-3 relative z-30">
-            <img src="/images/qg14.png"
-                 class="h-56 md:h-60 drop-shadow-2xl transition duration-300 hover:scale-105">
-          </div>
-
-      <div id="inputPhase" class="game-card space-y-5 -mt-10">
-
-
-        <!-- Content (Moved Up) -->
-        <div class="-mt-6 space-y-5">
-
-          <!-- Player 1 -->
-          <div>
-            <div class="section-title">اللاعب الأول</div>
-            <input id="p1"
-                   class="game-input w-full text-right"
-                   placeholder="أدخل الاسم">
-          </div>
-
-          <!-- Player 2 -->
-          <div>
-            <div class="section-title">اللاعب الثاني</div>
-            <input id="p2"
-                   class="game-input w-full text-right"
-                   placeholder="أدخل الاسم">
-          </div>
-
-          <!-- Rounds -->
-          <div>
-            <div class="section-title">عدد الجولات</div>
-            <select id="roundCount"
-                    class="game-input w-full text-right">
-
-              <option value="">اختر</option>
-              <option>1</option>
-              <option>3</option>
-              <option>5</option>
-              <option>7</option>
-              <option>9</option>
-              <option selected>11</option>
-
-            </select>
-          </div>
-
-          <!-- Checkbox -->
-          <label class="check-btn w-full">
-
-            <span>احتساب في لوحة المتصدرين</span>
-
-            <div class="flex items-center gap-2">
-
-              <input id="countLeaderboard" type="checkbox">
-
-              <span class="icon">✔</span>
-
-            </div>
-
-          </label>
-
-          <!-- Button -->
-          <button onclick="showAnimeDropdowns()"
-                  class="start-btn w-full">
-
-            متابعة
-
-          </button>
-
-        </div>
-
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-[#4B0E1F] text-white min-h-screen flex items-center justify-center p-6">
+  <div class="w-full max-w-2xl space-y-6">
+    <h1 class="text-4xl font-bold text-center">QG14 Card Clash</h1>
+
+    <div id="inputPhase" class="space-y-4">
+      <div>
+        <label class="block mb-1 text-right">اللاعب الأول</label>
+        <input id="p1" class="w-full p-2 rounded bg-gray-800 text-white text-right" placeholder="الاسم الأول" />
       </div>
 
-        <!-- ================= ANIME PHASE ================= -->
-
-        <div id="animePhase" class="hidden max-w-2xl mx-auto">
-
-          <div class="anime-card space-y-6 mt-28">
-
-
-            <!-- Title -->
-            <div class="text-center">
-              <h2 class="text-2xl font-bold tracking-wide text-[#f3c77a]">
-                إعدادات المباراة
-              </h2>
-            </div>
-
-
-            <!-- Anime -->
-            <div class="anime-box space-y-2">
-
-              <label class="text-sm opacity-80 block text-right">
-                الأنمي
-              </label>
-
-              <select id="singleAnimeSelect"
-                class="game-input w-full text-right">
-
-                <option value="wildcards" selected>
-                  Wild Cards
-                </option>
-
-              </select>
-
-            </div>
-
-            <!-- ================= Abilities Modal ================= -->
-
-            <div id="abilitiesModal"
-              class="fixed top-0 left-0 w-screen h-screen
-                     modal-overlay hidden
-                     flex items-center justify-center
-                     z-[9999]">
-
-
-
-                <div
-                  class="bg-[#1a1a1a] rounded-xl modal-box
-                         border border-[#eaac57]/40
-                         shadow-2xl
-                         w-[90%] max-w-xl
-                         p-6 space-y-5
-                         relative">
-
-
-
-                <!-- Title -->
-                <h3 class="text-xl font-bold text-center text-[#eaac57]">
-                  توزيع القدرات
-                </h3>
-
-
-                <!-- Players -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-
-                  <!-- Player 1 -->
-                    <div
-                      class="bg-gradient-to-b from-[#4b0e1f] to-[#2a0712]
-                             rounded-lg p-3
-                             border border-[#eaac57]/40
-                             shadow-inner">
-
-                    <p class="text-center font-semibold mb-2">
-                      <span id="modalP1Name">اللاعب الأول</span>
-                    </p>
-
-                    <ul id="modalP1Abilities"
-                      class="list-disc pr-6 space-y-1 text-sm">
-                    </ul>
-
-                  </div>
-
-
-                  <!-- Player 2 -->
-                  <div
-                    class="bg-gradient-to-b from-[#4b0e1f] to-[#2a0712]
-                           rounded-lg p-3
-                           border border-[#eaac57]/40
-                           shadow-inner">
-
-
-                    <p class="text-center font-semibold mb-2">
-                      <span id="modalP2Name">اللاعب الثاني</span>
-                    </p>
-
-                    <ul id="modalP2Abilities"
-                      class="list-disc pr-6 space-y-1 text-sm">
-                    </ul>
-
-                  </div>
-
-                </div>
-
-
-                <!-- Actions -->
-                <div class="flex justify-center pt-3">
-
-                  <button id="confirmAbilitiesBtn"
-                    class="px-8 py-2 rounded-lg
-                           bg-green-600 hover:bg-green-700
-                           shadow-lg font-bold">
-
-                    متابعة
-
-                  </button>
-
-                </div>
-
-              </div>
-
-            </div>
-
-
-
-            <!-- Abilities -->
-            <div class="anime-box space-y-3">
-
-              <label class="text-sm opacity-80 block text-right">
-                القدرات
-              </label>
-
-              <div class="flex flex-col md:flex-row gap-2">
-
-                <input id="newAbilityInput"
-                  type="text"
-                  placeholder="أضف قدرة جديدة..."
-                  class="game-input flex-1" />
-
-                <button id="addAbilityBtn"
-                  class="anime-btn">
-
-                  إضافة
-
-                </button>
-
-                <button id="resetAbilitiesBtn"
-                  class="anime-btn">
-
-                  استرجاع
-
-                </button>
-
-              </div>
-
-            </div>
-
-
-            <!-- Ability List -->
-            <div class="ability-panel">
-
-              <p class="text-sm mb-2 text-center text-[#f3c77a] font-semibold">
-                القائمة الحالية
-              </p>
-
-              <ul id="abilityList" class="space-y-2">
-              </ul>
-
-            </div>
-
-
-
-            <!-- Deal -->
-            <div class="flex flex-col items-center gap-2">
-
-              <button id="dealAbilitiesBtn"
-                class="deal-btn w-full md:w-auto">
-
-                توزيع القدرات
-
-              </button>
-
-
-              <span id="dealStatus" class="text-xs opacity-70"></span>
-
-            </div>
-
-
-           
-
-          </div>
-
+      <div>
+        <label class="block mb-1 text-right">اللاعب الثاني</label>
+        <input id="p2" class="w-full p-2 rounded bg-gray-800 text-white text-right" placeholder="الاسم الثاني" />
+      </div>
+
+      <div>
+        <label class="block mb-1 text-right">عدد الجولات</label>
+        <select id="roundCount" class="w-full p-2 rounded bg-gray-800 text-white text-right">
+          <option value="">-- اختر --</option>
+          <option value="1">1</option>
+          <option value="3">3</option>
+          <option value="5">5</option>
+          <option value="7">7</option>
+          <option value="9">9</option>
+          <option value="11" selected>11</option>
+        </select>
+      </div>
+
+      <!-- Checkbox RTL aligned (works without rtl: variant) -->
+      <label class="flex flex-row items-center gap-2 w-full justify-start">
+        <input id="countLeaderboard" type="checkbox" class="w-5 h-5 accent-yellow-500" />
+        <span>احتساب هذه المباراة في لوحة المتصدرين</span>
+      </label>
+
+      <button onclick="showAnimeDropdowns()" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded text-lg font-bold">
+        متابعة
+      </button>
+    </div>
+
+    <div id="animePhase" class="space-y-6 hidden">
+      <div>
+        <label class="block mb-1 text-right">اختر أنمي واحد (سيتم تطبيقه على كل الجولات)</label>
+        <select id="singleAnimeSelect" class="w-full p-2 rounded bg-gray-800 text-white text-right">
+          <option value="wildcards" selected>Wild Cards</option>
+        </select>
+      </div>
+
+      <!-- Abilities section -->
+      <section id="abilitiesSection" class="w-full mx-auto p-4 rounded bg-gray-900 text-white space-y-4">
+        <h2 class="text-2xl font-bold">القدرات</h2>
+        <div class="flex flex-wrap gap-2 items-center">
+          <input id="newAbilityInput" type="text" placeholder="أضف قدرة جديدة..."
+                 class="flex-1 min-w-[180px] p-2 rounded bg-gray-800 text-white" />
+          <button id="addAbilityBtn" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700">إضافة</button>
+          <button id="resetAbilitiesBtn" class="px-4 py-2 rounded bg-amber-600 hover:bg-amber-700">استرجاع القائمة الافتراضية</button>
         </div>
+        <div>
+          <p class="mb-2 opacity-80">القائمة الحالية للقدرات:</p>
+          <div class="max-h-32 overflow-y-auto pr-2">
+            <ul id="abilityList" class="space-y-2"></ul>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2 items-center">
+          <button id="dealAbilitiesBtn" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700">توزيع ٣ قدرات عشوائية لكل لاعب (بدون تكرار)</button>
+          <span id="dealStatus" class="opacity-80"></span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+          <div class="p-3 rounded bg-gray-800">
+            <p class="font-semibold mb-2"><span id="p1NamePreview">قدرات اللاعب 1</span></p>
+            <ul id="p1AbilitiesPreview" class="list-disc pr-6 space-y-1"></ul>
+          </div>
+          <div class="p-3 rounded bg-gray-800">
+            <p class="font-semibold mb-2"><span id="p2NamePreview">قدرات اللاعب 2</span></p>
+            <ul id="p2AbilitiesPreview" class="list-disc pr-6 space-y-1"></ul>
+          </div>
+        </div>
+      </section>
 
-        <!-- Floating Logo -->
+      <button onclick="startGame()" class="w-full bg-green-600 hover:bg-green-700 py-2 rounded text-lg font-bold">
+        إبدأ
+      </button>
+    </div>
+  </div>
 
-        <img src="../images/qg14-Card-Clash-logo.png"
-             class="fixed bottom-4 right-4 w-36 opacity-90
-                    pointer-events-none z-40">
+  <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
+       class="fixed bottom-4 right-4 w-40 h-auto opacity-90 pointer-events-none" />
 
+  <button id="homeBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 absolute top-4 right-4">
+    الرئيسية
+  </button>
 
-        <!-- Home Button -->
-
-        <button id="homeBtn"
-          class="fixed top-4 right-4 z-40
-                 px-4 py-2
-                 bg-blue-600/90 text-white
-                 rounded-lg
-                 hover:bg-blue-700
-                 shadow-lg
-                 backdrop-blur">
-
-          الرئيسية
-
-        </button>
-
-
-
-
-  <!-- Scripts -->
-
-  <script>
-    document.getElementById("homeBtn").onclick = () => {
-      window.location.href = "/";
-    };
-  </script>
-
+  <script>document.getElementById("homeBtn").onclick = () => { window.location.href = "/"; };</script>
   <script src="start.js"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>
-
 </body>
 </html>

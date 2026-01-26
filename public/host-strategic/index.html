@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+
+   <style>
+
+  select option {
+  background: linear-gradient(to right, #1e1e1e, #2d2d2d);
+  color: #f1f1f1;
+  padding: 12px;
+  font-size: 1rem;
+  border-bottom: 1px solid #444;
+  transition: background 0.3s, color 0.3s;
+}
+
+  select option:checked {
+  background-color: #3b82f6;
+  font-weight: bold;
+  color: white;
+}
+
+  select option:hover {
+  background-color: #6366f1;
+  color: white;
+}
+</style>
+  <script>
+    fetch("/api/check-auth").then((res) => {
+      if (!res.ok) {
+        window.location.href = "/login";
+      }
+    });
+
+    if (!localStorage.getItem("homepageRefreshed")) {
+      localStorage.setItem("homepageRefreshed", "true");
+      window.location.reload();
+    }
+  </script>
+</head>
+
+<body class="text-white flex items-center justify-center min-h-screen px-4 py-10">
+  <div class="w-full max-w-md text-center space-y-8 animate-fadeIn">
+
+    <!-- Title -->
+    <h1 class="text-5xl font-bold tracking-wide shine-title">QG14 Card Clash</h1>
+
+    <!-- Logo -->
+    <img src="images/qg14-Card-Clash-logo.png" alt="QG14 Card Clash Logo" style="max-width: 300px; width: 100%;" class="mx-auto rounded-xl object-contain" />
+
+    <!-- Mode Selection -->
+<div class="space-y-3 text-right">
+  <label for="mode" class="block text-xl font-semibold pr-1 text-yellow-300">:اختر نمط اللعبة</label>
+  <div class="relative">
+    <select
+      id="mode"
+      class="w-full p-3 pr-10 rounded-lg bg-gradient-to-br from-[#2c2c2c] via-[#1e1e1e] to-[#131313] text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 shadow-lg transition-all duration-300 hover:border-yellow-400 hover:shadow-yellow-500/20 appearance-none"
+    >
+      <option value="strategic" class="bg-white text-black py-2">⚔️ من الأقوى</option>
+      <option value="winner" class="bg-white text-black py-2">🧠 التحدي</option>
+</select>
+    <div class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-white">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
+  </div>
+</div>
+
+    <!-- Start Button -->
+    <a
+  href="#"
+  onclick="logoutAndStart()"
+  class="block w-full py-3 text-xl font-bold text-white rounded-lg bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 hover:from-green-500 hover:via-indigo-500 hover:to-pink-500 transition-all duration-300 shadow-lg ring-1 ring-white/10 hover:scale-105"
+>
+  🚀 إبدأ اللعبة
+</a>
+
+    <!-- Leaderboard Buttons All in One Row -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+  <button
+    onclick="location.href='/leaderboard.html'"
+    class="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black py-3 rounded-lg text-lg font-bold transition duration-300 shadow-lg hover:scale-105"
+  >المتصدرين</button>
+
+  <button
+    onclick="location.href='/leaderboard-admin'"
+    class="w-full bg-gradient-to-r from-purple-500 to-indigo-700 hover:from-purple-600 hover:to-indigo-800 text-white py-3 px-6 rounded-lg text-lg font-bold transition duration-300 shadow-lg hover:scale-105"
+  >لوحة تحكم</button>
+
+  <button
+    onclick="location.href='/leaderboard-bottom.html'"
+    class="w-full bg-gradient-to-r from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700 text-black py-3 rounded-lg text-lg font-bold transition duration-300 shadow-lg hover:scale-105"
+  >قاع الهامور</button>
+</div>
+  </div>
+
+  <!-- JS logic -->
+  <script>
+    function logoutAndStart() {
+      if (!localStorage.getItem("homepageRefreshed")) return;
+
+      localStorage.removeItem("homepageRefreshed");
+      const selectedMode = document.getElementById("mode").value;
+      let targetPath = "/";
+      switch (selectedMode) {
+        case "manual": targetPath = "/host-manual"; break;
+        case "strategic": targetPath = "/host-strategic"; break;
+        case "winner": targetPath = "/host-winner"; break;
+        default: targetPath = "/host-strategic";
+      }
+
+      localStorage.setItem("gameMode", selectedMode);
+
+      fetch("/api/exit-home", { method: "POST" })
+        .then(() => fetch("/api/logout", { method: "POST" }))
+        .then(() => {
+          window.location.href = `${targetPath}/start.html`;
+        });
+    }
+  </script>
+
+  <script src="copyright.js"></script>
+  <script src="security.js"></script>
+</body>
+</html>
