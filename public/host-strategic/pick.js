@@ -140,30 +140,94 @@ function renderBoxes() {
     if (!imageMap[i]) continue;
 
     const btn = document.createElement("button");
-    btn.textContent = i;
-    btn.dataset.index = i;
-    btn.className = `
-      px-6 py-4 rounded bg-amber-400 text-black text-xl font-bold
-      hover:bg-yellow-400 hover:ring-4 hover:ring-yellow-300
+
+    btn.innerHTML = `
+      <div style="
+        position:relative;
+        width:100%;
+        height:100%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+      ">
+
+        <!-- الشعار الجديد -->
+        <img src="../images/qg144.png"
+     style="
+       width:100px;
+       height:100px;
+       object-fit:contain;
+     "
+     alt="logo">
+
+
+        <!-- الرقم -->
+        <span style="
+          position:absolute;
+          inset:0;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          color:white;
+          font-size:22px;
+          font-weight:900;
+          text-shadow:1px 1px 3px black;
+        ">
+          ${i}
+        </span>
+
+      </div>
     `;
+
+    btn.dataset.index = i;
+
+    btn.className = `
+      width:90px;
+      height:90px;
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      transition:transform 0.2s;
+    `;
+
+    btn.onmouseenter = () => btn.style.transform = "scale(1.05)";
+    btn.onmouseleave = () => btn.style.transform = "scale(1)";
+
     btn.onclick = () => toggleBox(i, btn);
+
     boxGrid.appendChild(btn);
+
   }
 }
 
 function toggleBox(index, btn) {
   if (selectedBoxes.includes(index)) {
+
+    // إلغاء التحديد
     selectedBoxes = selectedBoxes.filter((n) => n !== index);
-    btn.classList.remove("ring-4", "ring-yellow-400", "bg-[#B8860B]");
-    btn.classList.add("bg-amber-400");
+
+    btn.style.filter = "none";
+    btn.style.transform = "scale(1)";
+
   } else {
+
     if (selectedBoxes.length >= roundCount) return;
+
     selectedBoxes.push(index);
-    btn.classList.remove("bg-amber-400");
-    btn.classList.add("ring-4", "ring-yellow-400", "bg-[#B8860B]");
+
+    // تحديد على شكل الشعار نفسه
+    btn.style.filter = `
+      drop-shadow(0 0 6px gold)
+      drop-shadow(0 0 12px rgba(255,215,0,0.8))
+      drop-shadow(0 0 20px rgba(255,165,0,0.6))
+    `;
+
+    btn.style.transform = "scale(1.08)";
   }
+
   confirmBtn.classList.toggle("hidden", selectedBoxes.length !== roundCount);
 }
+
 
 function randomSelect() {
   // 🔊 تشغيل الصوت
