@@ -83,79 +83,77 @@ overflow-hidden scale-[0.93] mx-auto">
 
 <div class="px-6 pt-6 pb-6 space-y-6">
 
-<!-- PHASE 1 -->
-<div id="inputPhase" class="space-y-4">
+  <!-- Phase 1 -->
+  <div id="inputPhase" class="space-y-5">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- player 1 -->
+      <div class="space-y-2">
+        <label class="flex items-center justify-between text-sm font-semibold">
+          <span class="flex items-center gap-2"><span class="opacity-90">👤</span> اللاعب الأول</span>
+          <span class="text-xs text-white/50">Player 1</span>
+        </label>
+        <input id="p1"
+          class="w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-right placeholder-white/35
+                 focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-400/40 transition"
+          placeholder="الاسم الأول" />
+      </div>
 
-  <div class="space-y-4">
-
-    <!-- Player 1 -->
-    <div>
-      <label class="block text-sm font-semibold mb-1">
-        👤 اللاعب الأول
-        <span class="block text-xs text-white/50">Player One</span>
-      </label>
-
-      <input id="p1"
-      placeholder="الاسم الأول"
-      class="w-full rounded-xl bg-black/30 border border-white/10 px-4 py-2
-             placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+      <!-- player 2 -->
+      <div class="space-y-2">
+        <label class="flex items-center justify-between text-sm font-semibold">
+          <span class="flex items-center gap-2"><span class="opacity-90">👤</span> اللاعب الثاني</span>
+          <span class="text-xs text-white/50">Player 2</span>
+        </label>
+        <input id="p2"
+          class="w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-right placeholder-white/35
+                 focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-400/40 transition"
+          placeholder="الاسم الثاني" />
+      </div>
     </div>
 
-    <!-- Player 2 -->
-    <div>
-      <label class="block text-sm font-semibold mb-1">
-        👤 اللاعب الثاني
-        <span class="block text-xs text-white/50">Player Two</span>
+    <!-- rounds -->
+    <div class="space-y-2">
+      <label class="flex items-center justify-between text-sm font-semibold">
+        <span class="flex items-center gap-2"><span class="opacity-90">🎮</span> عدد الجولات</span>
+        <span class="text-xs text-white/50">Rounds</span>
       </label>
 
-      <input id="p2"
-      placeholder="الاسم الثاني"
-      class="w-full rounded-xl bg-black/30 border border-white/10 px-4 py-2
-             placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+      <div class="relative">
+        <select id="roundCount"
+          class="w-full appearance-none rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-right
+                 focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-400/40 transition">
+          <option value="">-- اختر --</option>
+          <option value="1">1</option>
+          <option value="3">3</option>
+          <option value="5">5</option>
+          <option value="7">7</option>
+          <option value="9">9</option>
+          <option value="11" selected>11</option>
+        </select>
+        <div class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/70">▾</div>
+      </div>
     </div>
 
-  </div>
-
-
-  <!-- Rounds -->
-  <div>
-    <label class="block text-sm font-semibold">
-      🎮 عدد الجولات
-      <span class="block text-xs text-white/50">Number of Rounds</span>
+    <!-- checkbox -->
+    <label class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+      <span class="flex items-center gap-2">
+        <span class="opacity-90">🏆</span>
+        <span class="font-semibold">احتساب هذه المباراة في لوحة المتصدرين</span>
+      </span>
+      <input id="countLeaderboard" type="checkbox" class="w-5 h-5 accent-amber-400" />
     </label>
 
-    <select id="roundCount"
-    class="w-full mt-1 rounded-xl bg-black/30 border border-white/10 px-4 py-2">
+    <!-- continue -->
+    <button onclick="showAnimeDropdowns()"
+      class="w-full rounded-2xl py-3 font-extrabold text-lg
+             bg-gradient-to-l from-blue-600 to-blue-500
+             hover:brightness-110 active:scale-[0.99] transition shadow-lg shadow-blue-600/20">
+      متابعة
+    </button>
 
-      <option value="">-- اختر --</option>
-      <option>1</option>
-      <option>3</option>
-      <option>5</option>
-      <option>7</option>
-      <option>9</option>
-      <option selected>11</option>
-
-    </select>
+    
   </div>
-
-
-<label
-class="flex items-center justify-between bg-black/20 border border-white/10 rounded-xl px-4 py-2">
-
-<span>🏆 احتساب في لوحة المتصدرين</span>
-<input id="countLeaderboard" type="checkbox" class="w-5 h-5">
-
-</label>
-
-<button onclick="showAnimeDropdowns()"
-class="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 font-bold">
-
-متابعة
-
-</button>
-
-</div>
-
+  
 <!-- PHASE 2 -->
 <div id="animePhase" class="space-y-5 hidden">
 
