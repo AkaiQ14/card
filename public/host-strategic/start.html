@@ -1,106 +1,388 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <title>QG14 Card Clash</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/socket.io/socket.io.js"></script>
+<meta charset="UTF-8" />
+<title>QG14 Card Clash</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="/socket.io/socket.io.js"></script>
+
+<!-- Font -->
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root { color-scheme: dark; }
+body { font-family: "Cairo", system-ui, sans-serif; }
+
+::-webkit-scrollbar{width:10px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:999px}
+::-webkit-scrollbar-track{background:rgba(255,255,255,.06)}
+  /* Match input fields exactly */
+
+  select {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.75rem; /* نفس rounded-xl */
+    padding: 0.5rem 1rem;
+  }
+
+  /* Dropdown list */
+  select option {
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+  }
+
+  /* Selected / Hover */
+  select option:checked,
+  select option:hover {
+    background-color: rgba(37, 99, 235, 0.9); /* blue-600 */
+    color: white;
+  }
+
+  /* Remove default arrow styling (optional) */
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  }
+
+</style>
 </head>
-<body class="bg-[#4B0E1F] text-white min-h-screen flex items-center justify-center p-6">
-  <div class="w-full max-w-2xl space-y-6">
-    <h1 class="text-4xl font-bold text-center">QG14 Card Clash</h1>
 
-    <div id="inputPhase" class="space-y-4">
-      <div>
-        <label class="block mb-1 text-right">اللاعب الأول</label>
-        <input id="p1" class="w-full p-2 rounded bg-gray-800 text-white text-right" placeholder="الاسم الأول" />
-      </div>
+<body class="min-h-screen text-white overflow-x-hidden bg-gradient-to-br from-[#4B0E1F] via-[#260712] to-black">
 
-      <div>
-        <label class="block mb-1 text-right">اللاعب الثاني</label>
-        <input id="p2" class="w-full p-2 rounded bg-gray-800 text-white text-right" placeholder="الاسم الثاني" />
-      </div>
+<!-- Home -->
+<button id="homeBtn"
+class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 absolute top-4 right-4 z-50">
+الرئيسية
+</button>
 
-      <div>
-        <label class="block mb-1 text-right">عدد الجولات</label>
-        <select id="roundCount" class="w-full p-2 rounded bg-gray-800 text-white text-right">
-          <option value="">-- اختر --</option>
-          <option value="1">1</option>
-          <option value="3">3</option>
-          <option value="5">5</option>
-          <option value="7">7</option>
-          <option value="9">9</option>
-          <option value="11" selected>11</option>
-        </select>
-      </div>
+<!-- Glows -->
+<div class="pointer-events-none fixed inset-0 -z-10">
+<div class="absolute -top-24 -right-24 w-[26rem] h-[26rem] bg-fuchsia-500/15 blur-3xl rounded-full"></div>
+<div class="absolute -bottom-28 -left-28 w-[28rem] h-[28rem] bg-amber-400/10 blur-3xl rounded-full"></div>
+</div>
 
-      <!-- Checkbox RTL aligned (works without rtl: variant) -->
-      <label class="flex flex-row items-center gap-2 w-full justify-start">
-        <input id="countLeaderboard" type="checkbox" class="w-5 h-5 accent-yellow-500" />
-        <span>احتساب هذه المباراة في لوحة المتصدرين</span>
+<main class="min-h-screen flex items-center justify-center px-4 pt-16 pb-10">
+<div class="w-full max-w-3xl">
+
+<!-- Title -->
+<div class="text-center mb-6">
+<h1 class="text-4xl font-extrabold">
+QG14 <span class="text-white/70">Card Clash</span>
+</h1>
+</div>
+
+<!-- Card -->
+<section
+class="relative rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl
+overflow-hidden scale-[0.93] mx-auto">
+
+<div class="px-6 pt-6 pb-6 space-y-6">
+
+<!-- PHASE 1 -->
+<div id="inputPhase" class="space-y-4">
+
+  <div class="space-y-4">
+
+    <!-- Player 1 -->
+    <div>
+      <label class="block text-sm font-semibold mb-1">
+        👤 اللاعب الأول
+        <span class="block text-xs text-white/50">Player One</span>
       </label>
 
-      <button onclick="showAnimeDropdowns()" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded text-lg font-bold">
-        متابعة
-      </button>
+      <input id="p1"
+      placeholder="الاسم الأول"
+      class="w-full rounded-xl bg-black/30 border border-white/10 px-4 py-2
+             placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
     </div>
 
-    <div id="animePhase" class="space-y-6 hidden">
-      <div>
-        <label class="block mb-1 text-right">اختر أنمي واحد (سيتم تطبيقه على كل الجولات)</label>
-        <select id="singleAnimeSelect" class="w-full p-2 rounded bg-gray-800 text-white text-right">
-          <option value="wildcards" selected>Wild Cards</option>
-        </select>
-      </div>
+    <!-- Player 2 -->
+    <div>
+      <label class="block text-sm font-semibold mb-1">
+        👤 اللاعب الثاني
+        <span class="block text-xs text-white/50">Player Two</span>
+      </label>
 
-      <!-- Abilities section -->
-      <section id="abilitiesSection" class="w-full mx-auto p-4 rounded bg-gray-900 text-white space-y-4">
-        <h2 class="text-2xl font-bold">القدرات</h2>
-        <div class="flex flex-wrap gap-2 items-center">
-          <input id="newAbilityInput" type="text" placeholder="أضف قدرة جديدة..."
-                 class="flex-1 min-w-[180px] p-2 rounded bg-gray-800 text-white" />
-          <button id="addAbilityBtn" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700">إضافة</button>
-          <button id="resetAbilitiesBtn" class="px-4 py-2 rounded bg-amber-600 hover:bg-amber-700">استرجاع القائمة الافتراضية</button>
-        </div>
-        <div>
-          <p class="mb-2 opacity-80">القائمة الحالية للقدرات:</p>
-          <div class="max-h-32 overflow-y-auto pr-2">
-            <ul id="abilityList" class="space-y-2"></ul>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-2 items-center">
-          <button id="dealAbilitiesBtn" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700">توزيع ٣ قدرات عشوائية لكل لاعب (بدون تكرار)</button>
-          <span id="dealStatus" class="opacity-80"></span>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-          <div class="p-3 rounded bg-gray-800">
-            <p class="font-semibold mb-2"><span id="p1NamePreview">قدرات اللاعب 1</span></p>
-            <ul id="p1AbilitiesPreview" class="list-disc pr-6 space-y-1"></ul>
-          </div>
-          <div class="p-3 rounded bg-gray-800">
-            <p class="font-semibold mb-2"><span id="p2NamePreview">قدرات اللاعب 2</span></p>
-            <ul id="p2AbilitiesPreview" class="list-disc pr-6 space-y-1"></ul>
-          </div>
-        </div>
-      </section>
-
-      <button onclick="startGame()" class="w-full bg-green-600 hover:bg-green-700 py-2 rounded text-lg font-bold">
-        إبدأ
-      </button>
+      <input id="p2"
+      placeholder="الاسم الثاني"
+      class="w-full rounded-xl bg-black/30 border border-white/10 px-4 py-2
+             placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
     </div>
+
   </div>
 
-  <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
-       class="fixed bottom-4 right-4 w-40 h-auto opacity-90 pointer-events-none" />
 
-  <button id="homeBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 absolute top-4 right-4">
-    الرئيسية
+  <!-- Rounds -->
+  <div>
+    <label class="block text-sm font-semibold">
+      🎮 عدد الجولات
+      <span class="block text-xs text-white/50">Number of Rounds</span>
+    </label>
+
+    <select id="roundCount"
+    class="w-full mt-1 rounded-xl bg-black/30 border border-white/10 px-4 py-2">
+
+      <option value="">-- اختر --</option>
+      <option>1</option>
+      <option>3</option>
+      <option>5</option>
+      <option>7</option>
+      <option>9</option>
+      <option selected>11</option>
+
+    </select>
+  </div>
+
+
+<label
+class="flex items-center justify-between bg-black/20 border border-white/10 rounded-xl px-4 py-2">
+
+<span>🏆 احتساب في لوحة المتصدرين</span>
+<input id="countLeaderboard" type="checkbox" class="w-5 h-5">
+
+</label>
+
+<button onclick="showAnimeDropdowns()"
+class="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 font-bold">
+
+متابعة
+
+</button>
+
+</div>
+
+<!-- PHASE 2 -->
+<div id="animePhase" class="space-y-5 hidden">
+
+<!-- Anime -->
+<div>
+<label class="text-sm font-semibold">🎴 اختر أنمي</label>
+
+<select id="singleAnimeSelect"
+class="w-full mt-1 rounded-xl bg-black/30 border border-white/10 px-4 py-2">
+
+<option value="wildcards" selected>Wild Cards</option>
+
+</select>
+</div>
+
+<!-- Abilities -->
+<section id="abilitiesSection"
+class="relative max-w-full mx-auto py-3 space-y-4">
+
+<!-- Header -->
+<div class="flex items-center justify-between border-b border-white/10 pb-2">
+
+<h2 class="font-extrabold text-xl flex items-center gap-2">
+⚡ القدرات
+<span class="text-xs text-white/50">Abilities Panel</span>
+</h2>
+
+<span class="text-xs text-white/50">
+No Duplicates
+</span>
+
+</div>
+
+<p class="text-sm text-white/60">
+أضف قدرات جديدة، أعد الافتراضي، ثم وزّع عشوائيًا بدون تكرار.
+</p>
+
+<!-- Controls -->
+<div class="flex flex-col md:flex-row gap-3">
+
+<input id="newAbilityInput" type="text"
+placeholder="أضف قدرة جديدة..."
+class="flex-1 rounded-xl bg-black/40 border border-white/10 px-4 py-2">
+
+<button id="addAbilityBtn"
+class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 font-bold">
+إضافة
+</button>
+
+<button id="resetAbilitiesBtn"
+class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 font-bold">
+استرجاع الافتراضي
+</button>
+
+</div>
+
+<!-- List -->
+<div class="rounded-xl border border-white/10 bg-black/25 p-3">
+
+<div class="flex justify-between mb-2">
+<p class="font-semibold">القائمة الحالية</p>
+<p class="text-xs text-white/50">Scrollable</p>
+</div>
+
+<div class="max-h-28 overflow-y-auto pr-2">
+<ul id="abilityList" class="space-y-2"></ul>
+</div>
+
+</div>
+
+<!-- Deal -->
+<div class="flex flex-col sm:flex-row gap-3">
+
+<button id="dealAbilitiesBtn"
+class="flex-1 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-extrabold">
+
+توزيع القدرات
+
+</button>
+
+<span id="dealStatus" class="text-sm text-white/70"></span>
+
+</div>
+
+</section>
+
+</div>
+
+</div>
+</section>
+
+</div>
+</main>
+
+<!-- ===== MODAL ===== -->
+<div id="abilitiesModal"
+class="fixed inset-0 bg-black/60 backdrop-blur-md hidden z-[999]
+flex items-center justify-center">
+
+<div id="modalBox"
+class="bg-white/10 backdrop-blur-xl border border-white/20
+rounded-3xl shadow-2xl p-6 w-[90%] max-w-2xl
+scale-90 opacity-0 transition-all duration-300">
+
+<h2 class="text-2xl font-extrabold text-center mb-5">
+⚡ نتائج التوزيع
+</h2>
+
+<div class="grid md:grid-cols-2 gap-4">
+
+<!-- Player 1 -->
+<div class="rounded-2xl bg-black/30 border border-white/10 p-4">
+
+<h3 id="modalP1Name"
+class="font-bold mb-3 text-center text-red-400">
+اللاعب 1
+</h3>
+
+<ul id="modalP1List" class="space-y-2 text-sm"></ul>
+
+</div>
+
+<!-- Player 2 -->
+<div class="rounded-2xl bg-black/30 border border-white/10 p-4">
+
+<h3 id="modalP2Name"
+class="font-bold mb-3 text-center text-blue-400">
+اللاعب 2
+</h3>
+
+<ul id="modalP2List" class="space-y-2 text-sm"></ul>
+
+</div>
+
+</div>
+
+  <button id="closeModalBtn"
+  class="mt-6 w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 font-bold">
+
+  متابعة
+
   </button>
 
-  <script>document.getElementById("homeBtn").onclick = () => { window.location.href = "/"; };</script>
-  <script src="start.js"></script>
-  <script src="../copyright.js"></script>
-  <script src="../security.js"></script>
+
+</div>
+</div>
+
+<!-- Scripts -->
+<script>
+
+document.getElementById("homeBtn").onclick = () => {
+window.location.href = "/";
+};
+
+
+// ===== Modal Logic =====
+
+function showAbilitiesModal(a1, a2){
+
+const modal = document.getElementById("abilitiesModal");
+const box = document.getElementById("modalBox");
+
+const p1Name = document.getElementById("p1").value || "اللاعب 1";
+const p2Name = document.getElementById("p2").value || "اللاعب 2";
+
+document.getElementById("modalP1Name").textContent = p1Name;
+document.getElementById("modalP2Name").textContent = p2Name;
+
+const list1 = document.getElementById("modalP1List");
+const list2 = document.getElementById("modalP2List");
+
+list1.innerHTML = "";
+list2.innerHTML = "";
+
+a1.forEach(x=>{
+const li=document.createElement("li");
+li.textContent="• "+x;
+list1.appendChild(li);
+});
+
+a2.forEach(x=>{
+const li=document.createElement("li");
+li.textContent="• "+x;
+list2.appendChild(li);
+});
+
+
+modal.classList.remove("hidden");
+
+setTimeout(()=>{
+box.classList.remove("scale-90","opacity-0");
+box.classList.add("scale-100","opacity-100");
+},10);
+
+}
+
+
+document.getElementById("closeModalBtn").onclick = ()=>{
+
+const modal=document.getElementById("abilitiesModal");
+const box=document.getElementById("modalBox");
+
+box.classList.add("scale-90","opacity-0");
+
+setTimeout(()=>{
+modal.classList.add("hidden");
+},200);
+
+};
+
+
+// ===== Hook with start.js =====
+
+window.showAbilitiesModal = showAbilitiesModal;
+
+</script>
+  <!-- Corner Logo -->
+  <img
+    src="../images/qg14-Card-Clash-logo.png"
+    alt="QG14 Logo"
+    class="fixed bottom-4 right-4 w-36 sm:w-44 h-auto opacity-90
+           pointer-events-none drop-shadow-lg z-40"
+  />
+
+<script src="start.js"></script>
+<script src="../copyright.js"></script>
+<script src="../security.js"></script>
+
 </body>
 </html>
