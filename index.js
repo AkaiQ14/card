@@ -1298,7 +1298,7 @@ wantLegendary = Math.max(0, Math.min(BOARD, wantLegendary));
       game.imageMap[idx + 1] = entry; // "legendary/xxx.jpg" or "normal/xxx.jpg"
     });
 
-    const diagMsg = `[diag][${gameID}] rarities round ${round}: normal=${availableNormal.length}, legendary=${availableLegend.length}, showing=${Object.keys(game.imageMap).length}, legendaryRate=${LEGENDARY_RATE}`;
+    const diagMsg = `[diag][${gameID}] rarities round ${round}: normal=${availableNormal.length}, legendary=${availableLegend.length}, showing=${Object.keys(game.imageMap).length}, legendaryRate=${getLegendaryRate()}`;
     console.log(diagMsg);
     pushDiag({
       gameID,
@@ -1307,7 +1307,7 @@ wantLegendary = Math.max(0, Math.min(BOARD, wantLegendary));
       normal: availableNormal.length,
       legendary: availableLegend.length,
       showing: Object.keys(game.imageMap).length,
-      legendaryRate: LEGENDARY_RATE,
+      legendaryRate: getLegendaryRate(),
     });
     if (game.host) io.to(game.host).emit("diagEvent", { message: diagMsg });
 
