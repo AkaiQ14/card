@@ -280,7 +280,7 @@ function startGame() {
     `${window.location.origin}/host-winner/pick.html?game=${gameID}&player=player2&name=${encodeURIComponent(player2)}&rounds=${roundCount}`,
   );
 
-  window.location.href = "wait.html";
+  window.location.href = "pick.html";
 }
 
 window.showAnimeDropdowns = showAnimeDropdowns;
