@@ -21,10 +21,16 @@ const io = new Server(server);
 // ====== Configuration ======
 const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || "your-secure-secret";
-const LEGENDARY_RATE = Math.max(
-  0,
-  Math.min(1, parseFloat(process.env.LEGENDARY_RATE || "0.10"))
-);
+
+// ===== Legendary Rate Controller =====
+function getLegendaryRate() {
+  const base = parseFloat(process.env.LEGENDARY_RATE || "0.1");
+
+  if (isNaN(base)) return 0.1;
+
+  return Math.max(0, Math.min(1, base));
+}
+
 
 // Admin credentials from env (no hard-coded defaults)
 const ADMIN_USERNAME = process.env.USERNAME || "";
@@ -351,6 +357,14 @@ app.post("/api/security/verify", (req, res) => {
     reason: allowed ? "" : "هذا المحتوى متاح فقط لعناوين IP محددة.",
   });
 });
+
+// ===== Public Config API =====
+app.get("/api/config", (req, res) => {
+  res.json({
+    legendaryRate: getLegendaryRate()
+  });
+});
+
 
 // Serve static files AFTER ipAllowlist
 app.use(express.static(path.join(__dirname, "public")));
@@ -1228,8 +1242,12 @@ function startRound(gameID) {
     );
 
     const BOARD = 20;
-    let wantLegendary = Math.round(BOARD * LEGENDARY_RATE);
-    wantLegendary = Math.max(0, Math.min(BOARD, wantLegendary));
+
+const rate = getLegendaryRate(); // من ENV
+let wantLegendary = Math.round(BOARD * rate);
+
+wantLegendary = Math.max(0, Math.min(BOARD, wantLegendary));
+
 
     const takeLegendary = Math.min(wantLegendary, availableLegend.length);
     let takeNormal = BOARD - takeLegendary;
