@@ -283,6 +283,12 @@ function renderVsRow() {
     return cleaned;
   }
 
+  // Find the notes textarea for a given player name (without rebuilding the VS row)
+  function findNotesTextarea(playerName) {
+    const all = Array.from(document.querySelectorAll('textarea[data-player]'));
+    return all.find(t => t.dataset.player === playerName) || null;
+  }
+
   const side = (name, mediaUrl, pos /* 'left' | 'right' */) => {
     const wrap = document.createElement("div"); wrap.className = "flex flex-col items-center";
     const label = document.createElement("div"); label.className = "text-yellow-300 font-extrabold text-xl mb-2"; label.textContent = name;
@@ -380,6 +386,10 @@ function renderVsRow() {
     notes.value = localStorage.getItem(NOTES_KEY(name)) || "";
     notes.addEventListener("input", () => { localStorage.setItem(NOTES_KEY(name), notes.value); broadcast(); });
 
+    // Tag textarea so we can update it without re-rendering (prevents .webm restart)
+    notes.dataset.player = name;
+    notes.dataset.side = pos;
+
     // ✅ restore last selected state for THIS player side (cat/target/amount)
     const st = loadNoteState(name);
     if (st && typeof st === "object") {
@@ -417,8 +427,10 @@ function renderVsRow() {
 
       const updateOne = (playerName) => {
         const txt = applyDelta(playerName, cat, delta);
-        // If this side belongs to the same player, update the visible textarea immediately
-        if (playerName === name) notes.value = txt;
+
+        // ✅ update any existing textarea in-place (no re-render -> no .webm restart)
+        const ta = findNotesTextarea(playerName);
+        if (ta) ta.value = txt;
       };
 
       if (target === "self") {
@@ -430,8 +442,7 @@ function renderVsRow() {
         updateOne(enemyPlayer);
       }
 
-      // redraw + broadcast (keeps UI synced)
-      renderVsRow();
+      // ✅ Only broadcast state; do NOT rebuild the VS row (rebuilding restarts webm)
       broadcast();
     };
 
