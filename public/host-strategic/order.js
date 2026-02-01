@@ -61,6 +61,61 @@ document.addEventListener("contextmenu", (e) => e.preventDefault(), { capture: t
 
 // ====== Socket ======
 const socket = io();
+// ===== Chat (player -> host) =====
+const chatHistory = document.getElementById("chatHistory");
+const chatInput   = document.getElementById("chatInput");
+const chatSendBtn = document.getElementById("chatSendBtn");
+const chatStatus  = document.getElementById("chatStatus");
+
+function chatAppend({ from, text, ts, self=false }) {
+  if (!chatHistory) return;
+  const row = document.createElement("div");
+  row.className = "flex " + (self ? "justify-end" : "justify-start");
+  const bubble = document.createElement("div");
+  bubble.className =
+    "max-w-[85%] px-3 py-2 rounded-lg border " +
+    (self
+      ? "bg-yellow-500/90 text-black border-yellow-400"
+      : "bg-white/10 text-white border-yellow-700/50");
+  const time = ts ? new Date(ts).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" }) : "";
+  bubble.textContent = (from ? `${from}: ` : "") + text + (time ? `  •  ${time}` : "");
+  row.appendChild(bubble);
+  chatHistory.appendChild(row);
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+function sendChat() {
+  if (!socket || !gameID || !playerName) return;
+  const msg = String(chatInput?.value || "").trim();
+  if (!msg) return;
+  socket.emit("playerChat", { gameID, playerName, message: msg });
+  chatAppend({ from: playerName, text: msg, ts: Date.now(), self: true });
+  if (chatInput) chatInput.value = "";
+  if (chatStatus) chatStatus.textContent = "تم الإرسال ✅";
+  setTimeout(() => { if (chatStatus) chatStatus.textContent = ""; }, 1200);
+}
+
+if (chatSendBtn) chatSendBtn.addEventListener("click", sendChat);
+if (chatInput) {
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); sendChat(); }
+  });
+}
+// Optional: show connection status
+if (socket && chatStatus) {
+  socket.on("connect", () => { chatStatus.textContent = "متصل ✅"; setTimeout(()=>chatStatus.textContent="", 800); });
+  socket.on("disconnect", () => { chatStatus.textContent = "غير متصل ❌"; });
+}
+
+// Receive host replies (optional)
+socket.on("hostChat", (payload = {}) => {
+  const { gameID: g, message, ts } = payload;
+  if (g && gameID && g !== gameID) return;
+  if (!message) return;
+  chatAppend({ from: "المضيف", text: String(message), ts: ts || Date.now(), self: false });
+});
+
+
 socket.emit("joinGame", { gameID, role: "player" });
 
 // Ask host for latest timer state

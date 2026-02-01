@@ -37,6 +37,66 @@ if (socket) {
   });
 }
 
+
+// ===== Host Chat Inbox (receives from order page) =====
+const hostChatToggle    = document.getElementById("hostChatToggle");
+const hostChatBody      = document.getElementById("hostChatBody");
+const hostChatHistory   = document.getElementById("hostChatHistory");
+const hostChatStatus    = document.getElementById("hostChatStatus");
+// (Reply UI is optional; we keep it hidden-safe if not used)
+const hostChatReplyInput = document.getElementById("hostChatReplyInput");
+const hostChatReplySend  = document.getElementById("hostChatReplySend");
+
+function hostChatAppend({ from, text, ts, self=false }) {
+  if (!hostChatHistory) return;
+  const row = document.createElement("div");
+  row.className = "flex " + (self ? "justify-end" : "justify-start");
+  const bubble = document.createElement("div");
+  bubble.className =
+    "max-w-[85%] px-3 py-2 rounded-lg border " +
+    (self
+      ? "bg-yellow-500/90 text-black border-yellow-400"
+      : "bg-white/10 text-white border-yellow-700/50");
+  const time = ts ? new Date(ts).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" }) : "";
+  bubble.textContent = (from ? `${from}: ` : "") + text + (time ? `  •  ${time}` : "");
+  row.appendChild(bubble);
+  hostChatHistory.appendChild(row);
+  hostChatHistory.scrollTop = hostChatHistory.scrollHeight;
+}
+
+if (hostChatToggle && hostChatBody) {
+  hostChatToggle.addEventListener("click", () => {
+    const hidden = hostChatBody.classList.toggle("hidden");
+    hostChatToggle.textContent = hidden ? "إظهار" : "إخفاء";
+  });
+}
+
+// Listen for player messages
+if (socket) {
+  socket.on("playerChat", (payload = {}) => {
+    const { gameID: g, playerName, message, ts } = payload;
+    if (g && gameID && g !== gameID) return;
+    if (!message) return;
+    hostChatAppend({ from: playerName || "لاعب", text: String(message), ts: ts || Date.now(), self: false });
+    if (hostChatStatus) {
+      hostChatStatus.textContent = "📩 وصلت رسالة جديدة";
+      setTimeout(() => { if (hostChatStatus) hostChatStatus.textContent = ""; }, 1500);
+    }
+  });
+}
+
+// Optional: host reply back to players (requires server relay)
+function sendHostReply() {
+  if (!socket || !gameID) return;
+  const msg = String(hostChatReplyInput?.value || "").trim();
+  if (!msg) return;
+  socket.emit("hostChat", { gameID, message: msg });
+  hostChatAppend({ from: "المضيف", text: msg, ts: Date.now(), self: true });
+  if (hostChatReplyInput) hostChatReplyInput.value = "";
+}
+if (hostChatReplySend) hostChatReplySend.addEventListener("click", sendHostReply);
+if (hostChatReplyInput) hostChatReplyInput.addEventListener("keydown", (e)=>{ if (e.key==="Enter"){ e.preventDefault(); sendHostReply(); }});
+
 // ========= Toast =========
 function showToast(message, actions = [], closeOverride = null) {
   const wrap = document.createElement("div");
@@ -227,7 +287,7 @@ function renderVsRow() {
   }
 
   // rebuild textarea: quick lines first + keep any manual notes below
-  
+
   function applyDelta(player, cat, delta) {
     const key = NOTES_KEY(player);
     const base = String(localStorage.getItem(key) || "").replace(/\r/g, "");

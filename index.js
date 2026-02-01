@@ -206,15 +206,15 @@ async function writeAbilitiesFile(arr) {
   try {
     const clean = arr.map(s => String(s).trim()).filter(Boolean);
     const jsonStr = JSON.stringify({ abilities: clean }, null, 2);
-    
+
     // حفظ في الملف المحلي (المصدر الرئيسي)
     fs.writeFileSync(ABILITIES_PATH, jsonStr, "utf8");
-    
+
     // حفظ في Firebase كنسخة احتياطية (async - لا يمنع العمل إذا فشل)
     writeAbilitiesToFirebase(clean).catch((e) => {
       console.warn("[firebase] Failed to backup abilities to Firebase:", e.message);
     });
-    
+
     return clean;
   } catch (e) {
     console.error("[abilities] write failed:", e.message);
@@ -241,10 +241,10 @@ function readLeaderboard() {
 async function writeLeaderboard(data) {
   try {
     const jsonStr = JSON.stringify(data, null, 2);
-    
+
     // حفظ في الملف المحلي (المصدر الرئيسي)
     fs.writeFileSync(LEADERBOARD_PATH, jsonStr, "utf8");
-    
+
     // حفظ في Firebase كنسخة احتياطية (async - لا يمنع العمل إذا فشل)
     writeLeaderboardToFirebase(data).catch((e) => {
       console.warn("[firebase] Failed to backup leaderboard to Firebase:", e.message);
@@ -1152,7 +1152,30 @@ io.on("connection", (socket) => {
     io.to(gameID).emit("startRound", payload);
   });
 
-  socket.on("joinGame", ({ gameID }) => {
+
+  // ===== Chat relay (order -> result, and optional host reply) =====
+  socket.on("playerChat", (payload = {}) => {
+    const { gameID, playerName, message } = payload || {};
+    if (!gameID || !message) return;
+    const clean = String(message).slice(0, 300);
+    socket.join(gameID);
+    io.to(gameID).emit("playerChat", {
+      gameID,
+      playerName: String(playerName || "لاعب").slice(0, 40),
+      message: clean,
+      ts: Date.now()
+    });
+  });
+
+  socket.on("hostChat", (payload = {}) => {
+    const { gameID, message } = payload || {};
+    if (!gameID || !message) return;
+    const clean = String(message).slice(0, 300);
+    socket.join(gameID);
+    io.to(gameID).emit("hostChat", { gameID, message: clean, ts: Date.now() });
+  });
+
+socket.on("joinGame", ({ gameID }) => {
     if (!gameID) return;
     socket.join(gameID);
   });
@@ -1387,17 +1410,17 @@ wantLegendary = Math.max(0, Math.min(BOARD, wantLegendary));
 // ===== Initialize data: Restore from Firebase if available =====
 async function initializeData() {
   console.log("[init] Checking for data restoration from Firebase...");
-  
+
   try {
     // محاولة استعادة Leaderboard من Firebase
     try {
       const firebaseLb = await readLeaderboardFromFirebase();
       const localLb = readLeaderboard();
-      
+
       // مقارنة التواريخ لتحديد الأحدث
       const firebaseHasData = Object.keys(firebaseLb.players || {}).length > 0;
       const localHasData = Object.keys(localLb.players || {}).length > 0;
-      
+
       if (firebaseHasData) {
         // الحصول على آخر تاريخ تحديث من Firebase
         let firebaseLatestDate = null;
@@ -1409,7 +1432,7 @@ async function initializeData() {
             }
           }
         }
-        
+
         // الحصول على آخر تاريخ تحديث من الملف المحلي
         let localLatestDate = null;
         for (const player of Object.values(localLb.players || {})) {
@@ -1420,7 +1443,7 @@ async function initializeData() {
             }
           }
         }
-        
+
         // إذا كان Firebase أحدث أو الملف المحلي فارغ، استعادة من Firebase
         if (!localHasData || (firebaseLatestDate && (!localLatestDate || firebaseLatestDate > localLatestDate))) {
           const jsonStr = JSON.stringify(firebaseLb, null, 2);
@@ -1436,12 +1459,12 @@ async function initializeData() {
       console.warn("[init] ⚠️ Could not restore leaderboard from Firebase:", e.message);
       console.log("[init] ℹ️ Using local leaderboard file");
     }
-    
+
     // محاولة استعادة Abilities من Firebase
     try {
       const firebaseAbilities = await readAbilitiesFromFirebase();
       const localAbilities = readAbilitiesFile();
-      
+
       // إذا كان Firebase يحتوي على بيانات أكثر أو الملف المحلي فارغ، استعادة من Firebase
       if (firebaseAbilities.length > 0 && (localAbilities.length === 0 || firebaseAbilities.length > localAbilities.length)) {
         const jsonStr = JSON.stringify({ abilities: firebaseAbilities }, null, 2);
@@ -1454,7 +1477,7 @@ async function initializeData() {
       console.warn("[init] ⚠️ Could not restore abilities from Firebase:", e.message);
       console.log("[init] ℹ️ Using local abilities file");
     }
-    
+
     console.log("[init] ✅ Data initialization complete");
   } catch (e) {
     console.error("[init] ❌ Error during data initialization:", e.message);
@@ -1475,7 +1498,7 @@ server.listen(PORT, async () => {
   }
   console.log(`[socket] SOCKET_ALLOW_PUBLIC=${SOCKET_ALLOW_PUBLIC}`);
   console.log(`[auth] ADMIN_USERNAME configured: ${ADMIN_USERNAME ? "yes" : "no"}`);
-  
+
   // Initialize data from Firebase
   await initializeData();
 });
