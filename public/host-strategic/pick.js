@@ -9,7 +9,27 @@ const roundCount = parseInt(localStorage.getItem("totalRounds") || "3", 10);
 const animeList = JSON.parse(localStorage.getItem("animeList") || "[]");
 const player1 = localStorage.getItem("player1");
 const player2 = localStorage.getItem("player2");
+
 let currentPlayer = parseInt(localStorage.getItem("currentPlayer") || "1", 10);
+
+
+// ===== FIX: منع تخطي اللاعب الأول =====
+const gameStarted = localStorage.getItem("pickStarted");
+
+if (!gameStarted) {
+  // أول دخول لصفحة الاختيار
+  localStorage.setItem("pickStarted", "true");
+  localStorage.setItem("currentPlayer", "1");
+  currentPlayer = 1;
+}
+
+// حماية إضافية
+if (currentPlayer !== 1 && currentPlayer !== 2) {
+  localStorage.setItem("currentPlayer", "1");
+  currentPlayer = 1;
+}
+// =========================================
+
 
 const instruction = document.getElementById("instruction");
 const boxGrid = document.getElementById("boxGrid");
@@ -25,6 +45,7 @@ const BOARD_SIZE = 20;
 
 const playerName = currentPlayer === 1 ? player1 : player2;
 instruction.textContent = `اللاعب ${playerName} اختر ${roundCount} بطاقات`;
+
 
 // ---------- helpers ----------
 function loadUsed() {
@@ -44,6 +65,7 @@ function popRandom(arr) {
   const [x] = arr.splice(i, 1);
   return x;
 }
+
 
 // ---------- load & render ----------
 loadAndRender();
@@ -92,6 +114,7 @@ async function loadAndRender() {
     const combined = [];
 
     for (let i = 0; i < BOARD_SIZE; i++) {
+
       const rollLegendary = Math.random() < LEGENDARY_RATE;
 
       let chosen;
@@ -128,7 +151,10 @@ async function loadAndRender() {
   }
 }
 
+
+// ---------- UI ----------
 function renderBoxes() {
+
   boxGrid.innerHTML = "";
   selectedBoxes = [];
   confirmBtn.classList.add("hidden");
@@ -180,6 +206,7 @@ function renderBoxes() {
   }
 }
 
+
 function toggleBox(index, btn) {
 
   if (selectedBoxes.includes(index)) {
@@ -207,6 +234,8 @@ function toggleBox(index, btn) {
   confirmBtn.classList.toggle("hidden", selectedBoxes.length !== roundCount);
 }
 
+
+// ---------- Random ----------
 function randomSelect() {
 
   randomSound.currentTime = 0;
@@ -235,6 +264,8 @@ function randomSelect() {
   }
 }
 
+
+// ---------- Confirm ----------
 function confirmSelection() {
 
   if (selectedBoxes.length !== roundCount) {
@@ -262,14 +293,23 @@ function confirmSelection() {
     picks
   });
 
+
+  // ===== FIX انتقال اللاعبين =====
   if (currentPlayer === 1) {
+
     localStorage.setItem("currentPlayer", "2");
     location.reload();
+
   } else {
+
+    // انتهاء مرحلة الاختيار
     localStorage.removeItem("currentPlayer");
+    localStorage.removeItem("pickStarted");
+
     location.href = "wait.html";
   }
 }
+
 
 window.confirmSelection = confirmSelection;
 window.randomSelect = randomSelect;
