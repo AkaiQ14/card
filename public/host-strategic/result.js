@@ -18,6 +18,14 @@ const P1_ABILITIES_KEY = "player1Abilities";
 const P2_ABILITIES_KEY = "player2Abilities";
 const NOTES_KEY = (name) => `notes:${name}`;
 
+
+
+// Force notes content to start from the 2nd line (keep 1st line empty)
+function ensureSecondLine(text) {
+  const t = String(text || "");
+  if (!t.trim()) return "";
+  return "\n" + t.replace(/^\n+/, "");
+}
 // ===== socket =====
 const gameID = localStorage.getItem("gameID");
 const socket = typeof io !== "undefined" ? io() : null;
@@ -39,7 +47,11 @@ if (socket) {
 
 
 // ===== Host Chat Inbox (receives from order page) =====
-const hostChatToggle    = document.getElementById("hostChatToggle");
+const hostChatPanel     = document.getElementById("hostChatPanel");
+const chatMainToggle    = document.getElementById("chatMainToggle");
+const chatUnreadBadge   = document.getElementById("chatUnreadBadge");
+const chatToggleLabel   = document.getElementById("chatToggleLabel");
+const chatCloseBtn      = document.getElementById("chatCloseBtn");
 const hostChatBody      = document.getElementById("hostChatBody");
 const hostChatHistory   = document.getElementById("hostChatHistory");
 const hostChatStatus    = document.getElementById("hostChatStatus");
@@ -64,12 +76,58 @@ function hostChatAppend({ from, text, ts, self=false }) {
   hostChatHistory.scrollTop = hostChatHistory.scrollHeight;
 }
 
-if (hostChatToggle && hostChatBody) {
-  hostChatToggle.addEventListener("click", () => {
-    const hidden = hostChatBody.classList.toggle("hidden");
-    hostChatToggle.textContent = hidden ? "إظهار" : "إخفاء";
+
+
+// ===== Chat toggle (main button + unread badge) =====
+let _unreadCount = 0;
+
+function updateChatToggleUI() {
+  if (!chatMainToggle) return;
+
+  const isOpen = hostChatPanel && !hostChatPanel.classList.contains("hidden");
+
+  // button label
+  if (chatToggleLabel) chatToggleLabel.textContent = isOpen ? "إخفاء" : "CHAT";
+
+  // unread badge
+  if (chatUnreadBadge) {
+    if (!isOpen && _unreadCount > 0) {
+      chatUnreadBadge.textContent = String(_unreadCount);
+      chatUnreadBadge.classList.remove("hidden");
+    } else {
+      chatUnreadBadge.classList.add("hidden");
+      chatUnreadBadge.textContent = "0";
+    }
+  }
+}
+
+function openChatPanel() {
+  if (!hostChatPanel) return;
+  hostChatPanel.classList.remove("hidden");
+  _unreadCount = 0;
+  updateChatToggleUI();
+  // ensure scroll bottom
+  try { hostChatHistory && (hostChatHistory.scrollTop = hostChatHistory.scrollHeight); } catch {}
+}
+
+function closeChatPanel() {
+  if (!hostChatPanel) return;
+  hostChatPanel.classList.add("hidden");
+  updateChatToggleUI();
+}
+
+if (chatMainToggle && hostChatPanel) {
+  chatMainToggle.addEventListener("click", () => {
+    const willOpen = hostChatPanel.classList.contains("hidden");
+    if (willOpen) openChatPanel(); else closeChatPanel();
   });
 }
+
+if (chatCloseBtn) chatCloseBtn.addEventListener("click", closeChatPanel);
+
+// initial state
+updateChatToggleUI();
+
 
 // Listen for player messages
 if (socket) {
@@ -78,6 +136,14 @@ if (socket) {
     if (g && gameID && g !== gameID) return;
     if (!message) return;
     hostChatAppend({ from: playerName || "لاعب", text: String(message), ts: ts || Date.now(), self: false });
+    // unread badge: only count while panel is closed
+    if (hostChatPanel && hostChatPanel.classList.contains("hidden")) {
+      _unreadCount = (_unreadCount || 0) + 1;
+      updateChatToggleUI();
+    } else {
+      _unreadCount = 0;
+      updateChatToggleUI();
+    }
     if (hostChatStatus) {
       hostChatStatus.textContent = "📩 وصلت رسالة جديدة";
       setTimeout(() => { if (hostChatStatus) hostChatStatus.textContent = ""; }, 1500);
@@ -319,8 +385,9 @@ function renderVsRow() {
     }
 
     const result = nextLines.join("\n");
-    localStorage.setItem(key, result);
-    return result;
+    const normalized = ensureSecondLine(result);
+    localStorage.setItem(key, normalized);
+    return normalized;
   }
 
 
@@ -443,7 +510,7 @@ function renderVsRow() {
     const notes = document.createElement("textarea");
     notes.className = "w-full h-24 bg-transparent text-white border-2 border-yellow-600 rounded-lg p-3 placeholder:opacity-70 overflow-y-auto no-scrollbar";
     notes.placeholder = "ملاحظات";
-    notes.value = localStorage.getItem(NOTES_KEY(name)) || "";
+    notes.value = ensureSecondLine(localStorage.getItem(NOTES_KEY(name)) || "");
     notes.addEventListener("input", () => { localStorage.setItem(NOTES_KEY(name), notes.value); broadcast(); });
 
     // Tag textarea so we can update it without re-rendering (prevents .webm restart)
@@ -490,7 +557,7 @@ function renderVsRow() {
 
         // ✅ update any existing textarea in-place (no re-render -> no .webm restart)
         const ta = findNotesTextarea(playerName);
-        if (ta) ta.value = txt;
+        if (ta) ta.value = ensureSecondLine(txt);
       };
 
       if (target === "self") {
@@ -692,10 +759,12 @@ function openAddAbilityModal(targetKey, playerLabel) {
   const modal = document.getElementById("addAbilityModal");
   const input = document.getElementById("addAbilityInput");
   if (!modal || !input) return;
-  input.value = "";
+  // ابدأ من السطر الثاني دائماً
+  input.value = "\n";
+  // (اختياري) نص مساعد — placeholder لن يظهر لأننا نضع سطر أول فارغ
   input.placeholder = `اكتب نص قدرة لإضافتها لـ ${playerLabel}…`;
   modal.classList.remove("hidden"); modal.classList.add("flex");
-  setTimeout(() => input.focus(), 0);
+  setTimeout(() => { input.focus(); try { input.setSelectionRange(1, 1); } catch {} }, 0);
 }
 function closeAddAbilityModal() {
   const modal = document.getElementById("addAbilityModal");
@@ -706,12 +775,19 @@ function closeAddAbilityModal() {
 async function confirmAddAbility() {
   const input = document.getElementById("addAbilityInput");
   if (!_addTargetKey || !input) return;
-  const text = String(input.value || "").trim();
-  if (!text) { input.focus(); return; }
+
+  // ✅ خذ النص من "بعد السطر الأول" فقط
+  const raw = String(input.value || "").replace(/\r/g, "").replace(/^\s*\n/, "");
+  const lines = raw
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  if (!lines.length) { input.focus(); return; }
 
   // ✅ allow duplicates: no local duplicate check
   const list = normalizeAbilityList(loadAbilities(_addTargetKey));
-  list.push({ text, used: false });
+  lines.forEach(text => list.push({ text, used: false }));
   saveAbilities(_addTargetKey, list);
 
   // re-render + sync sockets
@@ -723,11 +799,18 @@ async function confirmAddAbility() {
   syncServerAbilities();
   broadcast();
 
-  // persist globally (abilities.json)
-  await persistAbilityToServer(text);
+  // persist globally (abilities.json) — سطر بسطر
+  for (const t of lines) {
+    await persistAbilityToServer(t);
+  }
 
   // UX
-  showToast(`✅ تمت إضافة «${text}».`);
+  if (lines.length === 1) {
+    showToast(`✅ تمت إضافة «${lines[0]}».`);
+  } else {
+    showToast(`✅ تمت إضافة ${lines.length} قدرات.`);
+  }
+
   closeAddAbilityModal();
 }
 window.openAddAbilityModal = openAddAbilityModal;

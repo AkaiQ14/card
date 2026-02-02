@@ -196,7 +196,16 @@
           </div>
         </div>
 
-        <div class="flex justify-center order-3 md:order-2">
+        <div class="flex justify-center items-center gap-4 order-3 md:order-2">
+          <button id="chatMainToggle"
+                  class="btn-gold px-6 py-3 text-base bg-[#7b2131] hover:bg-[#8b2a3a] relative">
+            <span id="chatToggleLabel">CHAT</span>
+            <span id="chatUnreadBadge"
+                  class="hidden absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-yellow-500 text-black text-xs font-extrabold grid place-items-center shadow">
+              0
+            </span>
+          </button>
+
           <button onclick="confirmWinner()" class="btn-gold px-10 py-3 text-xl">تأكيد النتيجة</button>
         </div>
 
@@ -248,17 +257,17 @@
   <div id="addAbilityModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2000]" autocomplete="off">
     <div class="bg-[#511522] border-2 border-yellow-500 rounded-xl p-4 w-[90%] max-w-[460px]">
       <h3 class="text-lg font-bold text-yellow-300 mb-3 text-center">اضافة قدرة جديدة</h3>
-      <input id="addAbilityInput"
-             class="w-full bg-transparent border-2 border-yellow-600 rounded-lg p-2 mb-3"
-             type="text"
+      <p class="text-xs text-yellow-100/90 mb-2 text-center">ابدأ الكتابة من السطر الثاني — يمكنك إضافة أكثر من سطر (كل سطر قدرة).</p>
+      <textarea id="addAbilityInput"
+             class="w-full bg-transparent border-2 border-yellow-600 rounded-lg p-2 pt-8 mb-3 resize-none leading-6"
+             rows="5"
              name="no-suggest-ability"
              autocomplete="off"
              autocapitalize="off"
              autocorrect="off"
              spellcheck="false"
              inputmode="text"
-             aria-autocomplete="none"
-             placeholder="اكتب نص القدرة هنا..." />
+             aria-autocomplete="none"></textarea>
       <div class="flex gap-2 justify-center">
         <button class="btn-gold px-5 py-2" onclick="confirmAddAbility()">اضافة</button>
         <button class="btn-gold px-5 py-2 bg-[#7b2131]" onclick="closeAddAbilityModal()">إلغاء</button>
@@ -268,14 +277,13 @@
 
   
   <!-- Host Chat Inbox -->
-  <div id="hostChatPanel" class="fixed bottom-4 right-4 z-[2100] w-[92vw] max-w-[420px]">
+  <div id="hostChatPanel" class="fixed bottom-4 right-4 z-[2100] w-[92vw] max-w-[420px] hidden">
     <div class="bg-black/60 backdrop-blur border-2 border-yellow-500 rounded-2xl shadow-2xl overflow-hidden">
       <div class="flex items-center justify-between px-3 py-2 border-b border-yellow-500/50">
         <div class="font-extrabold text-yellow-300">💬 رسائل اللاعبين</div>
-        <button id="hostChatToggle"
-                class="text-xs px-3 py-1 rounded-lg bg-yellow-500 text-black font-extrabold hover:bg-yellow-400">
-          إخفاء
-        </button>
+        <button id="chatCloseBtn"
+                class="text-xs w-9 h-9 grid place-items-center rounded-lg bg-yellow-500 text-black font-extrabold hover:bg-yellow-400"
+                aria-label="إغلاق الرسائل">✕</button>
       </div>
 
       <div id="hostChatBody" class="p-3">
