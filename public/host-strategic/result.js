@@ -21,10 +21,17 @@ const NOTES_KEY = (name) => `notes:${name}`;
 
 
 // Force notes content to start from the 2nd line (keep 1st line empty)
+// ✅ Robust against Windows CRLF (
+) so it won't "push down" each round.
 function ensureSecondLine(text) {
-  const t = String(text || "");
-  if (!t.trim()) return "";
-  return "\n" + t.replace(/^\n+/, "");
+  const raw = String(text || "").replace(/
+/g, "");
+  // remove ONLY leading newlines (we keep the user's actual spacing)
+  const clean = raw.replace(/^
++/, "");
+  if (!clean.trim()) return "";
+  return "
+" + clean;
 }
 // ===== socket =====
 const gameID = localStorage.getItem("gameID");
@@ -406,8 +413,9 @@ function renderVsRow() {
       .join("\n")
       .trim();
 
-    localStorage.setItem(key, cleaned);
-    return cleaned;
+    const normalized = ensureSecondLine(cleaned);
+    localStorage.setItem(key, normalized);
+    return normalized;
   }
 
   // Find the notes textarea for a given player name (without rebuilding the VS row)
@@ -511,7 +519,11 @@ function renderVsRow() {
     notes.className = "w-full h-24 bg-transparent text-white border-2 border-yellow-600 rounded-lg p-3 placeholder:opacity-70 overflow-y-auto no-scrollbar";
     notes.placeholder = "ملاحظات";
     notes.value = ensureSecondLine(localStorage.getItem(NOTES_KEY(name)) || "");
-    notes.addEventListener("input", () => { localStorage.setItem(NOTES_KEY(name), notes.value); broadcast(); });
+    notes.addEventListener("input", () => {
+      const v = ensureSecondLine(notes.value);
+      localStorage.setItem(NOTES_KEY(name), v);
+      broadcast();
+    });
 
     // Tag textarea so we can update it without re-rendering (prevents .webm restart)
     notes.dataset.player = name;
