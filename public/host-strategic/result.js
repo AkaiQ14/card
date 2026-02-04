@@ -18,21 +18,21 @@ const P1_ABILITIES_KEY = "player1Abilities";
 const P2_ABILITIES_KEY = "player2Abilities";
 const NOTES_KEY = (name) => `notes:${name}`;
 
-
-
-// Force notes content to start from the 2nd line (keep 1st line empty)
-// ✅ Robust against Windows CRLF (
-) so it won't "push down" each round.
-function ensureSecondLine(text) {
-  const raw = String(text || "").replace(/
-/g, "");
-  // remove ONLY leading newlines (we keep the user's actual spacing)
-  const clean = raw.replace(/^
-+/, "");
-  if (!clean.trim()) return "";
-  return "
-" + clean;
+// ===== Notes normalize (FIXED) =====
+// Normalizes Windows newlines (CRLF) and removes leading blank lines so text won't "shift down".
+function normalizeNotes(text) {
+  return String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "")
+    .replace(/^\n+/, "");
 }
+
+// NOTE: we keep ensureSecondLine function for compatibility,
+// but we DO NOT use it for notes textarea anymore.
+function ensureSecondLine(text) {
+  return normalizeNotes(text);
+}
+
 // ===== socket =====
 const gameID = localStorage.getItem("gameID");
 const socket = typeof io !== "undefined" ? io() : null;
@@ -299,8 +299,8 @@ function buildSnapshot() {
     prevLeft:  getPreviousUrls(player2),
     prevRight: getPreviousUrls(player1),
     notes: {
-      [player1]: localStorage.getItem(NOTES_KEY(player1)) || "",
-      [player2]: localStorage.getItem(NOTES_KEY(player2)) || ""
+      [player1]: normalizeNotes(localStorage.getItem(NOTES_KEY(player1)) || ""),
+      [player2]: normalizeNotes(localStorage.getItem(NOTES_KEY(player2)) || "")
     }
   };
 }
@@ -363,7 +363,7 @@ function renderVsRow() {
 
   function applyDelta(player, cat, delta) {
     const key = NOTES_KEY(player);
-    const base = String(localStorage.getItem(key) || "").replace(/\r/g, "");
+    const base = normalizeNotes(localStorage.getItem(key) || "");
     const lines = base.split("\n").filter(Boolean);
 
     let found = false;
@@ -392,16 +392,13 @@ function renderVsRow() {
     }
 
     const result = nextLines.join("\n");
-    const normalized = ensureSecondLine(result);
-    localStorage.setItem(key, normalized);
-    return normalized;
+    localStorage.setItem(key, normalizeNotes(result));
+    return normalizeNotes(result); // ✅ FIX: لا تضيف سطر بالبداية
   }
-
-
 
   function removeNegativeLine(player, cat) {
     const key = NOTES_KEY(player);
-    const base = String(localStorage.getItem(key) || "");
+    const base = normalizeNotes(localStorage.getItem(key) || "");
 
     const cleaned = base
       .split("\n")
@@ -413,9 +410,8 @@ function renderVsRow() {
       .join("\n")
       .trim();
 
-    const normalized = ensureSecondLine(cleaned);
-    localStorage.setItem(key, normalized);
-    return normalized;
+    localStorage.setItem(key, normalizeNotes(cleaned));
+    return normalizeNotes(cleaned); // ✅ FIX
   }
 
   // Find the notes textarea for a given player name (without rebuilding the VS row)
@@ -518,10 +514,12 @@ function renderVsRow() {
     const notes = document.createElement("textarea");
     notes.className = "w-full h-24 bg-transparent text-white border-2 border-yellow-600 rounded-lg p-3 placeholder:opacity-70 overflow-y-auto no-scrollbar";
     notes.placeholder = "ملاحظات";
-    notes.value = ensureSecondLine(localStorage.getItem(NOTES_KEY(name)) || "");
+
+    // ✅ FIX: لا نضيف سطر بالبداية إطلاقاً
+    notes.value = normalizeNotes(localStorage.getItem(NOTES_KEY(name)) || "");
+
     notes.addEventListener("input", () => {
-      const v = ensureSecondLine(notes.value);
-      localStorage.setItem(NOTES_KEY(name), v);
+      localStorage.setItem(NOTES_KEY(name), normalizeNotes(notes.value));
       broadcast();
     });
 
@@ -569,7 +567,7 @@ function renderVsRow() {
 
         // ✅ update any existing textarea in-place (no re-render -> no .webm restart)
         const ta = findNotesTextarea(playerName);
-        if (ta) ta.value = ensureSecondLine(txt);
+        if (ta) ta.value = normalizeNotes(txt); // ✅ FIX
       };
 
       if (target === "self") {
