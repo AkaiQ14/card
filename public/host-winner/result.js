@@ -1,44 +1,176 @@
-// --- Game state ---
-const roundCount  = parseInt(localStorage.getItem("roundCount") || localStorage.getItem("totalRounds"));
-const startingHP  = parseInt(localStorage.getItem("totalRounds"));
-
-const player1 = localStorage.getItem("player1") || "لاعب 1"; // logical Player 1 (will render on RIGHT)
-const player2 = localStorage.getItem("player2") || "لاعب 2"; // logical Player 2 (will render on LEFT)
-const picks   = JSON.parse(localStorage.getItem("picks") || "{}");
-let round     = parseInt(localStorage.getItem("currentRound") || "0");
+// --- Game state (safe defaults) ---
+const roundCount = parseInt(localStorage.getItem("roundCount") || localStorage.getItem("totalRounds") || "5", 10);
+const startingHP = parseInt(localStorage.getItem("totalRounds") || "5", 10);
+const player1 = localStorage.getItem("player1") || "لاعب 1"; // right column
+const player2 = localStorage.getItem("player2") || "لاعب 2"; // left column
+const picks    = JSON.parse(localStorage.getItem("picks") || "{}");
+let round      = parseInt(localStorage.getItem("currentRound") || "0", 10);
 
 // Scores init/persist
 let scores = JSON.parse(localStorage.getItem("scores") || "{}");
-if (Object.keys(scores).length === 0 || round === 0) {
-  scores[player1] = startingHP;
-  scores[player2] = startingHP;
-}
+if (!Number.isFinite(scores?.[player1])) scores[player1] = startingHP;
+if (!Number.isFinite(scores?.[player2])) scores[player2] = startingHP;
 
 const roundTitle = document.getElementById("roundTitle");
 
 // Ability storage keys
 const P1_ABILITIES_KEY = "player1Abilities";
 const P2_ABILITIES_KEY = "player2Abilities";
-
-// Notes storage key helper
 const NOTES_KEY = (name) => `notes:${name}`;
 
-// ===== socket + room join =====
+// ===== Notes normalize (FIXED) =====
+// Normalizes Windows newlines (CRLF) and removes leading blank lines so text won't "shift down".
+function normalizeNotes(text) {
+  return String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "")
+    .replace(/^\n+/, "");
+}
+
+// NOTE: we keep ensureSecondLine function for compatibility,
+// but we DO NOT use it for notes textarea anymore.
+function ensureSecondLine(text) {
+  return normalizeNotes(text);
+}
+
+// ===== socket =====
 const gameID = localStorage.getItem("gameID");
 const socket = typeof io !== "undefined" ? io() : null;
 
-function safeJoinRoom(){
+/* 🔑 ensure this page's socket is IN the room */
+function joinRoomReliably() {
   if (!socket || !gameID) return;
   socket.emit("joinGame", { gameID, role: "host" });
+  socket.emit("hostWatchAbilityRequests", { gameID });
 }
 if (socket) {
-  socket.on("connect", safeJoinRoom);
-  // a couple of retries in case of slow room middleware
-  setTimeout(safeJoinRoom, 300);
-  setTimeout(safeJoinRoom, 1000);
+  socket.on("connect", () => {
+    joinRoomReliably();
+    setTimeout(joinRoomReliably, 500);
+    setTimeout(joinRoomReliably, 1500);
+    setTimeout(joinRoomReliably, 3000);
+  });
 }
 
-// ===== toast helper =====
+
+// ===== Host Chat Inbox (receives from order page) =====
+const hostChatPanel     = document.getElementById("hostChatPanel");
+const chatMainToggle    = document.getElementById("chatMainToggle");
+const chatUnreadBadge   = document.getElementById("chatUnreadBadge");
+const chatToggleLabel   = document.getElementById("chatToggleLabel");
+const chatCloseBtn      = document.getElementById("chatCloseBtn");
+const hostChatBody      = document.getElementById("hostChatBody");
+const hostChatHistory   = document.getElementById("hostChatHistory");
+const hostChatStatus    = document.getElementById("hostChatStatus");
+// (Reply UI is optional; we keep it hidden-safe if not used)
+const hostChatReplyInput = document.getElementById("hostChatReplyInput");
+const hostChatReplySend  = document.getElementById("hostChatReplySend");
+
+function hostChatAppend({ from, text, ts, self=false }) {
+  if (!hostChatHistory) return;
+  const row = document.createElement("div");
+  row.className = "flex " + (self ? "justify-end" : "justify-start");
+  const bubble = document.createElement("div");
+  bubble.className =
+    "max-w-[85%] px-3 py-2 rounded-lg border " +
+    (self
+      ? "bg-yellow-500/90 text-black border-yellow-400"
+      : "bg-white/10 text-white border-yellow-700/50");
+  const time = ts ? new Date(ts).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" }) : "";
+  bubble.textContent = (from ? `${from}: ` : "") + text + (time ? `  •  ${time}` : "");
+  row.appendChild(bubble);
+  hostChatHistory.appendChild(row);
+  hostChatHistory.scrollTop = hostChatHistory.scrollHeight;
+}
+
+
+
+// ===== Chat toggle (main button + unread badge) =====
+let _unreadCount = 0;
+
+function updateChatToggleUI() {
+  if (!chatMainToggle) return;
+
+  const isOpen = hostChatPanel && !hostChatPanel.classList.contains("hidden");
+
+  // button label
+  if (chatToggleLabel) chatToggleLabel.textContent = isOpen ? "إخفاء" : "CHAT";
+
+  // unread badge
+  if (chatUnreadBadge) {
+    if (!isOpen && _unreadCount > 0) {
+      chatUnreadBadge.textContent = String(_unreadCount);
+      chatUnreadBadge.classList.remove("hidden");
+    } else {
+      chatUnreadBadge.classList.add("hidden");
+      chatUnreadBadge.textContent = "0";
+    }
+  }
+}
+
+function openChatPanel() {
+  if (!hostChatPanel) return;
+  hostChatPanel.classList.remove("hidden");
+  _unreadCount = 0;
+  updateChatToggleUI();
+  // ensure scroll bottom
+  try { hostChatHistory && (hostChatHistory.scrollTop = hostChatHistory.scrollHeight); } catch {}
+}
+
+function closeChatPanel() {
+  if (!hostChatPanel) return;
+  hostChatPanel.classList.add("hidden");
+  updateChatToggleUI();
+}
+
+if (chatMainToggle && hostChatPanel) {
+  chatMainToggle.addEventListener("click", () => {
+    const willOpen = hostChatPanel.classList.contains("hidden");
+    if (willOpen) openChatPanel(); else closeChatPanel();
+  });
+}
+
+if (chatCloseBtn) chatCloseBtn.addEventListener("click", closeChatPanel);
+
+// initial state
+updateChatToggleUI();
+
+
+// Listen for player messages
+if (socket) {
+  socket.on("playerChat", (payload = {}) => {
+    const { gameID: g, playerName, message, ts } = payload;
+    if (g && gameID && g !== gameID) return;
+    if (!message) return;
+    hostChatAppend({ from: playerName || "لاعب", text: String(message), ts: ts || Date.now(), self: false });
+    // unread badge: only count while panel is closed
+    if (hostChatPanel && hostChatPanel.classList.contains("hidden")) {
+      _unreadCount = (_unreadCount || 0) + 1;
+      updateChatToggleUI();
+    } else {
+      _unreadCount = 0;
+      updateChatToggleUI();
+    }
+    if (hostChatStatus) {
+      hostChatStatus.textContent = "📩 وصلت رسالة جديدة";
+      setTimeout(() => { if (hostChatStatus) hostChatStatus.textContent = ""; }, 1500);
+    }
+  });
+}
+
+// Optional: host reply back to players (requires server relay)
+function sendHostReply() {
+  if (!socket || !gameID) return;
+  const msg = String(hostChatReplyInput?.value || "").trim();
+  if (!msg) return;
+  socket.emit("hostChat", { gameID, message: msg });
+  hostChatAppend({ from: "المضيف", text: msg, ts: Date.now(), self: true });
+  if (hostChatReplyInput) hostChatReplyInput.value = "";
+}
+if (hostChatReplySend) hostChatReplySend.addEventListener("click", sendHostReply);
+if (hostChatReplyInput) hostChatReplyInput.addEventListener("keydown", (e)=>{ if (e.key==="Enter"){ e.preventDefault(); sendHostReply(); }});
+
+// ========= Toast =========
 function showToast(message, actions = [], closeOverride = null) {
   const wrap = document.createElement("div");
   wrap.className =
@@ -49,7 +181,6 @@ function showToast(message, actions = [], closeOverride = null) {
   msg.className = "mb-3 leading-relaxed";
   msg.textContent = message;
   wrap.appendChild(msg);
-
   if (actions.length) {
     const row = document.createElement("div");
     row.className = "flex gap-2 justify-end";
@@ -60,9 +191,8 @@ function showToast(message, actions = [], closeOverride = null) {
       b.onclick = () => { a.onClick?.(); document.body.removeChild(wrap); };
       row.appendChild(b);
     });
-
     const closeBtn = document.createElement("button");
-    if (closeOverride && closeOverride.label) {
+    if (closeOverride?.label) {
       closeBtn.textContent = closeOverride.label;
       closeBtn.onclick = () => { closeOverride.onClick?.(); document.body.removeChild(wrap); };
     } else {
@@ -73,66 +203,43 @@ function showToast(message, actions = [], closeOverride = null) {
     row.appendChild(closeBtn);
     wrap.appendChild(row);
   }
-
   document.body.appendChild(wrap);
   if (!actions.length) setTimeout(() => wrap.remove(), 1800);
 }
 
-// --- Helpers ---
+// ===== Helpers =====
 function loadAbilities(key) {
-  try {
-    const arr = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(arr) ? arr : [];
-  } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(key) || "[]") || []; } catch { return []; }
 }
-function saveAbilities(key, arr) {
-  localStorage.setItem(key, JSON.stringify(arr));
+function saveAbilities(key, arr) { localStorage.setItem(key, JSON.stringify(arr || [])); }
+function normalizeAbilityList(arr) {
+  const list = Array.isArray(arr) ? arr : [];
+  return list.map(a => {
+    if (typeof a === "string") return { text: a.trim(), used: false };
+    if (a && typeof a === "object") return { text: String(a.text || "").trim(), used: !!a.used };
+    return null;
+  }).filter(Boolean).filter(a => a.text);
 }
-
 function syncServerAbilities(){
   if (!socket || !gameID) return;
-  const abilities = {
-    [player1]: loadAbilities(P1_ABILITIES_KEY),
-    [player2]: loadAbilities(P2_ABILITIES_KEY)
-  };
+  const abilities = { [player1]: loadAbilities(P1_ABILITIES_KEY), [player2]: loadAbilities(P2_ABILITIES_KEY) };
   socket.emit("setAbilities", { gameID, abilities });
 }
 
-function findAbilityIndexByText(list, text) {
-  return list.findIndex(a => (a?.text || "").trim() === text.trim());
-}
-function isAbilityAvailable(forPlayerName, abilityText) {
-  const key = forPlayerName === player1 ? P1_ABILITIES_KEY : P2_ABILITIES_KEY;
-  const list = loadAbilities(key);
-  const i = findAbilityIndexByText(list, abilityText);
-  if (i === -1) return { exists:false, used:true, key, index:-1, list };
-  return { exists:true, used: !!list[i].used, key, index:i, list };
-}
-
-// media: webm => video
 function createMedia(url, className, playSfx = false) {
   const isWebm = /\.webm(\?|#|$)/i.test(url || "");
   if (isWebm) {
     const v = document.createElement("video");
-    v.src = url;
-    v.autoplay = true;
-    v.loop = true;
-    v.muted = true;
-    v.playsInline = true;
+    v.src = url; v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
     v.className = className;
-    if (playSfx && window.WebmSfx) {
-      window.WebmSfx.attachToMedia(v, url);
-    }
+    if (playSfx && window.WebmSfx) window.WebmSfx.attachToMedia(v, url);
     return v;
   } else {
     const img = document.createElement("img");
-    img.src = url;
-    img.className = className;
-    return img;
+    img.src = url; img.className = className; return img;
   }
 }
 
-// Ability row (toggle used)
 function abilityRow(ab, onToggle) {
   const row = document.createElement("button");
   row.className =
@@ -145,205 +252,374 @@ function abilityRow(ab, onToggle) {
   return row;
 }
 
-/** Ensure only 3 ability buttons are visible; extra ones are scrollable */
-function applyThreeItemScroll(container) {
-  const items = Array.from(container.children).filter(el => el.tagName === "BUTTON");
-  if (items.length <= 3) {
-    container.style.maxHeight = "";
-    container.style.overflowY = "";
-    return;
-  }
-  let total = 0;
-  for (let i = 0; i < 3; i++) {
-    const el = items[i];
-    const cs = getComputedStyle(el);
-    const mt = parseFloat(cs.marginTop) || 0;
-    const mb = parseFloat(cs.marginBottom) || 0;
-    total += el.offsetHeight + mt + mb;
-  }
-  container.style.maxHeight = Math.ceil(total) + "px";
-  container.style.overflowY = "auto";
-}
-
+// Fixed-height abilities pane rendering
 function renderAbilities(storageKey, container) {
   const abilities = loadAbilities(storageKey);
   container.innerHTML = "";
   if (!abilities.length) {
     const p = document.createElement("p");
-    p.className = "opacity-70 text-sm";
-    p.textContent = "لا توجد قدرات";
+    p.className = "opacity-70 text-sm"; p.textContent = "لا توجد قدرات";
     container.appendChild(p);
-    container.style.maxHeight = "";
     return;
   }
   abilities.forEach((ab, idx) => {
     const btn = abilityRow(ab, () => {
-      const current = loadAbilities(storageKey);
-      if (!current[idx]) return;
-      current[idx].used = !current[idx].used;
-      saveAbilities(storageKey, current);
-      renderAbilities(storageKey, container);
-      syncServerAbilities();
-      broadcastSnapshot(); // <-- update viewers
+      const current = loadAbilities(storageKey); if (!current[idx]) return;
+      current[idx].used = !current[idx].used; saveAbilities(storageKey, current);
+      renderAbilities(storageKey, container); syncServerAbilities(); broadcast();
     });
     container.appendChild(btn);
   });
-  applyThreeItemScroll(container);
 }
 
-// === server add endpoint ===
-async function addAbilityOnServer(text) {
-  const r = await fetch("/api/abilities/add", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text })
-  });
-  if (!r.ok) throw new Error("add failed");
-  const data = await r.json();
-  return Array.isArray(data?.abilities) ? data.abilities : [];
-}
-
-/* ----- Quick Add Ability Modal ----- */
-let addTargetKey = null;
-let addTargetName = null;
-
-function openAddAbilityModal(localKey, playerName) {
-  addTargetKey = localKey;
-  addTargetName = playerName;
-  document.getElementById("addAbilityInput").value = "";
-  const m = document.getElementById("addAbilityModal");
-  m.classList.remove("hidden");
-  m.classList.add("flex");
-  setTimeout(() => document.getElementById("addAbilityInput").focus(), 0);
-}
-function closeAddAbilityModal() {
-  const m = document.getElementById("addAbilityModal");
-  m.classList.add("hidden");
-  m.classList.remove("flex");
-}
-function confirmAddAbility() {
-  const input = document.getElementById("addAbilityInput");
-  const text = (input.value || "").trim();
-  if (!text) return;
-
-  addAbilityOnServer(text)
-    .then(() => {
-      const arr = loadAbilities(addTargetKey);
-      arr.push({ text, used: false });
-      saveAbilities(addTargetKey, arr);
-      // re-render both sides
-      renderAbilities(P2_ABILITIES_KEY, document.getElementById("p2Abilities"));
-      renderAbilities(P1_ABILITIES_KEY, document.getElementById("p1Abilities"));
-      syncServerAbilities();
-      broadcastSnapshot(); // <-- update viewers
-      showToast(`✅ تمت إضافة «${text}» إلى ${addTargetName}`);
-      closeAddAbilityModal();
-    })
-    .catch(() => {
-      showToast("تعذر اضافة القدرة.");
-    });
-}
-
-// Previous cards
+// previous & VS
 function getPreviousUrls(name) {
   const arr = Array.isArray(picks?.[name]) ? picks[name] : [];
   return arr.filter((_, i) => i < round);
 }
-
 function renderPrevGrid(container, urls) {
   container.innerHTML = "";
   urls.forEach(src => {
-    const cell = document.createElement("div");
-    cell.className = "w-24 h-32 rounded-md overflow-hidden";
-    const m = createMedia(src, "w-full h-full object-contain");
-    cell.appendChild(m);
-    container.appendChild(cell);
+    const cell = document.createElement("div"); cell.className = "w-24 h-32 rounded-md overflow-hidden";
+    const m = createMedia(src, "w-full h-full object-contain"); cell.appendChild(m); container.appendChild(cell);
   });
 }
 
-// VS row with names, big cards, notes
-function renderVsRow() {
-  // Reset per-side SFX lists each round (if provided by webm-sfx.js)
-  if (window.WebmSfx) {
-    if (!window.WebmSfx.perSide) window.WebmSfx.perSide = { left: [], right: [] };
-    window.WebmSfx.perSide.left = [];
-    window.WebmSfx.perSide.right = [];
-  }
+// ======== Player-View snapshot sync (host→viewers) ========
+let okState = { left:{active:false,playerName:null}, right:{active:false,playerName:null} };
+function buildSnapshot() {
+  return {
+    player1, player2,
+    round, roundCount,
+    scores,
+    ok: okState,
+    abilities: { [player1]: loadAbilities(P1_ABILITIES_KEY), [player2]: loadAbilities(P2_ABILITIES_KEY) },
+    currentLeftUrl:  picks?.[player2]?.[round],
+    currentRightUrl: picks?.[player1]?.[round],
+    prevLeft:  getPreviousUrls(player2),
+    prevRight: getPreviousUrls(player1),
+    notes: {
+      [player1]: normalizeNotes(localStorage.getItem(NOTES_KEY(player1)) || ""),
+      [player2]: normalizeNotes(localStorage.getItem(NOTES_KEY(player2)) || "")
+    }
+  };
+}
+function broadcast() { if (socket && gameID) socket.emit("resultSnapshot", { gameID, snapshot: buildSnapshot() }); }
+if (socket) socket.on("requestResultSnapshot", () => broadcast());
 
-  const vsRow = document.getElementById("vsRow");
-  vsRow.innerHTML = "";
+// ======== VS Row ========
+function renderVsRow() {
+  if (window.WebmSfx && typeof window.WebmSfx === "object") {
+    try { if (!window.WebmSfx.perSide) window.WebmSfx.perSide = { left: [], right: [] };
+      window.WebmSfx.perSide.left = []; window.WebmSfx.perSide.right = []; } catch {}
+  }
+  const vsRow = document.getElementById("vsRow"); vsRow.innerHTML = "";
   vsRow.className = "flex justify-center items-center gap-6 md:gap-8 flex-wrap";
 
-  const side = (name, mediaUrl, pos /* 'left' | 'right' */) => {
-    const wrap = document.createElement("div");
-    wrap.className = "flex flex-col items-center";
-    const label = document.createElement("div");
-    label.className = "text-yellow-300 font-extrabold text-xl mb-2";
-    label.textContent = name;
+  // ✅ Notes quick category +/- helper (writes into notes box)
+  const NOTE_CATEGORIES = [
+    "عناصر",
+    "سلاح",
+    "غير حي",
+    "ساحر",
+    "حيوان",
+    "فضائي",
+    "بشري",
+    "ماء",
+    "نار",
+    "ثلج",
+    "برق",
+    "ارض",
+    "بطل",
+    "شرير",
+    "دفاع",
+    "هجوم",
+    "زعيم",
+    "مجموعة",
+    "تراكم"
+  ];
 
-    const card = document.createElement("div");
-    card.className = "w-80 md:w-96 h-[26rem] md:h-[30rem] overflow-hidden flex items-center justify-center";
-    const media = createMedia(mediaUrl, "w-full h-full object-contain", true);
-    card.appendChild(media);
+  // ===== NEW: per-player quick counters + last selected persistence =====
+  const NOTE_STATE_KEY = (player) => `noteState:${player}`;
+  const QUICK_COUNTS_KEY = (player) => `quickCounts:${player}`;
 
-    // Map sounds to their visual sides for replay buttons
-    if (window.WebmSfx && /\.webm(\?|#|$)/i.test(mediaUrl || "")) {
-      if (typeof window.WebmSfx.markSide === "function") {
-        window.WebmSfx.markSide(pos, mediaUrl);
+  function loadNoteState(player) {
+    try { return JSON.parse(localStorage.getItem(NOTE_STATE_KEY(player)) || "{}") || {}; }
+    catch { return {}; }
+  }
+  function saveNoteState(player, state) {
+    localStorage.setItem(NOTE_STATE_KEY(player), JSON.stringify(state || {}));
+  }
+
+  function loadQuickCounts(player) {
+    try { return JSON.parse(localStorage.getItem(QUICK_COUNTS_KEY(player)) || "{}") || {}; }
+    catch { return {}; }
+  }
+  function saveQuickCounts(player, obj) {
+    localStorage.setItem(QUICK_COUNTS_KEY(player), JSON.stringify(obj || {}));
+  }
+
+  // rebuild textarea: quick lines first + keep any manual notes below
+
+  function applyDelta(player, cat, delta) {
+    const key = NOTES_KEY(player);
+    const base = normalizeNotes(localStorage.getItem(key) || "");
+    const lines = base.split("\n").filter(Boolean);
+
+    let found = false;
+    const nextLines = [];
+
+    for (let line of lines) {
+      const m = line.match(/^([+\-])(\d+)\s+(.*)$/);
+      if (m && m[3] === cat) {
+        const cur = (m[1] === "-" ? -1 : 1) * parseInt(m[2], 10);
+        const next = cur + delta;
+
+        if (next !== 0) {
+          const sign = next > 0 ? "+" : "-";
+          nextLines.push(`${sign}${Math.abs(next)} ${cat}`);
+        }
+        found = true;
+      } else {
+        nextLines.push(line); // ✅ لا نلمس باقي السطور
       }
     }
 
-    const notes = document.createElement("textarea");
-    notes.className = "mt-3 w-80 md:w-96 h-32 bg-transparent text-white border-2 border-yellow-600 rounded-lg p-3 placeholder:opacity-70 overflow-y-auto no-scrollbar";
-    notes.placeholder = "ملاحظات";
-    notes.value = localStorage.getItem(NOTES_KEY(name)) || "";
-    let notesTimer = null;
-    notes.addEventListener("input", () => {
-      localStorage.setItem(NOTES_KEY(name), notes.value);
-      clearTimeout(notesTimer);
-      notesTimer = setTimeout(broadcastSnapshot, 120); // debounce a bit
+    // لو ما كان موجود أصلاً
+    if (!found && delta !== 0) {
+      const sign = delta > 0 ? "+" : "-";
+      nextLines.unshift(`${sign}${Math.abs(delta)} ${cat}`);
+    }
+
+    const result = nextLines.join("\n");
+    localStorage.setItem(key, normalizeNotes(result));
+    return normalizeNotes(result); // ✅ FIX: لا تضيف سطر بالبداية
+  }
+
+  function removeNegativeLine(player, cat) {
+    const key = NOTES_KEY(player);
+    const base = normalizeNotes(localStorage.getItem(key) || "");
+
+    const cleaned = base
+      .split("\n")
+      .filter(line => {
+        const t = line.trim();
+        // احذف فقط السطر: -رقم <اسم الفئة>
+        return !new RegExp(`^-[ ]*\\d+[ ]+${cat}$`).test(t);
+      })
+      .join("\n")
+      .trim();
+
+    localStorage.setItem(key, normalizeNotes(cleaned));
+    return normalizeNotes(cleaned); // ✅ FIX
+  }
+
+  // Find the notes textarea for a given player name (without rebuilding the VS row)
+  function findNotesTextarea(playerName) {
+    const all = Array.from(document.querySelectorAll('textarea[data-player]'));
+    return all.find(t => t.dataset.player === playerName) || null;
+  }
+
+  const side = (name, mediaUrl, pos /* 'left' | 'right' */) => {
+    const wrap = document.createElement("div"); wrap.className = "flex flex-col items-center";
+    const label = document.createElement("div"); label.className = "text-yellow-300 font-extrabold text-xl mb-2"; label.textContent = name;
+    const card = document.createElement("div"); card.className = "w-80 md:w-96 h-[26rem] md:h-[30rem] overflow-hidden flex items-center justify-center";
+    const media = createMedia(mediaUrl, "w-full h-full object-contain", true); card.appendChild(media);
+
+    // 🔊 map correctly: left = player2, right = player1
+    if (window.WebmSfx && /\.webm(\?|#|$)/i.test(mediaUrl || "")) {
+      if (typeof window.WebmSfx.markSide === "function") window.WebmSfx.markSide(pos, mediaUrl);
+    }
+
+    // Notes + quick category selector (+/-)
+    const notesWrap = document.createElement("div");
+    notesWrap.className = "mt-3 w-80 md:w-96";
+
+    const controls = document.createElement("div");
+    controls.className = "mb-2 flex items-center gap-2";
+
+    const catSelect = document.createElement("select");
+    const targetSelect = document.createElement("select");
+    targetSelect.className =
+      "bg-transparent text-white border-2 border-yellow-600 rounded-lg px-2 py-2 text-sm";
+
+    [
+      { value: "self", label: "لك" },
+      { value: "enemy", label: "للخصم" },
+      { value: "both", label: "للكل" }
+    ].forEach(o => {
+      const opt = document.createElement("option");
+      opt.value = o.value;
+      opt.textContent = o.label;
+      opt.style.background = "#3a0b18";
+      targetSelect.appendChild(opt);
     });
 
-    wrap.appendChild(label);
-    wrap.appendChild(card);
-    wrap.appendChild(notes);
-    return wrap;
+    catSelect.className = "flex-1 bg-transparent text-white border-2 border-yellow-600 rounded-lg px-2 py-2 text-sm";
+    NOTE_CATEGORIES.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      opt.style.background = "#3a0b18"; // improves readability in some browsers
+      catSelect.appendChild(opt);
+    });
+
+    const amountWrap = document.createElement("div");
+    amountWrap.className = "amount-wrap";
+
+    const amount = document.createElement("input");
+    amount.type = "number";
+    amount.value = "1";
+    amount.min = "1";
+    amount.max = "99";
+
+    const arrows = document.createElement("div");
+    arrows.className = "amount-arrows";
+
+    const up = document.createElement("button");
+    up.type = "button";
+    up.textContent = "▲";
+
+    const down = document.createElement("button");
+    down.type = "button";
+    down.textContent = "▼";
+
+    const clamp = () => {
+      let n = parseInt(amount.value || "1", 10);
+      if (!Number.isFinite(n) || n < 1) n = 1;
+      if (n > 99) n = 99;
+      amount.value = n;
+    };
+
+    up.onclick = () => { amount.value++; clamp(); };
+    down.onclick = () => { amount.value--; clamp(); };
+    amount.addEventListener("input", clamp);
+
+    arrows.appendChild(up);
+    arrows.appendChild(down);
+
+    amountWrap.appendChild(amount);
+    amountWrap.appendChild(arrows);
+
+    const btnPlus = document.createElement("button");
+    btnPlus.type = "button";
+    btnPlus.className = "btn-gold btn-ico btn-inc w-10 h-10";
+    btnPlus.innerHTML = "<span class='text-2xl leading-none'>+</span>";
+
+    const btnMinus = document.createElement("button");
+    btnMinus.type = "button";
+    btnMinus.className = "btn-gold btn-ico btn-dec w-10 h-10";
+    btnMinus.innerHTML = "<span class='text-2xl leading-none'>−</span>";
+
+    const notes = document.createElement("textarea");
+    notes.className = "w-full h-24 bg-transparent text-white border-2 border-yellow-600 rounded-lg p-3 placeholder:opacity-70 overflow-y-auto no-scrollbar";
+    notes.placeholder = "ملاحظات";
+
+    // ✅ FIX: لا نضيف سطر بالبداية إطلاقاً
+    notes.value = normalizeNotes(localStorage.getItem(NOTES_KEY(name)) || "");
+
+    notes.addEventListener("input", () => {
+      localStorage.setItem(NOTES_KEY(name), normalizeNotes(notes.value));
+      broadcast();
+    });
+
+    // Tag textarea so we can update it without re-rendering (prevents .webm restart)
+    notes.dataset.player = name;
+    notes.dataset.side = pos;
+
+    // ✅ restore last selected state for THIS player side (cat/target/amount)
+    const st = loadNoteState(name);
+    if (st && typeof st === "object") {
+      if (st.cat && NOTE_CATEGORIES.includes(st.cat)) catSelect.value = st.cat;
+      if (st.target) targetSelect.value = st.target;
+      if (st.amount) amount.value = String(st.amount);
+    }
+    clamp();
+
+    // ✅ keep saving selections so they don't reset after renderVsRow()
+    catSelect.addEventListener("change", () => saveNoteState(name, { ...loadNoteState(name), cat: catSelect.value }));
+    targetSelect.addEventListener("change", () => saveNoteState(name, { ...loadNoteState(name), target: targetSelect.value }));
+    amount.addEventListener("input", () => saveNoteState(name, { ...loadNoteState(name), amount: amount.value }));
+
+    const readAmount = () => {
+      const n = parseInt(String(amount.value || "1"), 10);
+      if (!Number.isFinite(n) || n <= 0) return 1;
+      return Math.min(99, n);
+    };
+
+    // ✅ NEW: arithmetic counter +/- (no duplicate lines; decreases remove)
+    const adjustCounter = (sign) => {
+      const cat = String(catSelect.value || "").trim();
+      if (!cat) return;
+
+      const n = readAmount();
+      const delta = sign === "+" ? n : -n;
+      const target = targetSelect.value;
+
+      // persist last-used selection for this player side
+      saveNoteState(name, { cat: catSelect.value, target: targetSelect.value, amount: amount.value });
+
+      const selfPlayer  = name;
+      const enemyPlayer = pos === "left" ? player1 : player2;
+
+      const updateOne = (playerName) => {
+        const txt = applyDelta(playerName, cat, delta);
+
+        // ✅ update any existing textarea in-place (no re-render -> no .webm restart)
+        const ta = findNotesTextarea(playerName);
+        if (ta) ta.value = normalizeNotes(txt); // ✅ FIX
+      };
+
+      if (target === "self") {
+        updateOne(selfPlayer);
+      } else if (target === "enemy") {
+        updateOne(enemyPlayer);
+      } else if (target === "both") {
+        updateOne(selfPlayer);
+        updateOne(enemyPlayer);
+      }
+
+      // ✅ Only broadcast state; do NOT rebuild the VS row (rebuilding restarts webm)
+      broadcast();
+    };
+
+    btnPlus.addEventListener("click", () => adjustCounter("+"));
+    btnMinus.addEventListener("click", () => adjustCounter("-"));
+
+    controls.appendChild(catSelect);
+    controls.appendChild(targetSelect);
+    controls.appendChild(amountWrap);
+    controls.appendChild(btnMinus);
+    controls.appendChild(btnPlus);
+    notesWrap.appendChild(controls);
+    notesWrap.appendChild(notes);
+
+    wrap.appendChild(label); wrap.appendChild(card); wrap.appendChild(notesWrap); return wrap;
   };
 
-  // ✅ Visual LEFT shows player2, RIGHT shows player1 (to align with replay buttons)
   const left  = side(player2, picks?.[player2]?.[round], "left");
   const right = side(player1, picks?.[player1]?.[round], "right");
-
-  const vs = document.createElement("div");
-  vs.className = "self-center flex items-center justify-center";
+  const vs = document.createElement("div"); vs.className = "self-center flex items-center justify-center";
   vs.innerHTML = `<div class="text-yellow-400 font-extrabold text-5xl mx-2 leading-none">VS</div>`;
+  vsRow.appendChild(left); vsRow.appendChild(vs); vsRow.appendChild(right);
 
-  vsRow.appendChild(left);
-  vsRow.appendChild(vs);
-  vsRow.appendChild(right);
-}
-
-// Wire replay buttons once
-function wireReplayButtons() {
+  // relabel replay buttons correctly
   const leftBtn  = document.getElementById("sfxReplayLeft");
   const rightBtn = document.getElementById("sfxReplayRight");
-  if (!leftBtn || !rightBtn) return;
+  if (leftBtn)  leftBtn.textContent  = `🔊 ${player2}`;
+  if (rightBtn) rightBtn.textContent = `🔊 ${player1}`;
 
-  // Literal mapping: left button => left side, right button => right side
-  leftBtn.onclick = () => {
-    if (window.WebmSfx && typeof window.WebmSfx.playSide === "function") {
-      window.WebmSfx.playSide("left");
-    }
-  };
-  rightBtn.onclick = () => {
-    if (window.WebmSfx && typeof window.WebmSfx.playSide === "function") {
-      window.WebmSfx.playSide("right");
-    }
-  };
+  broadcast();
 }
 
-/* ========= OK state & badges ========= */
-let okState = { left: { active:false, playerName:null }, right: { active:false, playerName:null } };
+// ===== Health & OK badges =====
+function wireHealthControls(name, decBtn, incBtn, label) {
+  const clamp = (n) => Math.max(0, Math.min(startingHP, n));
+  const refresh = () => { label.textContent = String(scores[name]); };
+  decBtn.onclick = () => { scores[name] = clamp((scores[name] ?? startingHP) - 1); refresh(); localStorage.setItem("scores", JSON.stringify(scores)); broadcast(); };
+  incBtn.onclick = () => { scores[name] = clamp((scores[name] ?? startingHP) + 1); refresh(); localStorage.setItem("scores", JSON.stringify(scores)); broadcast(); };
+  refresh();
+}
 
 function showOkBadge(side) {
   const el = side === "left" ? document.getElementById("p2OkAlert") : document.getElementById("p1OkAlert");
@@ -358,103 +634,56 @@ function hideOkBadge(side) {
 }
 function resetOkBadges() { hideOkBadge("left"); hideOkBadge("right"); }
 
-// ===== Snapshot builder & broadcaster =====
-function buildSnapshot(){
-  const snapshot = {
-    round,
-    player1,
-    player2,
-
-    // visual LEFT = player2, RIGHT = player1
-    currentLeftUrl:  picks?.[player2]?.[round] || "",
-    currentRightUrl: picks?.[player1]?.[round] || "",
-
-    prevLeft:  getPreviousUrls(player2),
-    prevRight: getPreviousUrls(player1),
-
-    scores: { ...scores },
-
-    abilities: {
-      [player1]: loadAbilities(P1_ABILITIES_KEY),
-      [player2]: loadAbilities(P2_ABILITIES_KEY)
-    },
-
-    notes: {
-      [player1]: localStorage.getItem(NOTES_KEY(player1)) || "",
-      [player2]: localStorage.getItem(NOTES_KEY(player2)) || ""
-    },
-
-    ok: okState
-  };
-  return snapshot;
-}
-
-function broadcastSnapshot(){
-  if (!socket || !gameID) return;
-  const snapshot = buildSnapshot();
-  socket.emit("resultSnapshot", { gameID, snapshot });
-}
-
-// --- Render page ---
+// ===== Render page =====
 function renderRound() {
   roundTitle.textContent = `الجولة ${round + 1}`;
-
   renderVsRow();
-
   renderAbilities(P2_ABILITIES_KEY, document.getElementById("p2Abilities"));
   renderAbilities(P1_ABILITIES_KEY, document.getElementById("p1Abilities"));
-
-  // Previous cards: LEFT pane shows player2 history, RIGHT pane shows player1 history
   renderPrevGrid(document.getElementById("prevLeftGrid"),  getPreviousUrls(player2));
   renderPrevGrid(document.getElementById("prevRightGrid"), getPreviousUrls(player1));
 
-  wireHealthControls(
-    player2,
-    document.getElementById("p2Dec"),
-    document.getElementById("p2Inc"),
-    document.getElementById("p2Health")
-  );
-  wireHealthControls(
-    player1,
-    document.getElementById("p1Dec"),
-    document.getElementById("p1Inc"),
-    document.getElementById("p1Health")
-  );
+  wireHealthControls(player2, document.getElementById("p2Dec"), document.getElementById("p2Inc"), document.getElementById("p2Health"));
+  wireHealthControls(player1, document.getElementById("p1Dec"), document.getElementById("p1Inc"), document.getElementById("p1Health"));
 
-  // Label replay buttons with the player names on those visual sides
-  const leftBtn  = document.getElementById("sfxReplayLeft");
-  const rightBtn = document.getElementById("sfxReplayRight");
-  if (leftBtn)  leftBtn.textContent  = `🔊 ${player2}`;
-  if (rightBtn) rightBtn.textContent = `🔊 ${player1}`;
-  wireReplayButtons();
-
-  resetOkBadges();   // <— clear per round
-
+  resetOkBadges();
   syncServerAbilities();
-  broadcastSnapshot(); // initial push
+  broadcast();
 }
 
+// ===== Next round / confirm =====
+function goToRound(newIndex) {
+  const maxIndex = Math.max(0, Math.min(roundCount - 1, newIndex));
+  round = maxIndex;
+  localStorage.setItem("currentRound", String(round));
+
+  try { window.WebmSfx && window.WebmSfx._resetForNewRound && window.WebmSfx._resetForNewRound(); } catch {}
+
+  renderRound();
+}
 function confirmWinner() {
   localStorage.setItem("scores", JSON.stringify(scores));
-  round++;
-  localStorage.setItem("currentRound", round);
+  const next = round + 1;
+  const gameOver = next >= roundCount || scores[player1] === 0 || scores[player2] === 0;
 
-  const over = round >= roundCount || scores[player1] === 0 || scores[player2] === 0;
+  socket?.emit("confirmRoundResult", { gameID, round, snapshot: buildSnapshot() });
 
-  if (over) {
-    if (socket && gameID) {
-      try {
-        const a = Number(scores[player1] || 0);
-        const b = Number(scores[player2] || 0);
-        const payload = a === b
-          ? { isTie: true, scores: { ...scores } }
-          : { winner: a > b ? player1 : player2, scores: { ...scores } };
-        socket.emit("gameOver", { gameID, ...payload });
-      } catch {}
-    }
+  if (gameOver) {
+    let winner = null;
+    let isTie = false;
+    if ((scores[player1] ?? 0) > (scores[player2] ?? 0)) winner = player1;
+    else if ((scores[player2] ?? 0) > (scores[player1] ?? 0)) winner = player2;
+    else isTie = true;
 
     try {
       if (socket && gameID) {
+        socket.emit("gameOver", {
+          gameID,
+          scores: { [player1]: scores[player1], [player2]: scores[player2] },
+          winner,
+          isTie,
+          roundCount
+        });
         socket.emit("submitFinalScores", {
           gameID,
           scores: { [player1]: scores[player1], [player2]: scores[player2] }
@@ -466,145 +695,183 @@ function confirmWinner() {
     localStorage.removeItem(NOTES_KEY(player2));
     location.href = "score.html";
   } else {
-    broadcastSnapshot();
-    location.reload();
+    try { if (socket && gameID) socket.emit("startRound", { gameID, round: next }); } catch {}
+    goToRound(next);
   }
 }
+window.confirmWinner = confirmWinner;
 
-/* ===== Transfer modal (click = transfer) ===== */
+// ===== transfer modal =====
 function openTransferModal(fromKey, fromName, toName){
   const list  = loadAbilities(fromKey);
   const modal = document.getElementById("transferModal");
   const grid  = document.getElementById("abilityGrid");
   const title = document.getElementById("transferTitle");
   title.textContent = `اختر القدرة المراد نقلها إلى ${toName}`;
-
   const toKey = (fromKey === P1_ABILITIES_KEY) ? P2_ABILITIES_KEY : P1_ABILITIES_KEY;
-
   grid.innerHTML = "";
   if (!list.length){
-    const p = document.createElement("p");
-    p.className = "text-yellow-200 text-center py-2";
-    p.textContent = "لا توجد قدرات لنقلها.";
-    grid.appendChild(p);
+    const p = document.createElement("p"); p.className = "text-yellow-200 text-center py-2"; p.textContent = "لا توجد قدرات لنقلها."; grid.appendChild(p);
   } else {
-    list.forEach((ab, idx)=>{
+    normalizeAbilityList(list).forEach((ab, idx)=>{
       const btn = document.createElement("button");
       btn.className = "w-full text-center px-3 py-2 rounded-lg border-2 border-yellow-500 bg-[#7b2131] hover:bg-[#8b2a3a] font-bold";
-      btn.textContent = ab.text;
+      btn.textContent = ab.text + (ab.used ? " (مستخدمة)" : "");
       btn.onclick = ()=>{
-        const sender = loadAbilities(fromKey);
+        const sender = normalizeAbilityList(loadAbilities(fromKey));
         const moved  = sender.splice(idx, 1)[0];
         saveAbilities(fromKey, sender);
-
-        const receiver = loadAbilities(toKey);
-        receiver.push({ text: moved.text, used: moved.used });
+        const receiver = normalizeAbilityList(loadAbilities(toKey)); receiver.push({ text: moved.text, used: !!moved.used });
         saveAbilities(toKey, receiver);
-
         closeTransferModal();
         renderAbilities(P2_ABILITIES_KEY, document.getElementById("p2Abilities"));
         renderAbilities(P1_ABILITIES_KEY, document.getElementById("p1Abilities"));
         syncServerAbilities();
-        broadcastSnapshot();
+        broadcast();
         showToast(`✅ تم نقل «${moved.text}» إلى ${toName}`);
       };
       grid.appendChild(btn);
     });
   }
-
-  modal.classList.remove("hidden");
-  modal.classList.add("flex");
+  modal.classList.remove("hidden"); modal.classList.add("flex");
 }
-
 function closeTransferModal(){
   const modal = document.getElementById("transferModal");
-  modal.classList.add("hidden");
-  modal.classList.remove("flex");
+  modal.classList.add("hidden"); modal.classList.remove("flex");
+}
+window.openTransferModal = openTransferModal;
+window.closeTransferModal = closeTransferModal;
+
+/* ===== abilities persistence to server (NEW) ===== */
+async function persistAbilityToServer(text) {
+  try {
+    if (!text || !text.trim()) return;
+    const r = await fetch("/api/abilities/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text.trim() })
+    });
+    if (!r.ok) {
+      const t = await r.text().catch(() => "");
+      console.warn("[abilities] server persist failed:", r.status, t);
+      showToast("⚠️ لم يتم الحفظ في السيرفر (سيتم حفظها محليًا فقط).");
+    }
+  } catch (e) {
+    console.warn("[abilities] persist error:", e);
+    showToast("⚠️ خطأ أثناء الحفظ في السيرفر.");
+  }
 }
 
-// Health controls
-function wireHealthControls(name, decBtn, incBtn, label) {
-  const clamp = (n) => Math.max(0, Math.min(startingHP, n));
-  const refresh = () => { label.textContent = String(scores[name]); };
-
-  decBtn.onclick = () => {
-    scores[name] = clamp(scores[name] - 1);
-    refresh();
-    localStorage.setItem("scores", JSON.stringify(scores));
-    broadcastSnapshot();
-  };
-  incBtn.onclick = () => {
-    scores[name] = clamp(scores[name] + 1);
-    refresh();
-    localStorage.setItem("scores", JSON.stringify(scores));
-    broadcastSnapshot();
-  };
-
-  refresh();
+// ===== Quick Add Ability modal =====
+let _addTargetKey = null;
+function openAddAbilityModal(targetKey, playerLabel) {
+  _addTargetKey = targetKey;
+  const modal = document.getElementById("addAbilityModal");
+  const input = document.getElementById("addAbilityInput");
+  if (!modal || !input) return;
+  // ابدأ من السطر الثاني دائماً
+  input.value = "\n";
+  // (اختياري) نص مساعد — placeholder لن يظهر لأننا نضع سطر أول فارغ
+  input.placeholder = `اكتب نص قدرة لإضافتها لـ ${playerLabel}…`;
+  modal.classList.remove("hidden"); modal.classList.add("flex");
+  setTimeout(() => { input.focus(); try { input.setSelectionRange(1, 1); } catch {} }, 0);
 }
+function closeAddAbilityModal() {
+  const modal = document.getElementById("addAbilityModal");
+  if (!modal) return;
+  modal.classList.add("hidden"); modal.classList.remove("flex");
+  _addTargetKey = null;
+}
+async function confirmAddAbility() {
+  const input = document.getElementById("addAbilityInput");
+  if (!_addTargetKey || !input) return;
 
-/* ===== Host listens for ability requests (Approve or Refuse) ===== */
+  // ✅ خذ النص من "بعد السطر الأول" فقط
+  const raw = String(input.value || "").replace(/\r/g, "").replace(/^\s*\n/, "");
+  const lines = raw
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  if (!lines.length) { input.focus(); return; }
+
+  // ✅ allow duplicates: no local duplicate check
+  const list = normalizeAbilityList(loadAbilities(_addTargetKey));
+  lines.forEach(text => list.push({ text, used: false }));
+  saveAbilities(_addTargetKey, list);
+
+  // re-render + sync sockets
+  if (_addTargetKey === P1_ABILITIES_KEY) {
+    renderAbilities(P1_ABILITIES_KEY, document.getElementById("p1Abilities"));
+  } else {
+    renderAbilities(P2_ABILITIES_KEY, document.getElementById("p2Abilities"));
+  }
+  syncServerAbilities();
+  broadcast();
+
+  // persist globally (abilities.json) — سطر بسطر
+  for (const t of lines) {
+    await persistAbilityToServer(t);
+  }
+
+  // UX
+  if (lines.length === 1) {
+    showToast(`✅ تمت إضافة «${lines[0]}».`);
+  } else {
+    showToast(`✅ تمت إضافة ${lines.length} قدرات.`);
+  }
+
+  closeAddAbilityModal();
+}
+window.openAddAbilityModal = openAddAbilityModal;
+window.closeAddAbilityModal = closeAddAbilityModal;
+window.confirmAddAbility  = confirmAddAbility;
+
+// ===== ability requests + OK alerts =====
 if (socket && gameID) {
-  socket.emit("hostWatchAbilityRequests", { gameID });
+  socket.on("abilityRequested", handleRequest);
+  socket.on("requestUseAbility", handleRequest);
 
-  const handleRequest = ({ playerName, abilityText, requestId }) => {
-    const { exists, used, key, index } = isAbilityAvailable(playerName, abilityText);
-
-    if (!exists || used) {
-      socket.emit("abilityRequestResult", {
-        gameID,
-        requestId,
-        ok: false,
-        reason: exists ? "already_used" : "ability_not_found"
-      });
+  function handleRequest({ playerName, abilityText, requestId }) {
+    const key = playerName === player1 ? P1_ABILITIES_KEY : P2_ABILITIES_KEY;
+    const list = normalizeAbilityList(loadAbilities(key));
+    const index = list.findIndex(a => a.text === abilityText);
+    if (index === -1 || list[index].used) {
+      socket.emit("abilityRequestResult", { gameID, requestId, ok:false, reason: index === -1 ? "ability_not_found" : "already_used" });
       return;
     }
-
     showToast(`❗ ${playerName} يطلب استخدام القدرة: «${abilityText}»`, [
       {
         label: "استعمال",
         onClick: () => {
-          const current = loadAbilities(key);
-          if (!current[index]) return;
-          current[index].used = true; // ✅ bugfix (was idx)
-          saveAbilities(key, current);
+          const cur = normalizeAbilityList(loadAbilities(key));
+          if (!cur[index]) return;
+          cur[index].used = true; saveAbilities(key, cur);
           renderAbilities(P2_ABILITIES_KEY, document.getElementById("p2Abilities"));
           renderAbilities(P1_ABILITIES_KEY, document.getElementById("p1Abilities"));
-          syncServerAbilities();
-          broadcastSnapshot();
+          syncServerAbilities(); broadcast();
           socket.emit("abilityRequestResult", { gameID, requestId, ok: true });
         }
       }
     ], {
       label: "رفض",
-      onClick: () => {
-        socket.emit("abilityRequestResult", {
-          gameID,
-          requestId,
-          ok: false,
-          reason: "rejected"
-        });
-      }
+      onClick: () => socket.emit("abilityRequestResult", { gameID, requestId, ok:false, reason:"rejected" })
     });
-  };
+  }
 
-  socket.on("abilityRequested", handleRequest);
-  socket.on("requestUseAbility", handleRequest);
-
-  socket.on("requestResultSnapshot", () => {
-    broadcastSnapshot();
-  });
-
-  // ===== Listen for players toggling OK =====
+  // OK badges; also remember state for viewers and broadcast
   socket.on("playerOk", (payload = {}) => {
     const { gameID: g, playerName, side } = payload;
-    const active = Object.prototype.hasOwnProperty.call(payload, "active") ? !!payload.active : true;
-    if (g && g !== gameID) return;
+    const active = Object.prototype.hasOwnProperty.call(payload, "active")
+      ? !!payload.active
+      : true; // legacy ON
+    if (g && gameID && g !== gameID) return;
     if (side === "left")  okState.left  = { active, playerName };
     if (side === "right") okState.right = { active, playerName };
     if (active === false) hideOkBadge(side); else showOkBadge(side, playerName);
-    broadcastSnapshot();
+    broadcast();
   });
 }
 
+// ===== Initial render =====
 renderRound();
