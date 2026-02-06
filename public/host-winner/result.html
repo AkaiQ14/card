@@ -124,7 +124,7 @@
           </div>
           <div class="rounded-2xl border-2 border-yellow-600 bg-black/20 p-4 mt-5 max-w-[480px] mx-auto">
             <div class="flex items-center justify-between text-base font-bold mb-2">
-              <span>قدرات اللاعب الثاني</span>
+              <span id="p2AbilitiesTitle"></span>
               <span class="opacity-70">متاحة</span>
             </div>
             <!-- 🔒 Fixed-height abilities pane -->
@@ -132,12 +132,16 @@
             <!-- Buttons in one row -->
             <div class="mt-2.5 flex gap-2">
               <button class="btn-gold flex-1 py-2.5 text-base"
-                      onclick="openTransferModal('player2Abilities','اللاعب الثاني','اللاعب الأول')">
+                      onclick="openTransferModal('player2Abilities')">
                 نقل
               </button>
               <button class="btn-gold flex-1 py-2.5 text-base bg-green-600 hover:bg-green-700"
-                      onclick="openAddAbilityModal('player2Abilities','اللاعب الثاني')">
+                      onclick="openAddAbilityModal('player2Abilities')">
                 اضافة
+              </button>
+              <button class="btn-gold flex-1 py-2.5 text-base bg-[#7b2131] hover:bg-[#8b2a3a]"
+                      onclick="openSwapAbilityModal('player2Abilities')">
+                تبديل
               </button>
             </div>
           </div>
@@ -156,7 +160,7 @@
           </div>
           <div class="rounded-2xl border-2 border-yellow-600 bg-black/20 p-4 mt-5 max-w-[480px] mx-auto">
             <div class="flex items-center justify-between text-base font-bold mb-2">
-              <span>قدرات اللاعب الأول</span>
+              <span id="p1AbilitiesTitle"></span>
               <span class="opacity-70">متاحة</span>
             </div>
             <!-- 🔒 Fixed-height abilities pane -->
@@ -164,12 +168,16 @@
             <!-- Buttons in one row -->
             <div class="mt-2.5 flex gap-2">
               <button class="btn-gold flex-1 py-2.5 text-base"
-                      onclick="openTransferModal('player1Abilities','اللاعب الأول','اللاعب الثاني')">
+                      onclick="openTransferModal('player1Abilities')">
                 نقل
               </button>
               <button class="btn-gold flex-1 py-2.5 text-base bg-green-600 hover:bg-green-700"
-                      onclick="openAddAbilityModal('player1Abilities','اللاعب الأول')">
+                      onclick="openAddAbilityModal('player1Abilities')">
                 اضافة
+              </button>
+              <button class="btn-gold flex-1 py-2.5 text-base bg-[#7b2131] hover:bg-[#8b2a3a]"
+                      onclick="openSwapAbilityModal('player1Abilities')">
+                تبديل
               </button>
             </div>
           </div>
@@ -275,7 +283,35 @@
     </div>
   </div>
 
+
+  <!-- Swap Ability Modal -->
+  <div id="swapAbilityModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2000]">
+    <div class="bg-[#511522] border-2 border-yellow-500 rounded-xl p-4 w-[90%] max-w-[420px]">
+      <h3 id="swapAbilityTitle" class="text-lg font-bold text-yellow-300 mb-3 text-center">تبديل قدرة</h3>
+      <p class="text-xs text-yellow-100/90 mb-3 text-center">اختر القدرة التي تريد تبديلها</p>
+      <div id="swapAbilityGrid" class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto no-scrollbar"></div>
+      <div class="mt-4 text-center">
+        <button class="btn-gold px-5 py-2" onclick="closeSwapAbilityModal()">إغلاق</button>
+      </div>
+    </div>
   
+  <!-- Swap Pick New Ability Modal -->
+  <div id="swapPickModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2100]">
+    <div class="bg-[#511522] border-2 border-yellow-500 rounded-xl p-4 w-[90%] max-w-[520px]">
+      <h3 id="swapPickTitle" class="text-lg font-bold text-yellow-300 mb-2 text-center">اختر القدرة الجديدة</h3>
+      <p id="swapPickHint" class="text-xs text-yellow-100/90 mb-3 text-center"></p>
+      <p class="text-[11px] text-yellow-100/80 mb-3 text-center">اختر قدرة من قائمة صفحة البداية (start). التبديل فوري ويظهر مباشرة للاعب في صفحة order.</p>
+      <div id="swapPickGrid" class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto no-scrollbar"></div>
+      <div class="mt-4 text-center">
+        <button class="btn-gold px-5 py-2 bg-[#7b2131]" onclick="closeSwapPickModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+
+</div>
+
+
   <!-- Host Chat Inbox -->
   <div id="hostChatPanel" class="fixed bottom-4 right-4 z-[2100] w-[92vw] max-w-[420px] hidden">
     <div class="bg-black/60 backdrop-blur border-2 border-yellow-500 rounded-2xl shadow-2xl overflow-hidden">
