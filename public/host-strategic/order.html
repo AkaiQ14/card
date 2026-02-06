@@ -2,99 +2,190 @@
 <html lang="ar" dir="rtl"
       oncontextmenu="return false"
       ondragstart="return false" ondrop="return false">
+
 <head>
   <meta charset="UTF-8" />
   <title>QG14 Card Clash</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+
   <style>
-    /* Block selection/drag/right-click hints on media */
-    html, body, img, video {
-      -webkit-user-select: none; user-select: none;
-      -webkit-user-drag: none;
-      -moz-user-select: none; -ms-user-select: none;
+    :root{
+      --bg1:#4B0E1F;
+      --bg2:#12040a;
+      --gold:#FFD700;
     }
-    /* Wrapper that lets us overlay an invisible shield */
+
+    body{font-family:"Cairo",system-ui,sans-serif}
+
+    .bg-game{
+      background:
+        radial-gradient(900px 500px at 15% 10%, rgba(255,215,0,.10), transparent 60%),
+        radial-gradient(900px 500px at 85% 0%, rgba(16,185,129,.12), transparent 60%),
+        linear-gradient(180deg, var(--bg1), #2a0612 55%, var(--bg2));
+      min-height:100vh;
+    }
+
+    .glass{
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,215,0,.28);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+    }
+
+    .btn{
+      border-radius:18px;
+      font-weight:900;
+      transition:transform .08s ease, filter .12s ease;
+    }
+    .btn:active{transform:translateY(1px)}
+
+    /* Block selection/drag */
+    html, body, img, video {
+      -webkit-user-select:none;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+
     .nosave { position: relative; display: inline-block; }
     .nosave > .shield {
       position: absolute; inset: 0;
       background: transparent;
-      pointer-events: auto;         /* capture clicks so media doesn't get them */
+      pointer-events: auto;
     }
     .nosave img, .nosave video { pointer-events: none; }
   </style>
 </head>
-<body class="bg-[#4B0E1F] text-white p-6 min-h-screen flex flex-col items-center space-y-6">
-  <h1 class="text-4xl font-bold text-center">QG14 Card Clash</h1>
 
+<body class="bg-game text-white min-h-screen p-6 flex flex-col items-center space-y-6">
+
+  <!-- Title -->
+  <header class="text-center">
+    <h1 class="text-3xl md:text-4xl font-black">
+      QG14 <span class="text-yellow-300">Card Clash</span>
+    </h1>
+  </header>
+
+  <!-- Timer -->
   <div id="timerWrap" class="flex justify-center">
-    <div class="bg-black/40 backdrop-blur px-4 py-1.5 rounded-full border border-yellow-600">
-      <span id="playerCountdown" class="font-mono text-2xl tracking-widest select-none">02:00</span>
+    <div class="glass px-4 py-2 rounded-full">
+      <span id="playerCountdown"
+            class="font-mono text-2xl tracking-widest select-none">
+        02:00
+      </span>
     </div>
   </div>
 
-  <p id="instruction" class="text-xl text-center">اللاعب ... رتب البطاقات</p>
+  <!-- Instruction -->
+  <p id="instruction" class="text-xl text-center text-white/90 font-bold">
+    اللاعب ... رتب البطاقات
+  </p>
 
-  <div id="cardGrid" class="flex flex-wrap justify-center gap-6 w-full max-w-6xl mx-auto"></div>
+  <!-- Cards -->
+  <div id="cardGrid"
+       class="flex flex-wrap justify-center gap-6 w-full max-w-5xl mx-auto"></div>
 
   <!-- Your abilities -->
-  <section id="abilitiesPanel" class="w-full max-w-6xl mx-auto mt-4 p-3 rounded bg-black/20 border border-yellow-600">
-    <p class="font-bold mb-2">قدراتك (اضغط لطلب استخدامها):</p>
+  <section id="abilitiesPanel"
+           class="glass w-full max-w-5xl mx-auto mt-4 p-4 rounded-2xl">
+
+    <p class="font-extrabold mb-2 text-yellow-300">
+      قدراتك (اضغط لطلب استخدامها):
+    </p>
+
     <div id="playerAbilities" class="flex flex-wrap gap-2"></div>
+
     <p id="abilityStatus" class="mt-2 text-sm opacity-80"></p>
   </section>
 
-  <!-- Opponent abilities (view-only) -->
-  <section id="opponentAbilitiesPanel" class="w-full max-w-6xl mx-auto mt-4 p-3 rounded bg-black/20 border border-yellow-600">
-    <p class="font-bold mb-2">قدرات الخصم (عرض فقط):</p>
+  <!-- Opponent abilities -->
+  <section id="opponentAbilitiesPanel"
+           class="glass w-full max-w-5xl mx-auto mt-4 p-4 rounded-2xl">
+
+    <p class="font-extrabold mb-2 text-yellow-300">
+      قدرات الخصم (عرض فقط):
+    </p>
+
     <div id="opponentAbilities" class="flex flex-wrap gap-2"></div>
   </section>
 
+  <!-- Continue -->
   <button
     id="continueBtn"
-    onclick="submitPicks()
-"
-    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-lg hidden"
-  >متابعة</button>
+    onclick="submitPicks()"
+    class="btn hidden px-10 py-3 text-lg
+           bg-gradient-to-r from-sky-500 to-indigo-600
+           hover:from-sky-600 hover:to-indigo-700
+           shadow-xl shadow-black/30"
+  >
+    متابعة
+  </button>
 
-  <!-- OK button (appears ONLY after order submission) -->
+  <!-- OK -->
   <button
     id="okBtn"
     onclick="togglePlayerOk()"
-    class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded text-lg hidden"
+    class="btn hidden px-10 py-3 text-lg
+           bg-gradient-to-r from-emerald-500 to-teal-600
+           hover:from-emerald-600 hover:to-teal-700
+           shadow-xl shadow-black/30"
     style="margin-top:8px"
-  >تمام</button>
+  >
+    تمام
+  </button>
 
-  <!-- Button to toggle the embedded live view -->
+  <!-- Live view -->
   <button
     id="openPlayerViewBtn"
-    class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded text-lg"
+    class="btn px-10 py-3 text-lg
+           bg-yellow-400 hover:bg-yellow-500
+           text-black shadow-xl shadow-black/30"
     style="margin-top:8px"
-  >عرض الجولة المباشرة</button>
+  >
+    عرض الجولة المباشرة
+  </button>
 
-  <!-- NEW: embedded live view container (hidden by default) -->
-  <div id="embeddedPlayerWrap" class="hidden w-full max-w-5xl mx-auto mt-4">
+  <div id="embeddedPlayerWrap"
+       class="hidden w-full max-w-5xl mx-auto mt-4">
+
     <iframe
       id="embeddedPlayerFrame"
       src=""
-      class="w-full h-[600px] rounded border border-yellow-600"
-      referrerpolicy="no-referrer"
-    ></iframe>
+      class="w-full h-[600px] rounded-2xl border border-yellow-600/60"
+      referrerpolicy="no-referrer">
+    </iframe>
   </div>
 
-  
-  <!-- Chat (player -> host on result) -->
-  <section id="chatPanel" class="w-full max-w-6xl mx-auto mt-4 p-3 rounded bg-black/20 border border-yellow-600">
-    <p class="font-bold mb-2">💬 رسالة للمضيف:</p>
+  <!-- Chat -->
+  <section id="chatPanel"
+           class="glass w-full max-w-5xl mx-auto mt-4 p-4 rounded-2xl">
 
-    <div id="chatHistory" class="h-40 overflow-y-auto no-scrollbar rounded border border-yellow-700/60 bg-black/20 p-2 text-sm leading-relaxed space-y-1"></div>
+    <p class="font-extrabold mb-2 text-yellow-300">
+      💬 رسالة للمضيف:
+    </p>
 
-    <div class="mt-2 flex gap-2">
+    <div id="chatHistory"
+         class="h-40 overflow-y-auto rounded-xl
+                border border-yellow-700/60
+                bg-black/20 p-2 text-sm space-y-1">
+    </div>
+
+    <div class="mt-3 flex gap-2">
       <input id="chatInput" type="text"
-             class="flex-1 bg-transparent border-2 border-yellow-600 rounded-lg px-3 py-2 outline-none"
-             placeholder="اكتب رسالتك هنا..." autocomplete="off" />
+        class="flex-1 bg-black/20 border border-yellow-600/60
+               rounded-xl px-3 py-2 outline-none
+               focus:ring-2 focus:ring-yellow-500/50"
+        placeholder="اكتب رسالتك هنا..."
+        autocomplete="off" />
+
       <button id="chatSendBtn"
-              class="bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold px-5 py-2 rounded-lg">
+        class="btn bg-yellow-400 hover:bg-yellow-500
+               text-black px-6 py-2 rounded-xl">
         إرسال
       </button>
     </div>
@@ -102,8 +193,10 @@
     <p id="chatStatus" class="mt-2 text-xs opacity-80"></p>
   </section>
 
+  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="order.js?v=nosave-hardened"></script>
   <script src="../copyright.js"></script>
+
 </body>
 </html>

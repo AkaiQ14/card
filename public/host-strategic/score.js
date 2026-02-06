@@ -14,12 +14,12 @@ function showSuccessModal(playerName) {
   overlay.id = "successModalOverlay";
   overlay.className = "fixed top-0 left-0 w-screen h-screen bg-transparent flex items-center justify-center z-[99999]";
   overlay.style.backdropFilter = "blur(4px)";
-  
+
   // إنشاء البطاقة
   const modal = document.createElement("div");
   modal.className = "bg-[#4B0E1F] border-4 border-[#FFD700] rounded-2xl p-8 max-w-md w-11/12 mx-4 shadow-2xl transform transition-all duration-300 scale-0 modal-enter";
   modal.style.boxShadow = "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(255,215,0,0.3), inset 0 0 0 1px rgba(255,215,0,0.2)";
-  
+
   modal.innerHTML = `
     <div class="text-center space-y-6">
       <!-- أيقونة النجاح -->
@@ -28,12 +28,12 @@ function showSuccessModal(playerName) {
           <span class="text-5xl">✅</span>
         </div>
       </div>
-      
+
       <!-- العنوان -->
       <h2 class="text-3xl font-bold text-[#FFD700] text-shadow-lg" style="text-shadow: 0 0 10px rgba(255,215,0,0.5);">
         تمت الإضافة بنجاح!
       </h2>
-      
+
       <!-- الرسالة -->
       <p class="text-xl text-white">
   تمت إضافة نقطة لـ
@@ -52,24 +52,24 @@ function showSuccessModal(playerName) {
       </button>
     </div>
   `;
-  
+
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
-  
+
   // تأثير الظهور
   setTimeout(() => {
     overlay.style.opacity = "1";
     modal.style.transform = "scale(1)";
     modal.classList.add("modal-enter");
   }, 10);
-  
+
   // إغلاق عند الضغط على overlay
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
       closeSuccessModal();
     }
   });
-  
+
   // إغلاق عند الضغط على ESC
   const escHandler = (e) => {
     if (e.key === "Escape") {
@@ -187,12 +187,12 @@ function showErrorModal(message) {
   overlay.id = "errorModalOverlay";
   overlay.className = "fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 transition-opacity duration-300";
   overlay.style.backdropFilter = "blur(4px)";
-  
+
   // إنشاء البطاقة
   const modal = document.createElement("div");
   modal.className = "bg-[#4B0E1F] border-4 border-red-500 rounded-2xl p-8 max-w-md w-11/12 mx-4 shadow-2xl transform transition-all duration-300 scale-0 modal-enter";
   modal.style.boxShadow = "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(239,68,68,0.3), inset 0 0 0 1px rgba(239,68,68,0.2)";
-  
+
   modal.innerHTML = `
     <div class="text-center space-y-6">
       <!-- أيقونة الخطأ -->
@@ -201,17 +201,17 @@ function showErrorModal(message) {
           <span class="text-5xl">❌</span>
         </div>
       </div>
-      
+
       <!-- العنوان -->
       <h2 class="text-3xl font-bold text-red-400">
         حدث خطأ
       </h2>
-      
+
       <!-- الرسالة -->
       <p class="text-xl text-white">
         ${message}
       </p>
-      
+
       <!-- زر الإغلاق -->
       <button 
         onclick="closeErrorModal()"
@@ -222,24 +222,24 @@ function showErrorModal(message) {
       </button>
     </div>
   `;
-  
+
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
-  
+
   // تأثير الظهور
   setTimeout(() => {
     overlay.style.opacity = "1";
     modal.style.transform = "scale(1)";
     modal.classList.add("modal-enter");
   }, 10);
-  
+
   // إغلاق عند الضغط على overlay
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
       closeErrorModal();
     }
   });
-  
+
   // إغلاق عند الضغط على ESC
   const escHandler = (e) => {
     if (e.key === "Escape") {
