@@ -6,108 +6,191 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg1:#4B0E1F;
+      --bg2:#12040a;
+      --gold:#FFD700;
+      --glass: rgba(0,0,0,.35);
+      --stroke: rgba(255,215,0,.35);
+    }
+    html,body{height:100%}
+    body{font-family:"Cairo",system-ui,sans-serif}
+    .bg-game{
+      background:
+        radial-gradient(900px 500px at 15% 10%, rgba(255,215,0,.10), transparent 60%),
+        radial-gradient(900px 500px at 85% 0%, rgba(236,72,153,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg1), #2a0612 55%, var(--bg2));
+      min-height:100vh;
+    }
+    .glass{
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--stroke);
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+    }
+    .btn-primary{
+      background: linear-gradient(135deg, rgba(255,215,0,.95), rgba(234,179,8,.85));
+      color:#1b0a10;
+      font-weight:900;
+      border:1px solid rgba(0,0,0,.25);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .btn-primary:hover{filter:brightness(1.05)}
+    .btn-soft{
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+    }
+    .btn-soft:hover{background: rgba(255,255,255,.12)}
+    .input{
+      background: rgba(0,0,0,.25);
+      border: 1px solid rgba(255,255,255,.14);
+      outline: none;
+    }
+    .input:focus{
+      border-color: rgba(255,215,0,.55);
+      box-shadow: 0 0 0 4px rgba(255,215,0,.12);
+    }
+  </style>
 </head>
-<body class="bg-[#4B0E1F] text-white flex items-center justify-center min-h-screen p-6">
-  <div class="w-full max-w-2xl space-y-6">
-    <h1 class="text-4xl font-bold text-center">QG14 Card Clash</h1>
 
-    <!-- Player Input Phase -->
-    <div id="inputPhase" class="space-y-4">
-      <div>
-        <label class="block mb-1 text-right">اللاعب الأول</label>
-        <input id="p1" class="w-full p-2 rounded bg-gray-800 text-white text-right" placeholder="الاسم الأول" />
-      </div>
-
-      <div>
-        <label class="block mb-1 text-right">اللاعب الثاني</label>
-        <input id="p2" class="w-full p-2 rounded bg-gray-800 text-white text-right" placeholder="الاسم الثاني" />
-      </div>
-
-      <div>
-        <label class="block mb-1 text-right">عدد الجولات</label>
-        <select id="roundCount" class="w-full p-2 rounded bg-gray-800 text-white text-right">
-          <option value="">-- اختر --</option>
-          <option value="1">1</option>
-          <option value="3">3</option>
-          <option value="5">5</option>
-          <option value="7">7</option>
-          <option value="9">9</option>
-          <option value="11" selected>11</option>
-        </select>
-      </div>
-
-      <!-- Checkbox RTL aligned (works without rtl: variant) -->
-      <label class="flex flex-row items-center gap-2 w-full justify-start">
-        <input id="countLeaderboard" type="checkbox" class="w-5 h-5 accent-yellow-500" />
-        <span>احتساب هذه المباراة في لوحة المتصدرين</span>
-      </label>
-
-      <button onclick="showAnimeDropdowns()" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded text-lg font-bold">
-        متابعة
-      </button>
-    </div>
-
-    <!-- Anime + Abilities Phase -->
-    <div id="animePhase" class="space-y-6 hidden">
-      <div>
-        <label class="block mb-1 text-right">اختر أنمي</label>
-        <select id="singleAnimeSelect" class="w-full p-2 rounded bg-gray-800 text-white text-right">
-          <option value="wildcards" selected>Wild Cards</option>
-        </select>
-      </div>
-
-      <!-- Abilities (same as before) -->
-      <section id="abilitiesSection" class="w-full p-4 rounded bg-gray-900 text-white space-y-4">
-        <h2 class="text-2xl font-bold">القدرات</h2>
-
-        <div class="flex gap-2">
-          <input id="newAbilityInput" type="text" placeholder="أضف قدرة جديدة..."
-                 class="flex-1 p-2 rounded bg-gray-800 text-white" />
-          <button id="addAbilityBtn" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700">إضافة</button>
-          <button id="resetAbilitiesBtn" class="px-4 py-2 rounded bg-amber-600 hover:bg-amber-700">إعادة تعيين للقائمة الافتراضية</button>
-        </div>
-
-        <div>
-          <p class="mb-2 opacity-80">القائمة الحالية للقدرات:</p>
-          <div class="max-h-32 overflow-y-auto pr-2">
-            <ul id="abilityList" class="space-y-2"></ul>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap gap-2 items-center">
-          <button id="dealAbilitiesBtn" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700">
-            توزيع ٣ قدرات عشوائية لكل لاعب (بدون تكرار)
-          </button>
-          <span id="dealStatus" class="opacity-80"></span>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-          <div class="p-3 rounded bg-gray-800">
-            <p class="font-semibold mb-2"><span id="p1NamePreview">اللاعب 1</span> — القدرات</p>
-            <ul id="p1AbilitiesPreview" class="list-disc pr-6 space-y-1"></ul>
-          </div>
-          <div class="p-3 rounded bg-gray-800">
-            <p class="font-semibold mb-2"><span id="p2NamePreview">اللاعب 2</span> — القدرات</p>
-            <ul id="p2AbilitiesPreview" class="list-disc pr-6 space-y-1"></ul>
-          </div>
-        </div>
-      </section>
-
-      <button id="startBtn" onclick="startGame()" class="w-full bg-green-600 hover:bg-green-700 py-2 rounded text-lg font-bold" disabled>
-        إبدأ
-      </button>
-      <p id="startHint" class="text-sm opacity-80 text-center">لا يمكنك البدء حتى يتم توزيع القدرات.</p>
-    </div>
-  </div>
-
-  <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
-       class="fixed bottom-4 right-4 w-40 h-auto opacity-90 pointer-events-none" />
-
-  <button id="homeBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 absolute top-4 right-4">
+<body class="bg-game text-white">
+  <!-- floating brand / home -->
+  <button id="homeBtn"
+    class="fixed top-4 right-4 z-50 px-4 py-2 rounded-xl btn-soft text-sm font-extrabold"
+    title="العودة للرئيسية">
     الرئيسية
   </button>
 
-  <script>document.getElementById("homeBtn").onclick = () => { window.location.href = "/"; };</script>
+  <main class="min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-3xl">
+      <header class="text-center mb-6">
+        <h1 class="text-4xl md:text-5xl font-black tracking-tight">
+          QG14 <span class="text-yellow-300">Card Clash</span>
+        </h1>
+        <p class="mt-2 text-white/80">جهّز اللاعبين، اختر عدد الجولات، ثم وزّع القدرات وابدأ.</p>
+      </header>
+
+      <section class="glass rounded-3xl p-5 md:p-8">
+        <!-- Player Input Phase -->
+        <div id="inputPhase" class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block mb-2 font-bold text-white/90">اللاعب الأول</label>
+              <input id="p1" class="input w-full px-4 py-3 rounded-2xl text-right" placeholder="الاسم الأول" />
+            </div>
+            <div>
+              <label class="block mb-2 font-bold text-white/90">اللاعب الثاني</label>
+              <input id="p2" class="input w-full px-4 py-3 rounded-2xl text-right" placeholder="الاسم الثاني" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block mb-2 font-bold text-white/90">عدد الجولات</label>
+            <select id="roundCount" class="input w-full px-4 py-3 rounded-2xl text-right">
+              <option value="">-- اختر --</option>
+              <option value="1">1</option>
+              <option value="3">3</option>
+              <option value="5">5</option>
+              <option value="7">7</option>
+              <option value="9">9</option>
+              <option value="11" selected>11</option>
+            </select>
+          </div>
+
+          <label class="flex items-center gap-3 w-full justify-start select-none">
+            <input id="countLeaderboard" type="checkbox" class="w-5 h-5 accent-yellow-500" />
+            <span class="text-white/90 font-semibold">احتساب هذه المباراة في لوحة المتصدرين</span>
+          </label>
+
+          <button onclick="showAnimeDropdowns()"
+            class="w-full py-3 rounded-2xl text-lg btn-primary">
+            متابعة
+          </button>
+        </div>
+
+        <!-- Anime + Abilities Phase -->
+        <div id="animePhase" class="space-y-6 hidden">
+          <div>
+            <label class="block mb-2 font-bold text-white/90">اختر أنمي</label>
+            <select id="singleAnimeSelect" class="input w-full px-4 py-3 rounded-2xl text-right">
+              <option value="wildcards" selected>Wild Cards</option>
+            </select>
+          </div>
+
+          <!-- Abilities (keep same IDs & structure) -->
+          <section id="abilitiesSection" class="glass rounded-3xl p-4 md:p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <h2 class="text-2xl font-black text-yellow-300">القدرات</h2>
+              <span class="text-xs text-white/70">إدارة القائمة + توزيع عشوائي بدون تكرار</span>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-2">
+              <input id="newAbilityInput" type="text" placeholder="أضف قدرة جديدة..."
+                class="input flex-1 px-4 py-3 rounded-2xl" />
+              <button id="addAbilityBtn"
+                class="px-5 py-3 rounded-2xl font-extrabold bg-emerald-600 hover:bg-emerald-700">
+                إضافة
+              </button>
+              <button id="resetAbilitiesBtn"
+                class="px-5 py-3 rounded-2xl font-extrabold bg-amber-600 hover:bg-amber-700">
+                إعادة تعيين
+              </button>
+            </div>
+
+            <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <p class="mb-3 text-white/80 font-semibold">القائمة الحالية للقدرات:</p>
+              <div class="max-h-40 overflow-y-auto pr-2">
+                <ul id="abilityList" class="space-y-2"></ul>
+              </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-3 md:items-center">
+              <button id="dealAbilitiesBtn"
+                class="px-6 py-3 rounded-2xl font-extrabold bg-sky-600 hover:bg-sky-700">
+                توزيع ٣ قدرات عشوائية لكل لاعب (بدون تكرار)
+              </button>
+              <span id="dealStatus" class="text-white/80"></span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p class="font-extrabold mb-3">
+                  <span id="p1NamePreview">اللاعب 1</span> — القدرات
+                </p>
+                <ul id="p1AbilitiesPreview" class="list-disc pr-6 space-y-1 text-white/90"></ul>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p class="font-extrabold mb-3">
+                  <span id="p2NamePreview">اللاعب 2</span> — القدرات
+                </p>
+                <ul id="p2AbilitiesPreview" class="list-disc pr-6 space-y-1 text-white/90"></ul>
+              </div>
+            </div>
+          </section>
+
+          <button id="startBtn" onclick="startGame()"
+            class="w-full py-3 rounded-2xl text-lg font-black bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40"
+            disabled>
+            إبدأ
+          </button>
+          <p id="startHint" class="text-sm opacity-80 text-center">لا يمكنك البدء حتى يتم توزيع القدرات.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
+    class="fixed bottom-4 right-4 w-36 md:w-40 h-auto opacity-90 pointer-events-none" />
+
+  <script>
+    document.getElementById("homeBtn").onclick = () => { window.location.href = "/"; };
+  </script>
   <script src="start.js"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>

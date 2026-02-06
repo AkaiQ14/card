@@ -1,37 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <title>QG14 Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-  <body class="bg-[#4B0E1F] text-white flex items-center justify-center min-h-screen p-6">
-  <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md space-y-6 text-center">
-    <h1 class="text-3xl font-bold text-pink-500">QG14 Card Clash</h1>
-    <p class="text-gray-300">تسجيل الدخول لبدء اللعبة</p>
 
-    <div class="space-y-4">
-      <input
-        type="text"
-        id="username"
-        placeholder="اسم المستخدم"
-        class="w-full p-3 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
-      />
-      <input
-        type="password"
-        id="password"
-        placeholder="كلمة المرور"
-        class="w-full p-3 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
-      />
-      <button
-        onclick="login()"
-        class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 rounded transition"
-      >
-        دخول
-      </button>
-      <p id="error" class="text-red-400 text-sm"></p>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg1:#4B0E1F;
+      --bg2:#12040a;
+      --gold:#FFD700;
+    }
+    body{font-family:"Cairo",system-ui,sans-serif}
+    .bg-game{
+      background:
+        radial-gradient(900px 500px at 15% 10%, rgba(255,215,0,.10), transparent 60%),
+        radial-gradient(900px 500px at 85% 0%, rgba(16,185,129,.12), transparent 60%),
+        linear-gradient(180deg, var(--bg1), #2a0612 55%, var(--bg2));
+      min-height:100vh;
+    }
+    .glass{
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,215,0,.28);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+    }
+    .btn{
+      border-radius: 18px;
+      font-weight: 900;
+      transition: transform .08s ease, filter .12s ease;
+    }
+    .btn:active{transform: translateY(1px)}
+  </style>
+</head>
+
+<body class="bg-game text-white flex items-center justify-center min-h-screen p-6">
+  <div class="w-full max-w-md">
+
+    <div class="glass p-6 md:p-7 rounded-3xl">
+
+      <!-- العناوين داخل البوكس -->
+      <div class="text-center mb-5">
+        <h1 class="text-3xl md:text-4xl font-black">
+          QG14 <span class="text-yellow-300">Card Clash</span>
+        </h1>
+        <p class="text-white/80 mt-1">تسجيل الدخول لبدء اللعبة</p>
+      </div>
+
+      <div class="space-y-3">
+        <input
+          type="text"
+          id="username"
+          placeholder="اسم المستخدم"
+          class="w-full p-3 rounded-2xl bg-black/30 text-white border border-yellow-300/20
+                 text-right placeholder:text-white/50
+                 focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+        />
+        <input
+          type="password"
+          id="password"
+          placeholder="كلمة المرور"
+          class="w-full p-3 rounded-2xl bg-black/30 text-white border border-yellow-300/20
+                 text-right placeholder:text-white/50
+                 focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+        />
+
+        <!-- زر أصفر -->
+        <button
+          onclick="login()"
+          class="btn w-full py-3 rounded-2xl text-lg
+                 bg-yellow-400 hover:bg-yellow-500 text-black
+                 shadow-xl shadow-black/25"
+        >
+          دخول
+        </button>
+
+        <p id="error" class="text-red-300 text-sm font-bold text-center"></p>
+      </div>
     </div>
+
   </div>
 
   <script>
@@ -53,7 +105,7 @@
       }
     }
   </script>
+
   <script src="copyright.js"></script>
-  
 </body>
 </html>
