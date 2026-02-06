@@ -157,33 +157,51 @@
               </button>
               <span id="dealStatus" class="text-white/80"></span>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p class="font-extrabold mb-3">
-                  <span id="p1NamePreview">اللاعب 1</span> — القدرات
-                </p>
-                <ul id="p1AbilitiesPreview" class="list-disc pr-6 space-y-1 text-white/90"></ul>
-              </div>
-              <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p class="font-extrabold mb-3">
-                  <span id="p2NamePreview">اللاعب 2</span> — القدرات
-                </p>
-                <ul id="p2AbilitiesPreview" class="list-disc pr-6 space-y-1 text-white/90"></ul>
-              </div>
-            </div>
           </section>
-
-          <button id="startBtn" onclick="startGame()"
-            class="w-full py-3 rounded-2xl text-lg font-black bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40"
-            disabled>
-            إبدأ
-          </button>
-          <p id="startHint" class="text-sm opacity-80 text-center">لا يمكنك البدء حتى يتم توزيع القدرات.</p>
         </div>
       </section>
     </div>
   </main>
+
+  <!-- ================== MODAL: Abilities Result + Start ================== -->
+  <div id="abilitiesModal" class="fixed inset-0 z-[999] hidden">
+    <div id="abilitiesModalBackdrop" class="absolute inset-0 bg-black/70"></div>
+
+    <div class="relative min-h-screen flex items-center justify-center p-6">
+        <div class="glass w-full max-w-3xl rounded-3xl p-5 md:p-7 bg-[#4B0E1F]/80 border border-yellow-300/25">
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-2xl md:text-3xl font-black text-yellow-300">تم توزيع القدرات</h2>
+          <button id="closeAbilitiesModal" type="button"
+            class="px-4 py-2 rounded-xl btn-soft font-extrabold">
+            إغلاق
+          </button>
+        </div>
+
+        <p class="mt-2 text-white/80">راجع قدرات اللاعبين ثم اضغط ابدأ.</p>
+
+        <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <p class="font-extrabold mb-3">
+              <span id="modalP1Name">اللاعب 1</span> — القدرات
+            </p>
+            <ul id="modalP1Abilities" class="list-disc pr-6 space-y-1 text-white/90"></ul>
+          </div>
+
+          <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <p class="font-extrabold mb-3">
+              <span id="modalP2Name">اللاعب 2</span> — القدرات
+            </p>
+            <ul id="modalP2Abilities" class="list-disc pr-6 space-y-1 text-white/90"></ul>
+          </div>
+        </div>
+
+        <button id="modalStartBtn" type="button"
+          class="w-full mt-5 py-3 rounded-2xl text-lg btn-primary">
+          ابدأ
+        </button>
+      </div>
+    </div>
+  </div>
 
   <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
     class="fixed bottom-4 right-4 w-36 md:w-40 h-auto opacity-90 pointer-events-none" />
