@@ -6,33 +6,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg1:#4B0E1F;
+      --bg2:#12040a;
+      --gold:#FFD700;
+    }
+    body{font-family:"Cairo",system-ui,sans-serif}
+
+    .bg-game{
+      background:
+        radial-gradient(900px 500px at 15% 10%, rgba(255,215,0,.10), transparent 60%),
+        radial-gradient(900px 500px at 85% 0%, rgba(16,185,129,.12), transparent 60%),
+        linear-gradient(180deg, var(--bg1), #2a0612 55%, var(--bg2));
+      min-height:100vh;
+    }
+    .glass{
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,215,0,.28);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+    }
+    .btn{
+      border-radius: 18px;
+      font-weight: 900;
+      transition: transform .08s ease, filter .12s ease;
+    }
+    .btn:active{transform: translateY(1px)}
+  </style>
 </head>
-<body class="bg-[#4B0E1F] text-white p-6 min-h-screen flex flex-col items-center space-y-6">
-  <h1 class="text-4xl font-bold">QG14 Card Clash</h1>
-  <p id="instruction" class="text-xl">جاري التحميل...</p>
+
+<body class="bg-game text-white p-6 min-h-screen flex flex-col items-center space-y-6">
+
+  <header class="text-center">
+    <h1 class="text-3xl md:text-4xl font-black">
+      QG14 <span class="text-yellow-300">Card Clash</span>
+    </h1>
+    <p id="instruction" class="text-lg md:text-xl text-white/85 mt-2 font-bold">جاري التحميل...</p>
+  </header>
 
   <!-- Read-only abilities panel (you + opponent) -->
-  <section class="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div id="abilitiesPanel" class="p-3 rounded bg-black/20 border border-yellow-600">
-      <p class="font-bold mb-2">قدراتك (للاطلاع فقط):</p>
+  <section class="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div id="abilitiesPanel" class="glass p-4 rounded-2xl">
+      <p class="font-extrabold mb-2 text-yellow-300">قدراتك (للاطلاع فقط):</p>
       <div id="playerAbilities" class="flex flex-wrap gap-2"></div>
       <p id="abilityHint" class="mt-1 text-sm opacity-80"></p>
     </div>
 
-    <div id="oppPanel" class="p-3 rounded bg-black/20 border border-yellow-600">
-      <p class="font-bold mb-2">قدرات الخصم (عرض فقط):</p>
+    <div id="oppPanel" class="glass p-4 rounded-2xl">
+      <p class="font-extrabold mb-2 text-yellow-300">قدرات الخصم (عرض فقط):</p>
       <div id="oppAbilities" class="flex flex-wrap gap-2"></div>
       <p id="oppHint" class="mt-1 text-sm opacity-80"></p>
     </div>
   </section>
 
   <!-- 20 numbered boxes -->
-  <div id="boxGrid" class="grid grid-cols-4 sm:grid-cols-5 gap-4 w-full max-w-6xl" dir="ltr"></div>
+  <div id="boxGrid"
+       class="glass p-4 rounded-2xl grid grid-cols-4 sm:grid-cols-5 gap-4 w-full max-w-5xl"
+       dir="ltr"></div>
 
   <!-- Selected images -->
-  <section id="selectedPanel" class="w-full max-w-6xl mx-auto mt-4 p-3 rounded bg-black/20 border border-yellow-600">
+  <section id="selectedPanel" class="glass w-full max-w-5xl mx-auto mt-2 p-4 rounded-2xl">
     <div class="flex items-center justify-between mb-2">
-      <p class="font-bold">اختياراتك حتى الآن</p>
+      <p class="font-extrabold text-yellow-300">اختياراتك حتى الآن</p>
       <p class="text-sm opacity-80">
         (<span id="selectedCount">0</span>/<span id="selectedTotal">0</span>)
       </p>
@@ -42,15 +83,20 @@
 
   <button
     id="confirmBtn"
-    class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded text-lg font-bold mt-2 hidden"
+    class="btn mt-1 hidden px-10 py-3 text-lg
+           bg-gradient-to-r from-emerald-500 to-teal-600
+           hover:from-emerald-600 hover:to-teal-700
+           shadow-xl shadow-black/30"
   >
     تأكيد الإختيارات
   </button>
 
   <!-- Modal -->
-  <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-50">
-    <div class="bg-gray-800 rounded p-6 max-w-5xl w-full fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-      <h2 class="text-2xl font-bold text-center mb-4">اختر صورة من الخيارات الثلاثة</h2>
+  <div id="imageModal" class="fixed inset-0 bg-black/70 hidden z-50">
+    <div class="glass rounded-3xl p-6 max-w-5xl w-full fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+      <h2 class="text-2xl font-black text-center mb-4">
+        اختر صورة من الخيارات الثلاثة
+      </h2>
       <div id="modalOptions" class="flex justify-center gap-4 flex-wrap"></div>
     </div>
   </div>
