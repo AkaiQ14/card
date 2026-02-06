@@ -10,7 +10,6 @@ socket.emit("createGame");
 socket.on("gameCreated", (gameID) => {
   createdGameID = gameID;
   localStorage.setItem("gameID", gameID);
-  // Send meta as early as possible with user’s current checkbox state
   sendGameMeta();
 });
 
@@ -46,7 +45,7 @@ async function fetchServerAbilities() {
     renderAbilityList();
   } catch (e) {
     console.warn("[abilities] fetch failed:", e.message);
-    renderAbilityList(); // fall back to whatever is cached locally
+    renderAbilityList();
   }
 }
 async function addAbilityOnServer(text) {
@@ -80,11 +79,11 @@ function renderAbilityList() {
     const li = document.createElement("li");
     li.className =
       "flex items-center justify-between gap-2 bg-gray-800 rounded px-2 py-1";
+
     const span = document.createElement("span");
     span.textContent = text;
     span.className = "opacity-90";
 
-    // delete now persists (server) + confirmation
     const del = document.createElement("button");
     del.textContent = "✕";
     del.title = "حذف (يحفظ في الملف)";
@@ -116,7 +115,7 @@ async function addAbilityFromInput() {
   const val = (input?.value || "").trim();
   if (!val) return;
   try {
-    await addAbilityOnServer(val); // persists to abilities.json
+    await addAbilityOnServer(val);
     input.value = "";
   } catch (e) {
     console.error(e);
@@ -124,9 +123,8 @@ async function addAbilityFromInput() {
   }
 }
 
-// read from abilities.json (server)
 function resetAbilitiesToDefault() {
-  fetchServerAbilities(); // refresh local mirror from file
+  fetchServerAbilities();
 }
 
 // ——— random dealing ———
@@ -138,32 +136,84 @@ function sampleUnique(arr, count) {
   }
   return a.slice(0, Math.min(count, a.length));
 }
+
 function dealAbilitiesToPlayers() {
   const master = loadMasterAbilities();
   const unique = Array.from(new Set(master));
   const status = document.getElementById("dealStatus");
+
   if (unique.length < 6) {
-    status.textContent = "يجب أن تحتوي القائمة على ٦ قدرات على الأقل.";
-    return;
+    if (status) status.textContent = "يجب أن تحتوي القائمة على ٦ قدرات على الأقل.";
+    return false;
   }
+
   const pickedForP1 = sampleUnique(unique, 3);
   const remaining = unique.filter((x) => !pickedForP1.includes(x));
   const pickedForP2 = sampleUnique(remaining, 3);
+
   const wrap = (arr) => arr.map((text) => ({ text, used: false }));
   localStorage.setItem(P1_ABILITIES_KEY, JSON.stringify(wrap(pickedForP1)));
   localStorage.setItem(P2_ABILITIES_KEY, JSON.stringify(wrap(pickedForP2)));
-  document.getElementById("p1AbilitiesPreview").innerHTML = pickedForP1
-    .map((t) => `<li>${t}</li>`)
-    .join("");
-  document.getElementById("p2AbilitiesPreview").innerHTML = pickedForP2
-    .map((t) => `<li>${t}</li>`)
-    .join("");
 
-  const startBtn = document.getElementById("startBtn");
-  const hint = document.getElementById("startHint");
-  if (startBtn) startBtn.disabled = false;
-  if (hint) hint.textContent = "";
+  if (status) status.textContent = "✅ تم توزيع القدرات";
+  return true;
 }
+
+/* ========= MODAL (abilities result + start) ========= */
+function openAbilitiesModalFromStorage() {
+  const modal = document.getElementById("abilitiesModal");
+  if (!modal) return;
+
+  const p1Name = (localStorage.getItem("player1") || "اللاعب 1").trim();
+  const p2Name = (localStorage.getItem("player2") || "اللاعب 2").trim();
+
+  const p1Abs = JSON.parse(localStorage.getItem(P1_ABILITIES_KEY) || "[]");
+  const p2Abs = JSON.parse(localStorage.getItem(P2_ABILITIES_KEY) || "[]");
+
+  const mP1Name = document.getElementById("modalP1Name");
+  const mP2Name = document.getElementById("modalP2Name");
+  const mP1List = document.getElementById("modalP1Abilities");
+  const mP2List = document.getElementById("modalP2Abilities");
+
+  if (mP1Name) mP1Name.textContent = p1Name || "اللاعب 1";
+  if (mP2Name) mP2Name.textContent = p2Name || "اللاعب 2";
+
+  if (mP1List) mP1List.innerHTML = (p1Abs || []).map((a) => `<li>${a.text}</li>`).join("");
+  if (mP2List) mP2List.innerHTML = (p2Abs || []).map((a) => `<li>${a.text}</li>`).join("");
+
+  modal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeAbilitiesModal() {
+  const modal = document.getElementById("abilitiesModal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+(function wireAbilitiesModal() {
+  const backdrop = document.getElementById("abilitiesModalBackdrop");
+  const closeBtn = document.getElementById("closeAbilitiesModal");
+  const modalStartBtn = document.getElementById("modalStartBtn");
+
+  if (backdrop) backdrop.addEventListener("click", closeAbilitiesModal);
+  if (closeBtn) closeBtn.addEventListener("click", closeAbilitiesModal);
+
+  if (modalStartBtn) {
+    modalStartBtn.addEventListener("click", () => {
+      startGame();
+      closeAbilitiesModal();
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    const modal = document.getElementById("abilitiesModal");
+    if (e.key === "Escape" && modal && !modal.classList.contains("hidden")) {
+      closeAbilitiesModal();
+    }
+  });
+})();
 
 // ——— send meta (mode + count) to server ———
 function sendGameMeta() {
@@ -171,7 +221,6 @@ function sendGameMeta() {
   if (!gameID) return;
   const count = !!document.getElementById("countLeaderboard")?.checked;
 
-  // persist so result page can read
   localStorage.setItem("countInLeaderboard", String(count));
 
   socket.emit("setGameMeta", {
@@ -182,7 +231,6 @@ function sendGameMeta() {
   console.log("[meta] setGameMeta sent:", { gameID, mode: "winner", count });
 }
 
-// Keep server meta in sync when checkbox changes
 document.addEventListener("change", (e) => {
   if (e.target && e.target.id === "countLeaderboard") sendGameMeta();
 });
@@ -202,14 +250,7 @@ function showAnimeDropdowns() {
   localStorage.setItem("player2", p2);
   localStorage.setItem("totalRounds", roundCount.toString());
 
-  [
-    "globalUsed",
-    "picks",
-    "scores",
-    "currentRound",
-    P1_ABILITIES_KEY,
-    P2_ABILITIES_KEY,
-  ].forEach((k) => localStorage.removeItem(k));
+  ["globalUsed","picks","scores","currentRound",P1_ABILITIES_KEY,P2_ABILITIES_KEY].forEach((k) => localStorage.removeItem(k));
 
   document.getElementById("inputPhase").classList.add("hidden");
   document.getElementById("animePhase").classList.remove("hidden");
@@ -224,15 +265,16 @@ function showAnimeDropdowns() {
     select.appendChild(opt);
   }
 
-  document.getElementById("p1NamePreview").textContent = p1;
-  document.getElementById("p2NamePreview").textContent = p2;
-
-  // Abilities UI (server-driven)
   fetchServerAbilities();
 
   document.getElementById("addAbilityBtn").onclick = addAbilityFromInput;
   document.getElementById("resetAbilitiesBtn").onclick = resetAbilitiesToDefault;
-  document.getElementById("dealAbilitiesBtn").onclick = dealAbilitiesToPlayers;
+
+  // ✅ Deal -> deal abilities then open MODAL
+  document.getElementById("dealAbilitiesBtn").onclick = () => {
+    const ok = dealAbilitiesToPlayers();
+    if (ok) openAbilitiesModalFromStorage();
+  };
 
   sendGameMeta();
 }
@@ -245,10 +287,9 @@ function startGame() {
     return;
   }
 
-  const anime =
-    document.getElementById("singleAnimeSelect").value || "rarities";
+  const anime = document.getElementById("singleAnimeSelect").value || "rarities";
   const roundCount = parseInt(localStorage.getItem("totalRounds") || "3", 10);
-  const animeList = Array(roundCount).fill(anime); // "rarities" repeated
+  const animeList = Array(roundCount).fill(anime);
 
   const gameID = localStorage.getItem("gameID");
   const player1 = localStorage.getItem("player1");
@@ -260,7 +301,6 @@ function startGame() {
   socket.emit("manualAddPlayers", { gameID, playerNames: [player1, player2] });
   socket.emit("setAnimeList", { gameID, animeList });
 
-  // publish abilities to players
   socket.emit("setAbilities", {
     gameID,
     abilities: {
@@ -270,16 +310,6 @@ function startGame() {
   });
 
   sendGameMeta();
-
-  console.log(
-    "Player 1 Link:",
-    `${window.location.origin}/host-winner/pick.html?game=${gameID}&player=player1&name=${encodeURIComponent(player1)}&rounds=${roundCount}`,
-  );
-  console.log(
-    "Player 2 Link:",
-    `${window.location.origin}/host-winner/pick.html?game=${gameID}&player=player2&name=${encodeURIComponent(player2)}&rounds=${roundCount}`,
-  );
-
   window.location.href = "wait.html";
 }
 
