@@ -28,6 +28,10 @@ const instruction = document.getElementById("instruction");
 const boxGrid = document.getElementById("boxGrid");
 const confirmBtn = document.getElementById("confirmBtn");
 
+// Modal elements (optional if exists)
+const tacticModal = document.getElementById("tacticModal");
+const tacticSelectEl = document.getElementById("tacticSelect");
+
 const BOARD_SIZE = 20;
 
 let imageMap = {};      // 1..20 -> {folder, filename, key, fullPath}
@@ -60,6 +64,10 @@ function shuffleInPlace(arr) {
   return arr;
 }
 
+function clamp(n, a, b) {
+  return Math.max(a, Math.min(b, n));
+}
+
 // ✅ صور + فيديو
 function isMediaFile(f) {
   return /\.(png|jpg|jpeg|webp|gif|avif|bmp|svg|apng|webm|mp4|ogg)$/i.test(String(f));
@@ -69,16 +77,6 @@ async function fetchFolderList(folder) {
   const res = await fetch(`/list-images/${folder}`);
   if (!res.ok) throw new Error(`Failed to list ${folder}`);
   return res.json();
-}
-
-function clamp(n, a, b) {
-  return Math.max(a, Math.min(b, n));
-}
-
-function getExt(path) {
-  const s = String(path).split("?")[0];
-  const dot = s.lastIndexOf(".");
-  return dot >= 0 ? s.slice(dot + 1).toLowerCase() : "";
 }
 
 // ---------- load & render ----------
@@ -106,7 +104,7 @@ async function loadAndRender() {
       return;
     }
 
-    // نبني deck لكل فئة (يشمل كل ملفاتها) + signature (عشان لو أضفت ملفات يتحدث)
+    // نبني deck لكل فئة (يشمل كل ملفاتها) + signature
     const lKeysNow = legendaryFiles.map(f => `legendary/${f}`).sort().join("|");
     const nKeysNow = normalFiles.map(f => `normal/${f}`).sort().join("|");
 
@@ -271,15 +269,41 @@ function toggleBox(index, btn) {
   confirmBtn.classList.toggle("hidden", selectedBoxes.length !== roundCount);
 }
 
-function randomSelect() {
-  randomSound.currentTime = 0;
-  randomSound.play().catch(() => {});
-
-  // فك تحديد
+function clearSelectionsUI() {
   document.querySelectorAll("#boxGrid button").forEach(btn => {
     const index = Number(btn.dataset.index);
     if (selectedBoxes.includes(index)) toggleBox(index, btn);
   });
+}
+
+function pickFromPool(pool) {
+  // pool: array of allowed indices (1..20)
+  const uniq = Array.from(new Set(pool)).filter(n => Number.isFinite(n) && n >= 1 && n <= BOARD_SIZE);
+  shuffleInPlace(uniq);
+
+  // فك تحديد الحالي
+  clearSelectionsUI();
+
+  // إذا ما يكفي، نكمّل من باقي الأرقام
+  if (uniq.length < roundCount) {
+    const rest = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1).filter(n => !uniq.includes(n));
+    shuffleInPlace(rest);
+    uniq.push(...rest);
+  }
+
+  while (selectedBoxes.length < roundCount && uniq.length) {
+    const index = uniq.pop();
+    const btn = document.querySelector(`#boxGrid button[data-index="${index}"]`);
+    if (btn) toggleBox(index, btn);
+  }
+}
+
+function randomSelect() {
+  randomSound.currentTime = 0;
+  randomSound.play().catch(() => {});
+
+  // نفس منطقك الحالي: اختيار من 1..20
+  clearSelectionsUI();
 
   const indices = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1);
   shuffleInPlace(indices);
@@ -290,6 +314,94 @@ function randomSelect() {
     if (btn) toggleBox(index, btn);
   }
 }
+
+// ===================== TACTICS =====================
+function range(a, b) {
+  const out = [];
+  for (let i = a; i <= b; i++) out.push(i);
+  return out;
+}
+
+function getTacticPool(tacticId) {
+  switch (tacticId) {
+    case "silver":
+      return [1,2,6,7,8,12,13,14,18,19,20];
+
+    case "reverse":
+      return [4,5,10,9,8,14,13,12,16,17,18];
+
+    case "range1_11":
+      return range(1, 11);
+
+    case "range2_12":
+      return range(2, 12);
+
+    case "range3_13":
+      return range(3, 13);
+
+    case "range4_14":
+      return range(4, 14);
+
+    case "range5_15":
+      return range(5, 15);
+
+    case "range6_16":
+      return range(6, 16);
+
+    case "range7_17":
+      return range(7, 17);
+
+    case "range8_18":
+      return range(8, 18);
+
+    case "range9_19":
+      return range(9, 19);
+
+    case "range10_20":
+      return range(10, 20);
+
+    case "odds_plus_14": {
+      const odds = range(1, 20).filter(n => n % 2 === 1);
+      if (!odds.includes(14)) odds.push(14);
+      return odds;
+    }
+
+    case "evens_plus_random": {
+      const evens = range(1, 20).filter(n => n % 2 === 0);
+      const odds = range(1, 20).filter(n => n % 2 === 1);
+      const randomOdd = odds[Math.floor(Math.random() * odds.length)];
+      if (Number.isFinite(randomOdd)) evens.push(randomOdd);
+      return evens;
+    }
+
+    default:
+      // fallback
+      return range(1, 20);
+  }
+}
+
+// Modal controls
+function openTacticModal() {
+  if (!tacticModal) return; // لو ما فيه مودال
+  tacticModal.classList.remove("hidden");
+  tacticModal.classList.add("flex");
+}
+
+function closeTacticModal() {
+  if (!tacticModal) return;
+  tacticModal.classList.add("hidden");
+  tacticModal.classList.remove("flex");
+}
+
+function applyTactic() {
+  const tacticId = tacticSelectEl ? tacticSelectEl.value : "silver";
+  const pool = getTacticPool(tacticId);
+  pickFromPool(pool);
+
+  closeTacticModal();
+}
+
+// ===================================================
 
 function confirmSelection() {
   if (selectedBoxes.length !== roundCount) {
@@ -325,3 +437,8 @@ function confirmSelection() {
 
 window.confirmSelection = confirmSelection;
 window.randomSelect = randomSelect;
+
+// expose tactics
+window.openTacticModal = openTacticModal;
+window.closeTacticModal = closeTacticModal;
+window.applyTactic = applyTactic;

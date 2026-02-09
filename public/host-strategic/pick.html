@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script> 
 </head>
+
 <body class="bg-[#4B0E1F] text-white p-6 min-h-screen flex flex-col items-center space-y-6">
   <h1 class="text-4xl font-bold">QG14 Card Clash</h1>
   <p id="instruction" class="text-xl">اللاعب ... اختر بطاقاتك</p>
@@ -21,9 +22,17 @@
       onclick="randomSelect()"
       class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded text-lg font-bold"
     >
-     عشوائي
+      عشوائي
     </button>
-  
+
+    <button
+      id="tacticBtn"
+      onclick="openTacticModal()"
+      class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded text-lg font-bold"
+    >
+      تكتيك
+    </button>
+
     <button
       id="confirmBtn"
       onclick="confirmSelection()"
@@ -32,13 +41,69 @@
       تأكيد الإختيارات
     </button>
   </div>
-  
+
+  <!-- Tactic Modal -->
+  <div id="tacticModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
+    <div class="w-full max-w-lg rounded-2xl bg-[#2a0612] border border-white/10 shadow-2xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-extrabold">اختر تكتيك</h2>
+        <button onclick="closeTacticModal()" class="px-3 py-1 rounded bg-white/10 hover:bg-white/20">✕</button>
+      </div>
+
+      <label class="block text-sm mb-2 text-white/80">التكتيك:</label>
+      <div class="mt-6 mb-6">
+        <select id="tacticSelect"
+          class="w-full p-3 rounded
+                 bg-black text-white
+                 border border-white/20
+                 focus:outline-none
+                 cursor-pointer">
+
+
+        <option value="silver">درج سلفر</option>
+        <option value="reverse">درج عكسي</option>
+        <option value="range1_11">من 1-11</option>
+
+        <option value="range2_12">من 2-12</option>
+        <option value="range3_13">من 3-13</option>
+        <option value="range4_14">من 4-14</option>
+        <option value="range5_15">من 5-15</option>
+        <option value="range6_16">من 6-16</option>
+        <option value="range7_17">من 7-17</option>
+        <option value="range8_18">من 8-18</option>
+        <option value="range9_19">من 9-19</option>
+        <option value="range10_20">من 10-20</option>
+
+        <option value="odds_plus_14">فردي و 14</option>
+        <option value="evens_plus_random">زوجي + رقم عشوائي</option>
+      </select>
+
+      <div class="flex gap-3 mt-5">
+        <button
+          onclick="applyTactic()"
+          class="flex-1 bg-purple-600 hover:bg-purple-700 px-5 py-3 rounded font-bold"
+        >
+          تطبيق
+        </button>
+        <button
+          onclick="closeTacticModal()"
+          class="flex-1 bg-white/10 hover:bg-white/20 px-5 py-3 rounded font-bold"
+        >
+          إلغاء
+        </button>
+      </div>
+
+      <p class="mt-4 text-sm text-white/70">
+        ملاحظة: سيتم اختيار <span class="font-bold">عدد الجولات</span> من داخل مجموعة التكتيك فقط.
+      </p>
+    </div>
+  </div>
+
   <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
      class="fixed bottom-4 right-4 w-40 h-auto opacity-90 pointer-events-none" />
 
   <script src="pick.js"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>
-  
 </body>
 </html>
