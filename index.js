@@ -360,10 +360,11 @@ app.post("/api/security/verify", (req, res) => {
 
 // ===== Public Config API =====
 app.get("/api/config", (req, res) => {
-  res.json({
-    legendaryRate: getLegendaryRate()
-  });
+  const rateRaw = process.env.LEGENDARY_RATE ?? "0.10";
+  const legendaryRate = Math.max(0, Math.min(1, parseFloat(rateRaw)));
+  res.json({ legendaryRate: Number.isFinite(legendaryRate) ? legendaryRate : 0.10 });
 });
+
 
 
 // Serve static files AFTER ipAllowlist
