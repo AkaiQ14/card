@@ -5,61 +5,92 @@
   <title>QG14 Card Clash</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/socket.io/socket.io.js"></script> 
+  <script src="/socket.io/socket.io.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg1:#4B0E1F;
+      --bg2:#12040a;
+      --gold:#FFD700;
+    }
+    body{font-family:"Cairo",system-ui,sans-serif}
+    .bg-game{
+      background:
+        radial-gradient(900px 500px at 15% 10%, rgba(255,215,0,.10), transparent 60%),
+        radial-gradient(900px 500px at 90% 0%, rgba(59,130,246,.14), transparent 55%),
+        linear-gradient(180deg, var(--bg1), #2a0612 55%, var(--bg2));
+      min-height:100vh;
+    }
+    .glass{
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,215,0,.25);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+    }
+    /* Keep ultra-tight grid look while feeling premium */
+    #boxGrid{gap:6px !important;}
+
+    /* Modal animation */
+    @keyframes popIn{
+      from{opacity:0; transform: translateY(10px) scale(.98);}
+      to{opacity:1; transform: translateY(0) scale(1);}
+    }
+    .modal-card{ animation: popIn .16s ease-out; }
+  </style>
 </head>
 
-<body class="bg-[#4B0E1F] text-white p-6 min-h-screen flex flex-col items-center space-y-6">
-  <h1 class="text-4xl font-bold">QG14 Card Clash</h1>
-  <p id="instruction" class="text-xl">اللاعب ... اختر بطاقاتك</p>
+<body class="bg-game text-white p-6 min-h-screen flex flex-col items-center space-y-5">
+  <header class="w-full max-w-6xl text-center">
+    <h1 class="text-3xl md:text-4xl font-black">
+      QG14 <span class="text-yellow-300">Card Clash</span>
+    </h1>
+    <p id="instruction" class="mt-2 text-lg md:text-xl text-white/85">اللاعب ... اختر بطاقاتك</p>
+  </header>
 
-  <div id="boxGrid" class="grid grid-cols-4 sm:grid-cols-5 gap-[2px] w-full max-w-6xl" dir="ltr">
-    <!-- Boxes inserted via JS -->
-  </div>
+  <section class="glass w-full max-w-6xl rounded-3xl p-3 md:p-5">
+    <div id="boxGrid" class="grid grid-cols-4 sm:grid-cols-5 w-full" dir="ltr">
+      <!-- Boxes inserted via JS -->
+    </div>
+  </section>
 
-  <div class="flex gap-4 mt-6">
-    <button
-      id="randomBtn"
-      onclick="randomSelect()"
-      class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded text-lg font-bold"
-    >
+  <!-- Buttons -->
+  <div class="flex flex-col sm:flex-row gap-3 mt-2">
+    <button id="randomBtn" onclick="randomSelect()"
+      class="px-7 py-3 rounded-2xl font-black bg-sky-600 hover:bg-sky-700 shadow-xl shadow-black/25">
       عشوائي
     </button>
 
-    <button
-      id="tacticBtn"
-      onclick="openTacticModal()"
-      class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded text-lg font-bold"
-    >
+    <!-- ✅ NEW: Tactic button -->
+    <button id="tacticBtn" onclick="openTacticModal()"
+      class="px-7 py-3 rounded-2xl font-black bg-fuchsia-600 hover:bg-fuchsia-700 shadow-xl shadow-black/25">
       تكتيك
     </button>
 
-    <button
-      id="confirmBtn"
-      onclick="confirmSelection()"
-      class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded text-lg font-bold hidden"
-    >
+    <button id="confirmBtn" onclick="confirmSelection()"
+      class="px-7 py-3 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-black/25 hidden">
       تأكيد الإختيارات
     </button>
   </div>
 
-  <!-- Tactic Modal -->
+  <!-- ✅ NEW: Tactic Modal (UI only – functions are in pick.js) -->
   <div id="tacticModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
-    <div class="w-full max-w-lg rounded-2xl bg-[#2a0612] border border-white/10 shadow-2xl p-5">
+    <div class="glass modal-card w-full max-w-lg rounded-3xl p-5 md:p-6 bg-[#4B0E1F]/80 border border-yellow-300/20">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-extrabold">اختر تكتيك</h2>
-        <button onclick="closeTacticModal()" class="px-3 py-1 rounded bg-white/10 hover:bg-white/20">✕</button>
+        <h2 class="text-xl md:text-2xl font-extrabold text-yellow-200">اختر تكتيك</h2>
+        <button onclick="closeTacticModal()"
+          class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 font-extrabold">
+          ✕
+        </button>
       </div>
 
       <label class="block text-sm mb-2 text-white/80">التكتيك:</label>
-      <div class="mt-6 mb-6">
-        <select id="tacticSelect"
-          class="w-full p-3 rounded
-                 bg-black text-white
-                 border border-white/20
-                 focus:outline-none
-                 cursor-pointer">
-
-
+      <select id="tacticSelect"
+        class="w-full p-3 rounded-2xl bg-black/40 text-white
+               border border-white/15 focus:outline-none focus:ring-2 focus:ring-yellow-500/40 cursor-pointer">
         <option value="silver">درج سلفر</option>
         <option value="reverse">درج عكسي</option>
         <option value="range1_11">من 1-11</option>
@@ -79,28 +110,24 @@
       </select>
 
       <div class="flex gap-3 mt-5">
-        <button
-          onclick="applyTactic()"
-          class="flex-1 bg-purple-600 hover:bg-purple-700 px-5 py-3 rounded font-bold"
-        >
+        <button onclick="applyTactic()"
+          class="flex-1 px-5 py-3 rounded-2xl font-black bg-fuchsia-600 hover:bg-fuchsia-700 shadow-xl shadow-black/25">
           تطبيق
         </button>
-        <button
-          onclick="closeTacticModal()"
-          class="flex-1 bg-white/10 hover:bg-white/20 px-5 py-3 rounded font-bold"
-        >
+        <button onclick="closeTacticModal()"
+          class="flex-1 px-5 py-3 rounded-2xl font-black bg-white/10 hover:bg-white/20">
           إلغاء
         </button>
       </div>
 
-      <p class="mt-4 text-sm text-white/70">
-        ملاحظة: سيتم اختيار <span class="font-bold">عدد الجولات</span> من داخل مجموعة التكتيك فقط.
+      <p class="mt-4 text-sm text-white/75">
+        ملاحظة: سيتم اختيار عدد الصناديق المطلوب من داخل مجموعة التكتيك فقط.
       </p>
     </div>
   </div>
 
   <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
-     class="fixed bottom-4 right-4 w-40 h-auto opacity-90 pointer-events-none" />
+    class="fixed bottom-4 right-4 w-36 md:w-40 h-auto opacity-90 pointer-events-none" />
 
   <script src="pick.js"></script>
   <script src="../copyright.js"></script>
