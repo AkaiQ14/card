@@ -40,25 +40,40 @@ let selectedBoxes = []; // indices
 const gameID = localStorage.getItem("gameID") || "default";
 
 // ===== Auto Clean Old Games (Fix Storage Overflow) =====
+// ===== Auto Clean Old Games (Fix Storage Overflow) =====
 function purgeOldGameStorage(currentID) {
-  const keep = String(currentID);
+  const id = String(currentID);
 
-  const prefixes = [
-    "deck_all_",
-    "deck_pos_",
+  // Keys that grow per match because gameID changes
+  const perGamePrefixes = [
+    "deck_legendary_",
+    "deck_legendary_pos_",
+    "deck_normal_",
+    "deck_normal_pos_",
     "current_board_",
   ];
 
   for (let i = localStorage.length - 1; i >= 0; i--) {
-    const key = localStorage.key(i);
-    if (!key) continue;
+    const k = localStorage.key(i);
+    if (!k) continue;
 
-    const matched = prefixes.find(p => key.startsWith(p));
+    const matched = perGamePrefixes.find(p => k.startsWith(p));
     if (!matched) continue;
 
-    // احتفظ فقط بمفاتيح اللعبة الحالية
-    if (!key.includes(keep)) {
-      localStorage.removeItem(key);
+    // keep only keys that are strictly for the current game
+    const isCurrentDeckKey =
+      (k.startsWith("deck_legendary_") ||
+       k.startsWith("deck_legendary_pos_") ||
+       k.startsWith("deck_normal_") ||
+       k.startsWith("deck_normal_pos_")) &&
+      k.endsWith("_" + id);
+
+    const isCurrentBoardKey =
+      k.startsWith("current_board_") &&
+      k.startsWith(`current_board_${id}_p`);
+
+    if (!isCurrentDeckKey && !isCurrentBoardKey) {
+      localStorage.removeItem(k);
     }
   }
 }
@@ -69,6 +84,7 @@ try {
   console.warn("Storage cleanup failed:", e);
 }
 // =====================================================
+
 
 
 const socket = io();
