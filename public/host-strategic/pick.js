@@ -38,6 +38,39 @@ let imageMap = {};      // 1..20 -> {folder, filename, key, fullPath}
 let selectedBoxes = []; // indices
 
 const gameID = localStorage.getItem("gameID") || "default";
+
+// ===== Auto Clean Old Games (Fix Storage Overflow) =====
+function purgeOldGameStorage(currentID) {
+  const keep = String(currentID);
+
+  const prefixes = [
+    "deck_all_",
+    "deck_pos_",
+    "current_board_",
+  ];
+
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+
+    const matched = prefixes.find(p => key.startsWith(p));
+    if (!matched) continue;
+
+    // احتفظ فقط بمفاتيح اللعبة الحالية
+    if (!key.includes(keep)) {
+      localStorage.removeItem(key);
+    }
+  }
+}
+
+try {
+  purgeOldGameStorage(gameID);
+} catch (e) {
+  console.warn("Storage cleanup failed:", e);
+}
+// =====================================================
+
+
 const socket = io();
 
 const playerName = currentPlayer === 1 ? player1 : player2;
