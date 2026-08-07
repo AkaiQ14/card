@@ -398,6 +398,12 @@
         </div>
 
         <div class="flex justify-center items-center gap-4 order-3 md:order-2">
+          <button id="recapBtn"
+                  onclick="openRecapModal()"
+                  class="btn-gold px-6 py-3 text-base bg-[#7b2131] hover:bg-[#8b2a3a]">
+            ريكاب
+          </button>
+
           <button id="chatMainToggle"
                   class="btn-gold px-6 py-3 text-base bg-[#7b2131] hover:bg-[#8b2a3a] relative">
             <span id="chatToggleLabel">CHAT</span>
@@ -442,6 +448,18 @@
 
   <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
        class="fixed top-4 right-4 w-40 h-auto opacity-90 pointer-events-none" />
+
+  <!-- Recap Modal -->
+  <div id="recapModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2000]">
+    <div class="bg-[#511522] border-2 border-yellow-500 rounded-xl p-4 w-[90%] max-w-[480px] max-h-[85vh] overflow-y-auto no-scrollbar">
+      <h3 class="text-lg font-bold text-yellow-300 mb-2 text-center">ريكاب الجولات السابقة</h3>
+      <p class="text-xs text-yellow-100/80 mb-3 text-center">النتيجة الأصلية التي بدأت بها كل جولة</p>
+      <div id="recapList" class="space-y-2"></div>
+      <div class="mt-4 text-center">
+        <button class="btn-gold px-5 py-2" onclick="closeRecapModal()">إغلاق</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Transfer Modal -->
   <div id="transferModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2000]">

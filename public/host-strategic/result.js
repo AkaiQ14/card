@@ -11,6 +11,43 @@ let scores = JSON.parse(localStorage.getItem("scores") || "{}");
 if (!Number.isFinite(scores?.[player1])) scores[player1] = startingHP;
 if (!Number.isFinite(scores?.[player2])) scores[player2] = startingHP;
 
+// ======================================================
+// Recap (original round-start results)
+// ======================================================
+const ROUND_START_SCORES_KEY = "roundStartScores";
+
+function loadRoundStartScores() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ROUND_START_SCORES_KEY) || "{}");
+    return raw && typeof raw === "object" ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRoundStartScores(obj) {
+  localStorage.setItem(ROUND_START_SCORES_KEY, JSON.stringify(obj));
+}
+
+// Records the score each player had the moment a round began.
+// Only writes once per round so later health changes never overwrite it.
+function recordRoundStartIfNeeded(roundIndex) {
+  const all = loadRoundStartScores();
+  const key = String(roundIndex);
+
+  if (!all[key]) {
+    all[key] = {
+      [player1]: scores[player1],
+      [player2]: scores[player2]
+    };
+    saveRoundStartScores(all);
+  }
+}
+
+// Capture the current round's starting values (handles fresh game start
+// and page reloads mid-round without overwriting an existing snapshot).
+recordRoundStartIfNeeded(round);
+
 const roundTitle = document.getElementById("roundTitle");
 
 // Replace abilities headings with player names
@@ -639,6 +676,130 @@ if (socket) {
     () => broadcast()
   );
 }
+
+// ======================================================
+// Recap modal (shows the original result each past round
+// started with, before any health changes were made)
+// ======================================================
+function openRecapModal() {
+  renderRecapList();
+
+  const modal = document.getElementById("recapModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeRecapModal() {
+  const modal = document.getElementById("recapModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
+// Jumps back to a past round and restores the result (health) each
+// player had at the exact moment that round started.
+function goToRecapRound(i) {
+  const all = loadRoundStartScores();
+  const data = all[String(i)];
+  if (!data) return;
+
+  round = i;
+
+  localStorage.setItem(
+    "currentRound",
+    String(round)
+  );
+
+  scores[player1] = data[player1];
+  scores[player2] = data[player2];
+
+  localStorage.setItem(
+    "scores",
+    JSON.stringify(scores)
+  );
+
+  try {
+    if (
+      window.WebmSfx &&
+      window.WebmSfx._resetForNewRound
+    ) {
+      window.WebmSfx._resetForNewRound();
+    }
+  } catch {}
+
+  closeRecapModal();
+  renderRound();
+}
+
+function renderRecapList() {
+  const list = document.getElementById("recapList");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  const all = loadRoundStartScores();
+
+  const playedRounds = [];
+  for (let i = 0; i < round; i++) {
+    if (all[String(i)]) playedRounds.push(i);
+  }
+
+  if (!playedRounds.length) {
+    const empty = document.createElement("p");
+    empty.className =
+      "text-center text-sm text-yellow-100/70 py-4";
+    empty.textContent =
+      "لا توجد جولات سابقة بعد";
+    list.appendChild(empty);
+    return;
+  }
+
+  playedRounds.forEach(i => {
+    const data = all[String(i)];
+
+    const row = document.createElement("div");
+    row.className =
+      "rounded-xl border-2 border-yellow-600 bg-black/25 p-3 flex items-center justify-between gap-3 cursor-pointer hover:border-yellow-400 hover:bg-black/35 transition";
+    row.title = "اضغط للذهاب لهذه الجولة";
+    row.onclick = () => goToRecapRound(i);
+
+    const title = document.createElement("div");
+    title.className =
+      "font-extrabold text-yellow-300 text-sm";
+    title.textContent =
+      `الجولة ${i + 1}`;
+
+    const scoresWrap = document.createElement("div");
+    scoresWrap.className =
+      "flex items-center gap-3";
+
+    const p2Chip = document.createElement("div");
+    p2Chip.className = "text-center";
+    p2Chip.innerHTML =
+      `<div class="text-[11px] opacity-80 mb-1">${player2}</div>` +
+      `<div class="chip-gold" style="min-width:60px;padding:6px 14px;font-size:1rem;">${data[player2] ?? "-"}</div>`;
+
+    const p1Chip = document.createElement("div");
+    p1Chip.className = "text-center";
+    p1Chip.innerHTML =
+      `<div class="text-[11px] opacity-80 mb-1">${player1}</div>` +
+      `<div class="chip-gold" style="min-width:60px;padding:6px 14px;font-size:1rem;">${data[player1] ?? "-"}</div>`;
+
+    scoresWrap.appendChild(p2Chip);
+    scoresWrap.appendChild(p1Chip);
+
+    row.appendChild(title);
+    row.appendChild(scoresWrap);
+    list.appendChild(row);
+  });
+}
+
+window.openRecapModal = openRecapModal;
+window.closeRecapModal = closeRecapModal;
+window.goToRecapRound = goToRecapRound;
 
 // ======================================================
 // CUSTOM CATEGORIES
@@ -2308,6 +2469,8 @@ function goToRound(newIndex) {
     "currentRound",
     String(round)
   );
+
+  recordRoundStartIfNeeded(round);
 
   try {
     if (
