@@ -54,20 +54,72 @@ const copyP2Btn = document.getElementById("copyP2");
 const statusP1El = document.getElementById("statusP1");
 const statusP2El = document.getElementById("statusP2");
 
-if (copyP1Btn) copyP1Btn.textContent = `نسخ رابط ترتيب البطاقات لـ ${p1}`;
-if (copyP2Btn) copyP2Btn.textContent = `نسخ رابط ترتيب البطاقات لـ ${p2}`;
-if (statusP1El) statusP1El.textContent = `✅ تم الاستلام`;
-if (statusP2El) statusP2El.textContent = `✅ تم الاستلام`;
+if (copyP1Btn) copyP1Btn.querySelector(".copy-label").textContent = `نسخ رابط ترتيب البطاقات لـ ${p1}`;
+if (copyP2Btn) copyP2Btn.querySelector(".copy-label").textContent = `نسخ رابط ترتيب البطاقات لـ ${p2}`;
 
-// ✅ Copy buttons now include abilities in the URL
-copyP1Btn.onclick = () => {
-  const url = buildOrderLink({ who: "player1" });
-  navigator.clipboard.writeText(url);
-};
-copyP2Btn.onclick = () => {
-  const url = buildOrderLink({ who: "player2" });
-  navigator.clipboard.writeText(url);
-};
+/* ========= Copy feedback: toast + button animation ========= */
+const copyToast = document.getElementById("copyToast");
+const copyToastText = document.getElementById("copyToastText");
+let toastTimeout = null;
+
+function showCopyToast(playerName) {
+  if (!copyToast) return;
+  copyToastText.textContent = `تم نسخ رابط ${playerName} بنجاح`;
+  copyToast.classList.add("show");
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => copyToast.classList.remove("show"), 2200);
+}
+
+function animateCopyButton(btn) {
+  if (!btn) return;
+  const icon = btn.querySelector(".copy-icon");
+  const label = btn.querySelector(".copy-label");
+  if (!icon || !label) return;
+
+  const originalLabel = label.dataset.originalLabel || label.textContent;
+  label.dataset.originalLabel = originalLabel;
+  const originalIconHTML = icon.innerHTML;
+
+  // Swap icon to an animated checkmark
+  icon.innerHTML =
+    '<path class="copy-check-path" d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  icon.classList.add("copy-check");
+  label.textContent = "تم النسخ";
+  btn.classList.add("copy-success");
+  btn.disabled = true;
+
+  clearTimeout(btn._copyResetTimeout);
+  btn._copyResetTimeout = setTimeout(() => {
+    icon.classList.remove("copy-check");
+    icon.innerHTML = originalIconHTML;
+    label.textContent = originalLabel;
+    btn.classList.remove("copy-success");
+    btn.disabled = false;
+  }, 1600);
+}
+
+async function copyLinkFor(who, btn) {
+  const url = buildOrderLink({ who });
+  try {
+    await navigator.clipboard.writeText(url);
+  } catch {
+    // Fallback for older browsers / permission issues
+    const tmp = document.createElement("textarea");
+    tmp.value = url;
+    tmp.style.position = "fixed";
+    tmp.style.opacity = "0";
+    document.body.appendChild(tmp);
+    tmp.select();
+    document.execCommand("copy");
+    document.body.removeChild(tmp);
+  }
+  animateCopyButton(btn);
+  showCopyToast(who === "player1" ? p1 : p2);
+}
+
+// ✅ Copy buttons now include abilities in the URL + a polished success animation
+copyP1Btn.onclick = () => copyLinkFor("player1", copyP1Btn);
+copyP2Btn.onclick = () => copyLinkFor("player2", copyP2Btn);
 
 const startBtn = document.getElementById("startBtn");
 const socket = io();
@@ -88,7 +140,13 @@ socket.on("playerOrderSubmitted", ({ playerName, ordered }) => {
 
 function showStatus(id) {
   const el = document.getElementById(id);
-  if (el) el.classList.remove("hidden");
+  if (!el || !el.classList.contains("hidden")) return;
+  el.classList.remove("hidden");
+  el.classList.add("inline-flex");
+  // Restart entrance animation
+  el.classList.remove("ready-badge");
+  void el.offsetWidth; // force reflow
+  el.classList.add("ready-badge");
 }
 
 startBtn.onclick = () => {
