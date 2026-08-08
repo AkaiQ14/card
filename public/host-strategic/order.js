@@ -175,9 +175,14 @@ socket.on("timerState", ({ gameID: g, state, durationSec, remainingSec, startedA
 
 // ================== (rest of the file) ==================
 
-// Optional local mirrors
-const PICKS_LOCAL_KEY = `${playerParam}StrategicPicks`;
-const ORDER_LOCAL_KEY = `${playerParam}StrategicOrdered`;
+// Optional local mirrors, isolated per game so cards from an older
+// match can never appear in the current match.
+const GAME_LOCAL_SUFFIX =
+  `${String(gameID || "default")}:${String(playerParam || "player1")}`;
+const PICKS_LOCAL_KEY =
+  `strategicPicks:${GAME_LOCAL_SUFFIX}`;
+const ORDER_LOCAL_KEY =
+  `strategicOrdered:${GAME_LOCAL_SUFFIX}`;
 const OK_ACTIVE_KEY   = `${playerParam}:okActive`;
 
 // Default OK to active if not set yet
@@ -228,6 +233,31 @@ function normalizeAbilityList(arr) {
     if (a && typeof a === "object") return { text: String(a.text || "").trim(), used: !!a.used };
     return null;
   }).filter(Boolean).filter(a => a.text);
+}
+
+function uniqueCardUrls(list) {
+  const seen = new Set();
+  const result = [];
+
+  for (const value of Array.isArray(list) ? list : []) {
+    const url = String(value || "").trim();
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    result.push(url);
+  }
+
+  return result;
+}
+
+function isExactOrderForPicks(ordered, pickList) {
+  const cleanOrder = uniqueCardUrls(ordered);
+  const cleanPicks = uniqueCardUrls(pickList);
+
+  return (
+    cleanPicks.length > 0 &&
+    cleanOrder.length === cleanPicks.length &&
+    cleanOrder.every(url => cleanPicks.includes(url))
+  );
 }
 
 function hideOpponentPanel() {
@@ -290,15 +320,19 @@ function refreshAllSelects(selects, N) {
 /* ================== Load picks + existing order ================== */
 socket.emit("getOrderData", { gameID, playerName });
 socket.on("orderData", ({ picks: serverPicks = [], ordered = null }) => {
-  if (Array.isArray(serverPicks) && serverPicks.length) {
-    picks = serverPicks.slice();
+  const cleanServerPicks = uniqueCardUrls(serverPicks);
+
+  if (cleanServerPicks.length) {
+    picks = cleanServerPicks;
     try { localStorage.setItem(PICKS_LOCAL_KEY, JSON.stringify(picks)); } catch {}
   } else {
     const localPicks = JSON.parse(localStorage.getItem(PICKS_LOCAL_KEY) || "[]");
-    picks = Array.isArray(localPicks) ? localPicks : [];
+    picks = uniqueCardUrls(localPicks);
   }
 
-  submittedOrder = Array.isArray(ordered) && ordered.length ? ordered.slice() : null;
+  submittedOrder = isExactOrderForPicks(ordered, picks)
+    ? uniqueCardUrls(ordered)
+    : null;
   try {
     if (submittedOrder) localStorage.setItem(ORDER_LOCAL_KEY, JSON.stringify(submittedOrder));
     else localStorage.removeItem(ORDER_LOCAL_KEY);
@@ -447,6 +481,11 @@ function submitPicks() {
   if (!picks.length) return;
   if (Array.isArray(submittedOrder) && submittedOrder.length === picks.length) return;
 
+  if (new Set(picks).size !== picks.length) {
+    alert("تعذر المتابعة: توجد بطاقة متكررة ضمن اختيارات اللاعب.");
+    return;
+  }
+
   const dropdowns = document.querySelectorAll(".orderSelect");
   const values = dropdowns.length ? Array.from(dropdowns).map((s) => parseInt(s.value, 10)) : [];
   const inRange = values.every(v => Number.isInteger(v) && v >= 1 && v <= picks.length);
@@ -459,6 +498,14 @@ function submitPicks() {
   for (let i = 0; i < values.length; i++) {
     const orderIndex = values[i] - 1;
     ordered[orderIndex] = picks[i];
+  }
+
+  if (
+    ordered.some(url => !url) ||
+    new Set(ordered).size !== ordered.length
+  ) {
+    alert("تعذر المتابعة: ترتيب البطاقات غير صالح أو يحتوي على تكرار.");
+    return;
   }
 
   socket.emit("submitOrder", { gameID, playerName, ordered });

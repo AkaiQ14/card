@@ -12,9 +12,25 @@ if (!Number.isFinite(scores?.[player1])) scores[player1] = startingHP;
 if (!Number.isFinite(scores?.[player2])) scores[player2] = startingHP;
 
 // ======================================================
-// Recap (original round-start results)
+// Recap (latest result reached in each round)
 // ======================================================
 const ROUND_START_SCORES_KEY = "roundStartScores";
+const ROUND_RECAP_STATE_KEY =
+  "roundRecapStates:" +
+  (
+    localStorage.getItem("gameID") ||
+    `${player1}:${player2}:${roundCount}`
+  );
+const ROUND_RECAP_NOTES_KEY =
+  ROUND_RECAP_STATE_KEY.replace(
+    "roundRecapStates:",
+    "roundRecapNotes:"
+  );
+const ROUND_RECAP_SCORES_KEY =
+  ROUND_RECAP_STATE_KEY.replace(
+    "roundRecapStates:",
+    "roundRecapScores:"
+  );
 
 function loadRoundStartScores() {
   try {
@@ -27,6 +43,204 @@ function loadRoundStartScores() {
 
 function saveRoundStartScores(obj) {
   localStorage.setItem(ROUND_START_SCORES_KEY, JSON.stringify(obj));
+}
+
+function loadRoundRecapStates() {
+  try {
+    const raw = JSON.parse(
+      localStorage.getItem(
+        ROUND_RECAP_STATE_KEY
+      ) || "{}"
+    );
+
+    return raw && typeof raw === "object"
+      ? raw
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRoundRecapStates(obj) {
+  localStorage.setItem(
+    ROUND_RECAP_STATE_KEY,
+    JSON.stringify(obj || {})
+  );
+}
+
+function loadRoundRecapNotes() {
+  try {
+    const raw = JSON.parse(
+      localStorage.getItem(
+        ROUND_RECAP_NOTES_KEY
+      ) || "{}"
+    );
+
+    return raw && typeof raw === "object"
+      ? raw
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRoundRecapNotes(obj) {
+  localStorage.setItem(
+    ROUND_RECAP_NOTES_KEY,
+    JSON.stringify(obj || {})
+  );
+}
+
+function loadRoundRecapScores() {
+  try {
+    const raw = JSON.parse(
+      localStorage.getItem(
+        ROUND_RECAP_SCORES_KEY
+      ) || "{}"
+    );
+
+    return raw && typeof raw === "object"
+      ? raw
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRoundRecapScores(obj) {
+  localStorage.setItem(
+    ROUND_RECAP_SCORES_KEY,
+    JSON.stringify(obj || {})
+  );
+}
+
+// The start of the next round is the final result reached in the
+// previous round. Fall back to the round's own starting result when
+// older saved data does not include the following round.
+function getRecapRoundScores(all, roundIndex) {
+  return (
+    all[String(roundIndex + 1)] ||
+    all[String(roundIndex)] ||
+    null
+  );
+}
+
+function normalizeRoundScores(data) {
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+
+  const readFiniteScore = keys => {
+    for (const key of keys) {
+      if (
+        !Object.prototype.hasOwnProperty.call(
+          data,
+          key
+        )
+      ) {
+        continue;
+      }
+
+      const value = data[key];
+      if (value === null || value === "") {
+        continue;
+      }
+
+      const numericValue = Number(value);
+      if (Number.isFinite(numericValue)) {
+        return numericValue;
+      }
+    }
+
+    return null;
+  };
+
+  // Fixed keys are used by the new version. Player-name keys keep
+  // all previously saved recap results compatible.
+  const p1Score = readFiniteScore([
+    "p1",
+    player1,
+    "player1"
+  ]);
+
+  const p2Score = readFiniteScore([
+    "p2",
+    player2,
+    "player2"
+  ]);
+
+  if (
+    !Number.isFinite(p1Score) ||
+    !Number.isFinite(p2Score)
+  ) {
+    return null;
+  }
+
+  return {
+    p1: p1Score,
+    p2: p2Score
+  };
+}
+
+// Saves the latest confirmed result for this round. Confirming the
+// same recap round again replaces only that round's previous result.
+function saveRoundScoresForRecap(roundIndex) {
+  const all = loadRoundRecapScores();
+
+  const p1Score = Number(scores[player1]);
+  const p2Score = Number(scores[player2]);
+
+  if (
+    !Number.isFinite(p1Score) ||
+    !Number.isFinite(p2Score)
+  ) {
+    return;
+  }
+
+  all[String(roundIndex)] = {
+    p1: p1Score,
+    p2: p2Score
+  };
+
+  saveRoundRecapScores(all);
+}
+
+function getRoundScoresForRecap(
+  roundIndex,
+  roundStartScores,
+  savedScores = null
+) {
+  const key = String(roundIndex);
+  const latest =
+    savedScores ||
+    loadRoundRecapScores();
+
+  const saved =
+    normalizeRoundScores(latest[key]);
+
+  if (saved) {
+    return saved;
+  }
+
+  // Compatibility with the immediately previous recap version.
+  const previousState =
+    loadRoundRecapStates()[key];
+
+  const previous =
+    normalizeRoundScores(
+      previousState?.scores
+    );
+
+  if (previous) {
+    return previous;
+  }
+
+  return normalizeRoundScores(
+    getRecapRoundScores(
+      roundStartScores,
+      roundIndex
+    )
+  );
 }
 
 // Records the score each player had the moment a round began.
@@ -76,6 +290,80 @@ function normalizeNotes(text) {
 
 function ensureSecondLine(text) {
   return normalizeNotes(text);
+}
+
+function getRecapRoundNotes(all, roundIndex) {
+  const data = all[String(roundIndex)];
+
+  return (
+    data &&
+    typeof data.notes === "object"
+  )
+    ? data.notes
+    : null;
+}
+
+// Saves only the visible notes for the confirmed round. It does not
+// change scores or any other round state.
+function saveRoundNotesForRecap(roundIndex) {
+  const all = loadRoundRecapNotes();
+
+  const p1Textarea =
+    findNotesTextarea(player1);
+
+  const p2Textarea =
+    findNotesTextarea(player2);
+
+  all[String(roundIndex)] = {
+    [player1]: normalizeNotes(
+      p1Textarea
+        ? p1Textarea.value
+        : localStorage.getItem(
+            NOTES_KEY(player1)
+          ) || ""
+    ),
+
+    [player2]: normalizeNotes(
+      p2Textarea
+        ? p2Textarea.value
+        : localStorage.getItem(
+            NOTES_KEY(player2)
+          ) || ""
+    )
+  };
+
+  saveRoundRecapNotes(all);
+}
+
+function getRoundNotesForRecap(roundIndex) {
+  const key = String(roundIndex);
+  const notes = loadRoundRecapNotes();
+
+  if (
+    notes[key] &&
+    typeof notes[key] === "object"
+  ) {
+    return notes[key];
+  }
+
+  // Compatibility with snapshots created by the earlier version.
+  const previousState =
+    loadRoundRecapStates()[key];
+
+  if (
+    previousState &&
+    typeof previousState.notes === "object"
+  ) {
+    return previousState.notes;
+  }
+
+  return (
+    getRecapRoundNotes(
+      loadRoundStartScores(),
+      roundIndex
+    ) ||
+    {}
+  );
 }
 
 // ======================================================
@@ -678,8 +966,7 @@ if (socket) {
 }
 
 // ======================================================
-// Recap modal (shows the original result each past round
-// started with, before any health changes were made)
+// Recap modal (shows the latest result reached in each past round)
 // ======================================================
 function openRecapModal() {
   renderRecapList();
@@ -699,11 +986,17 @@ function closeRecapModal() {
   }
 }
 
-// Jumps back to a past round and restores the result (health) each
-// player had at the exact moment that round started.
+// Jumps back to a past round and restores its latest result (health)
+// and the latest notes written during that round.
 function goToRecapRound(i) {
   const all = loadRoundStartScores();
-  const data = all[String(i)];
+  const savedScores = loadRoundRecapScores();
+  const data = getRoundScoresForRecap(
+    i,
+    all,
+    savedScores
+  );
+  const roundNotes = getRoundNotesForRecap(i);
   if (!data) return;
 
   round = i;
@@ -713,13 +1006,60 @@ function goToRecapRound(i) {
     String(round)
   );
 
-  scores[player1] = data[player1];
-  scores[player2] = data[player2];
+  scores[player1] = data.p1;
+  scores[player2] = data.p2;
 
   localStorage.setItem(
     "scores",
     JSON.stringify(scores)
   );
+
+  const p1Textarea =
+    findNotesTextarea(player1);
+
+  const p2Textarea =
+    findNotesTextarea(player2);
+
+  // Delete the current notes from both the visible boxes and storage.
+  if (p1Textarea) p1Textarea.value = "";
+  if (p2Textarea) p2Textarea.value = "";
+
+  localStorage.removeItem(
+    NOTES_KEY(player1)
+  );
+
+  localStorage.removeItem(
+    NOTES_KEY(player2)
+  );
+
+  const restoredP1Notes =
+    normalizeNotes(
+      roundNotes[player1] || ""
+    );
+
+  const restoredP2Notes =
+    normalizeNotes(
+      roundNotes[player2] || ""
+    );
+
+  // Restore only the notes that belong to the selected round.
+  localStorage.setItem(
+    NOTES_KEY(player1),
+    restoredP1Notes
+  );
+
+  localStorage.setItem(
+    NOTES_KEY(player2),
+    restoredP2Notes
+  );
+
+  if (p1Textarea) {
+    p1Textarea.value = restoredP1Notes;
+  }
+
+  if (p2Textarea) {
+    p2Textarea.value = restoredP2Notes;
+  }
 
   try {
     if (
@@ -741,10 +1081,19 @@ function renderRecapList() {
   list.innerHTML = "";
 
   const all = loadRoundStartScores();
+  const savedScores = loadRoundRecapScores();
 
   const playedRounds = [];
   for (let i = 0; i < round; i++) {
-    if (all[String(i)]) playedRounds.push(i);
+    if (
+      getRoundScoresForRecap(
+        i,
+        all,
+        savedScores
+      )
+    ) {
+      playedRounds.push(i);
+    }
   }
 
   if (!playedRounds.length) {
@@ -758,7 +1107,11 @@ function renderRecapList() {
   }
 
   playedRounds.forEach(i => {
-    const data = all[String(i)];
+    const data = getRoundScoresForRecap(
+      i,
+      all,
+      savedScores
+    );
 
     const row = document.createElement("div");
     row.className =
@@ -780,13 +1133,13 @@ function renderRecapList() {
     p2Chip.className = "text-center";
     p2Chip.innerHTML =
       `<div class="text-[11px] opacity-80 mb-1">${player2}</div>` +
-      `<div class="chip-gold" style="min-width:60px;padding:6px 14px;font-size:1rem;">${data[player2] ?? "-"}</div>`;
+      `<div class="chip-gold" style="min-width:60px;padding:6px 14px;font-size:1rem;">${data.p2}</div>`;
 
     const p1Chip = document.createElement("div");
     p1Chip.className = "text-center";
     p1Chip.innerHTML =
       `<div class="text-[11px] opacity-80 mb-1">${player1}</div>` +
-      `<div class="chip-gold" style="min-width:60px;padding:6px 14px;font-size:1rem;">${data[player1] ?? "-"}</div>`;
+      `<div class="chip-gold" style="min-width:60px;padding:6px 14px;font-size:1rem;">${data.p1}</div>`;
 
     scoresWrap.appendChild(p2Chip);
     scoresWrap.appendChild(p1Chip);
@@ -1190,6 +1543,8 @@ function createCategoryPicker(
     menu.classList.remove(
       "hidden"
     );
+
+    menu.scrollTop = 0;
 
     button.setAttribute(
       "aria-expanded",
@@ -2485,6 +2840,9 @@ function goToRound(newIndex) {
 }
 
 function confirmWinner() {
+  saveRoundScoresForRecap(round);
+  saveRoundNotesForRecap(round);
+
   localStorage.setItem(
     "scores",
     JSON.stringify(scores)

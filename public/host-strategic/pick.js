@@ -1,20 +1,24 @@
 const randomSound = new Audio("/sounds/random.mp3");
 randomSound.volume = 1.0;
 
-// ================= CONFIG =================
-let LEGENDARY_RATE = 0.1; // سيتم جلبها من /api/config (من ENV)
-// ==========================================
+// Each of the 20 boxes independently has a 10% chance
+// to receive a legendary card.
+const LEGENDARY_CHANCE = 0.1;
 
 const roundCount = parseInt(localStorage.getItem("totalRounds") || "3", 10);
 const player1 = localStorage.getItem("player1") || "لاعب 1";
 const player2 = localStorage.getItem("player2") || "لاعب 2";
+const gameID = localStorage.getItem("gameID") || "default";
+const PICK_SESSION_KEY =
+  `pickStarted:v2:${String(gameID)}`;
 
 let currentPlayer = parseInt(localStorage.getItem("currentPlayer") || "1", 10);
 
 // ===== FIX: منع تخطي اللاعب الأول =====
-const gameStarted = localStorage.getItem("pickStarted");
+const gameStarted = localStorage.getItem(PICK_SESSION_KEY);
+const isNewPickSession = !gameStarted;
 if (!gameStarted) {
-  localStorage.setItem("pickStarted", "true");
+  localStorage.setItem(PICK_SESSION_KEY, "true");
   localStorage.setItem("currentPlayer", "1");
   currentPlayer = 1;
 }
@@ -37,42 +41,66 @@ const BOARD_SIZE = 20;
 let imageMap = {};      // 1..20 -> {folder, filename, key, fullPath}
 let selectedBoxes = []; // indices
 
-const gameID = localStorage.getItem("gameID") || "default";
+const BOARD_STORAGE_VERSION = 2;
 
-// ===== Auto Clean Old Games (Fix Storage Overflow) =====
+function usedCardsKey() {
+  return `distributed_cards_v2_${String(gameID)}`;
+}
+
+// One stable board per player so refreshing never changes their boxes.
+function boardKey(playerNumber = currentPlayer) {
+  return `random_board_v2_${String(gameID)}_p${playerNumber}`;
+}
+
+if (isNewPickSession) {
+  localStorage.removeItem(usedCardsKey());
+  localStorage.removeItem(boardKey(1));
+  localStorage.removeItem(boardKey(2));
+}
+
+// Remove the obsolete global session flag from the old system.
+localStorage.removeItem("pickStarted");
+
 // ===== Auto Clean Old Games (Fix Storage Overflow) =====
 function purgeOldGameStorage(currentID) {
   const id = String(currentID);
-
-  // Keys that grow per match because gameID changes
-  const perGamePrefixes = [
-    "deck_legendary_",
-    "deck_legendary_pos_",
-    "deck_normal_",
-    "deck_normal_pos_",
-    "current_board_",
-  ];
 
   for (let i = localStorage.length - 1; i >= 0; i--) {
     const k = localStorage.key(i);
     if (!k) continue;
 
-    const matched = perGamePrefixes.find(p => k.startsWith(p));
-    if (!matched) continue;
+    // The old deck/cursor system is no longer used.
+    if (
+      k.startsWith("deck_legendary_") ||
+      k.startsWith("deck_legendary_pos_") ||
+      k.startsWith("deck_normal_") ||
+      k.startsWith("deck_normal_pos_") ||
+      k.startsWith("current_board_")
+    ) {
+      localStorage.removeItem(k);
+      continue;
+    }
 
-    // keep only keys that are strictly for the current game
-    const isCurrentDeckKey =
-      (k.startsWith("deck_legendary_") ||
-       k.startsWith("deck_legendary_pos_") ||
-       k.startsWith("deck_normal_") ||
-       k.startsWith("deck_normal_pos_")) &&
-      k.endsWith("_" + id);
+    if (
+      k.startsWith("distributed_cards_v2_") &&
+      k !== `distributed_cards_v2_${id}`
+    ) {
+      localStorage.removeItem(k);
+      continue;
+    }
 
-    const isCurrentBoardKey =
-      k.startsWith("current_board_") &&
-      k.startsWith(`current_board_${id}_p`);
+    if (
+      k.startsWith("random_board_v2_") &&
+      !k.startsWith(`random_board_v2_${id}_p`)
+    ) {
+      localStorage.removeItem(k);
+      continue;
+    }
 
-    if (!isCurrentDeckKey && !isCurrentBoardKey) {
+    if (
+      k.startsWith("pickStarted:v2:") &&
+      k !== `pickStarted:v2:${id}`
+    ) {
       localStorage.removeItem(k);
     }
   }
@@ -92,18 +120,6 @@ const socket = io();
 const playerName = currentPlayer === 1 ? player1 : player2;
 instruction.textContent = `اللاعب ${playerName} اختر ${roundCount} بطاقات`;
 
-// ==================== Keys (per game) ====================
-// Legendary deck
-function lDeckKey() { return `deck_legendary_${String(gameID)}`; }
-function lPosKey()  { return `deck_legendary_pos_${String(gameID)}`; }
-// Normal deck
-function nDeckKey() { return `deck_normal_${String(gameID)}`; }
-function nPosKey()  { return `deck_normal_pos_${String(gameID)}`; }
-
-// لوحة 20 الحالية لكل لاعب (حتى لو ريفرش)
-function boardKey() { return `current_board_${String(gameID)}_p${currentPlayer}`; }
-// =========================================================
-
 // ---------- helpers ----------
 function shuffleInPlace(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -111,10 +127,6 @@ function shuffleInPlace(arr) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
-}
-
-function clamp(n, a, b) {
-  return Math.max(a, Math.min(b, n));
 }
 
 // ✅ صور + فيديو
@@ -128,127 +140,232 @@ async function fetchFolderList(folder) {
   return res.json();
 }
 
+function makeCard(folder, filename) {
+  return {
+    folder,
+    filename,
+    key: `${folder}/${filename}`,
+    fullPath: `/images/${folder}/${encodeURIComponent(filename)}`
+  };
+}
+
+function cardIdentity(card) {
+  return String(card?.key || card?.fullPath || "")
+    .trim()
+    .toLowerCase();
+}
+
+function uniqueCards(cards) {
+  const seen = new Set();
+  const result = [];
+
+  for (const card of Array.isArray(cards) ? cards : []) {
+    const key = cardIdentity(card);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(card);
+  }
+
+  return result;
+}
+
+function loadUsedCardKeys() {
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem(usedCardsKey()) || "[]"
+    );
+
+    return new Set(
+      (Array.isArray(stored) ? stored : [])
+        .map(key => String(key || "").trim().toLowerCase())
+        .filter(Boolean)
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function saveUsedCardKeys(usedKeys) {
+  localStorage.setItem(
+    usedCardsKey(),
+    JSON.stringify(Array.from(usedKeys || []))
+  );
+}
+
+function loadSavedBoard(playerNumber) {
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem(boardKey(playerNumber)) || "null"
+    );
+
+    if (
+      !stored ||
+      stored.version !== BOARD_STORAGE_VERSION ||
+      !Array.isArray(stored.cards) ||
+      stored.cards.length !== BOARD_SIZE
+    ) {
+      return null;
+    }
+
+    const cards = uniqueCards(stored.cards);
+    return cards.length === BOARD_SIZE ? cards : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveBoard(playerNumber, cards) {
+  localStorage.setItem(
+    boardKey(playerNumber),
+    JSON.stringify({
+      version: BOARD_STORAGE_VERSION,
+      cards
+    })
+  );
+}
+
+function reserveCards(usedKeys, cards) {
+  for (const card of cards) {
+    const key = cardIdentity(card);
+    if (key) usedKeys.add(key);
+  }
+}
+
+function buildRandomUniqueBoard(
+  legendaryCards,
+  normalCards,
+  usedKeys
+) {
+  const legendaryPool = shuffleInPlace(
+    uniqueCards(legendaryCards).filter(
+      card => !usedKeys.has(cardIdentity(card))
+    )
+  );
+
+  const normalPool = shuffleInPlace(
+    uniqueCards(normalCards).filter(
+      card => !usedKeys.has(cardIdentity(card))
+    )
+  );
+
+  if (
+    legendaryPool.length + normalPool.length < BOARD_SIZE
+  ) {
+    throw new Error(
+      "لا توجد بطاقات فريدة كافية لإنشاء 20 خانة دون تكرار."
+    );
+  }
+
+  const board = [];
+
+  for (let slot = 0; slot < BOARD_SIZE; slot++) {
+    // A separate independent roll for every single box.
+    const wantsLegendary =
+      Math.random() < LEGENDARY_CHANCE;
+
+    const preferredPool = wantsLegendary
+      ? legendaryPool
+      : normalPool;
+
+    const fallbackPool = wantsLegendary
+      ? normalPool
+      : legendaryPool;
+
+    const card =
+      preferredPool.pop() ||
+      fallbackPool.pop();
+
+    if (!card) {
+      throw new Error(
+        "تعذر إكمال اللوحة دون تكرار البطاقات."
+      );
+    }
+
+    board.push(card);
+  }
+
+  return board;
+}
+
 // ---------- load & render ----------
 loadAndRender();
 
 async function loadAndRender() {
   try {
-    // ✅ جلب النسبة من السيرفر (ENV)
-    const cfg = await fetch("/api/config").then(r => r.json()).catch(() => null);
-    if (cfg && typeof cfg.legendaryRate === "number") {
-      LEGENDARY_RATE = clamp(cfg.legendaryRate, 0, 1);
+    if (roundCount > BOARD_SIZE) {
+      throw new Error(
+        "عدد الجولات يجب ألا يتجاوز 20 جولة."
+      );
     }
 
-    // جب كل الملفات
     const [legendaryFilesRaw, normalFilesRaw] = await Promise.all([
       fetchFolderList("legendary").catch(() => []),
       fetchFolderList("normal").catch(() => []),
     ]);
 
-    const legendaryFiles = legendaryFilesRaw.filter(isMediaFile);
-    const normalFiles = normalFilesRaw.filter(isMediaFile);
+    const legendaryCards = uniqueCards(
+      legendaryFilesRaw
+        .filter(isMediaFile)
+        .map(file => makeCard("legendary", file))
+    );
 
-    if (!legendaryFiles.length && !normalFiles.length) {
-      boxGrid.innerHTML = `<p class="text-red-500">لا توجد ملفات كروت.</p>`;
+    const normalCards = uniqueCards(
+      normalFilesRaw
+        .filter(isMediaFile)
+        .map(file => makeCard("normal", file))
+    );
+
+    if (!legendaryCards.length && !normalCards.length) {
+      boxGrid.innerHTML =
+        `<p class="text-red-500">لا توجد ملفات كروت.</p>`;
       return;
     }
 
-    // نبني deck لكل فئة (يشمل كل ملفاتها) + signature
-    const lKeysNow = legendaryFiles.map(f => `legendary/${f}`).sort().join("|");
-    const nKeysNow = normalFiles.map(f => `normal/${f}`).sort().join("|");
+    const usedKeys = loadUsedCardKeys();
 
-    // Ensure legendary deck
-    let lStored = JSON.parse(localStorage.getItem(lDeckKey()) || "null");
-    let lPos = parseInt(localStorage.getItem(lPosKey()) || "0", 10);
-    if (!lStored || lStored.sig !== lKeysNow || !Array.isArray(lStored.deck) || lStored.deck.length !== legendaryFiles.length) {
-      const lDeck = shuffleInPlace(
-        legendaryFiles.map(f => ({
-          folder: "legendary",
-          filename: f,
-          key: `legendary/${f}`,
-          fullPath: `/images/legendary/${encodeURIComponent(f)}`
-        }))
-      );
-      lStored = { sig: lKeysNow, deck: lDeck };
-      localStorage.setItem(lDeckKey(), JSON.stringify(lStored));
-      localStorage.setItem(lPosKey(), "0");
-      lPos = 0;
-    }
+    // Reserve a valid board already created for the other player too.
+    const otherPlayer = currentPlayer === 1 ? 2 : 1;
+    const otherBoard = loadSavedBoard(otherPlayer);
+    if (otherBoard) reserveCards(usedKeys, otherBoard);
 
-    // Ensure normal deck
-    let nStored = JSON.parse(localStorage.getItem(nDeckKey()) || "null");
-    let nPos = parseInt(localStorage.getItem(nPosKey()) || "0", 10);
-    if (!nStored || nStored.sig !== nKeysNow || !Array.isArray(nStored.deck) || nStored.deck.length !== normalFiles.length) {
-      const nDeck = shuffleInPlace(
-        normalFiles.map(f => ({
-          folder: "normal",
-          filename: f,
-          key: `normal/${f}`,
-          fullPath: `/images/normal/${encodeURIComponent(f)}`
-        }))
-      );
-      nStored = { sig: nKeysNow, deck: nDeck };
-      localStorage.setItem(nDeckKey(), JSON.stringify(nStored));
-      localStorage.setItem(nPosKey(), "0");
-      nPos = 0;
-    }
-
-    // لو عندنا لوحة محفوظة لهذا اللاعب (عشان refresh)
-    const storedBoard = JSON.parse(localStorage.getItem(boardKey()) || "null");
+    const savedBoard = loadSavedBoard(currentPlayer);
     let boardCards;
 
-    if (storedBoard && Array.isArray(storedBoard) && storedBoard.length === BOARD_SIZE) {
-      boardCards = storedBoard;
+    if (savedBoard) {
+      boardCards = savedBoard;
+      reserveCards(usedKeys, boardCards);
     } else {
-      // ✅ تحديد عدد legendary من ENV
-      const availableLegendary = lStored.deck.length;
-      const availableNormal = nStored.deck.length;
+      const availableUniqueCount = uniqueCards([
+        ...legendaryCards,
+        ...normalCards
+      ]).filter(
+        card => !usedKeys.has(cardIdentity(card))
+      ).length;
 
-      // target legendary
-      let L = Math.round(BOARD_SIZE * LEGENDARY_RATE);
-      L = clamp(L, 0, Math.min(BOARD_SIZE, availableLegendary));
+      // When player 1 starts, reserve enough unique media for both
+      // 20-card boards so player 2 can never be left without a board.
+      const requiredUniqueCount =
+        currentPlayer === 1 && !otherBoard
+          ? BOARD_SIZE * 2
+          : BOARD_SIZE;
 
-      // باقي اللوحة normal
-      let N = BOARD_SIZE - L;
-      if (availableNormal < N) {
-        // إذا normal قليل نعوض من legendary إن وجد
-        const shortage = N - availableNormal;
-        N = availableNormal;
-        L = clamp(L + shortage, 0, Math.min(BOARD_SIZE - N, availableLegendary));
+      if (availableUniqueCount < requiredUniqueCount) {
+        throw new Error(
+          `يلزم ${requiredUniqueCount} بطاقة فريدة متاحة لإكمال التوزيع دون تكرار، والمتوفر ${availableUniqueCount} فقط.`
+        );
       }
 
-      // نسحب من legendary deck
-      const drawn = [];
-      for (let i = 0; i < L; i++) {
-        if (lPos >= lStored.deck.length) {
-          shuffleInPlace(lStored.deck);
-          lPos = 0;
-        }
-        drawn.push(lStored.deck[lPos++]);
-      }
+      boardCards = buildRandomUniqueBoard(
+        legendaryCards,
+        normalCards,
+        usedKeys
+      );
 
-      // نسحب من normal deck
-      for (let i = 0; i < N; i++) {
-        if (nPos >= nStored.deck.length) {
-          shuffleInPlace(nStored.deck);
-          nPos = 0;
-        }
-        drawn.push(nStored.deck[nPos++]);
-      }
-
-      // خلط داخل اللوحة عشان ما تتكتل فئة
-      shuffleInPlace(drawn);
-      boardCards = drawn;
-
-      // حفظ المؤشرات و الـ decks بعد احتمال إعادة خلط
-      localStorage.setItem(lDeckKey(), JSON.stringify(lStored));
-      localStorage.setItem(nDeckKey(), JSON.stringify(nStored));
-      localStorage.setItem(lPosKey(), String(lPos));
-      localStorage.setItem(nPosKey(), String(nPos));
-
-      // حفظ لوحة هذا اللاعب حتى لو سوّى Refresh
-      localStorage.setItem(boardKey(), JSON.stringify(boardCards));
+      reserveCards(usedKeys, boardCards);
+      saveBoard(currentPlayer, boardCards);
     }
+
+    saveUsedCardKeys(usedKeys);
 
     // imageMap 1..20
     imageMap = {};
@@ -260,7 +377,12 @@ async function loadAndRender() {
 
   } catch (err) {
     console.error(err);
-    boxGrid.innerHTML = `<p class="text-red-500">خطأ في التحميل</p>`;
+    boxGrid.innerHTML = "";
+    const errorText = document.createElement("p");
+    errorText.className = "text-red-500";
+    errorText.textContent =
+      err?.message || "خطأ في التحميل";
+    boxGrid.appendChild(errorText);
   }
 }
 
@@ -462,6 +584,14 @@ function confirmSelection() {
     .map(i => imageMap[i]?.fullPath)
     .filter(Boolean);
 
+  if (
+    picks.length !== roundCount ||
+    new Set(picks).size !== picks.length
+  ) {
+    alert("تعذر تأكيد الاختيارات: توجد بطاقة ناقصة أو متكررة.");
+    return;
+  }
+
   const playerKey = currentPlayer === 1 ? "player1" : "player2";
 
   socket.emit("playerSubmitPicks", {
@@ -471,15 +601,16 @@ function confirmSelection() {
     picks
   });
 
-  // ✅ بعد التأكيد: نحذف لوحة هذا اللاعب ليأخذ 20 جديدة في المرة القادمة
-  localStorage.removeItem(boardKey());
+  // The board is removed after submission, while its 20 cards remain
+  // reserved for this game so neither player can ever receive them again.
+  localStorage.removeItem(boardKey(currentPlayer));
 
   if (currentPlayer === 1) {
     localStorage.setItem("currentPlayer", "2");
     location.reload();
   } else {
     localStorage.removeItem("currentPlayer");
-    localStorage.removeItem("pickStarted");
+    localStorage.removeItem(PICK_SESSION_KEY);
     location.href = "wait.html";
   }
 }
