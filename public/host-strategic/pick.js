@@ -35,6 +35,10 @@ const confirmBtn = document.getElementById("confirmBtn");
 // Modal elements (optional if exists)
 const tacticModal = document.getElementById("tacticModal");
 const tacticSelectEl = document.getElementById("tacticSelect");
+const tacticPicker = document.getElementById("tacticPicker");
+const tacticPickerTrigger = document.getElementById("tacticPickerTrigger");
+const tacticPickerText = document.getElementById("tacticPickerText");
+const tacticPickerMenu = document.getElementById("tacticPickerMenu");
 
 const BOARD_SIZE = 20;
 
@@ -501,6 +505,9 @@ function getTacticPool(tacticId) {
     case "reverse":
       return [4,5,10,9,8,14,13,12,16,17,18];
 
+    case "visca_lama":
+      return [4,5,6,7,8,9,10,11,17,18,14];
+
     case "range1_11":
       return range(1, 11);
 
@@ -551,15 +558,90 @@ function getTacticPool(tacticId) {
   }
 }
 
+function closeTacticPicker() {
+  if (!tacticPickerMenu || !tacticPickerTrigger) return;
+
+  tacticPickerMenu.classList.add("hidden");
+  tacticPickerTrigger.classList.remove("is-open");
+  tacticPickerTrigger.setAttribute("aria-expanded", "false");
+}
+
+function openTacticPicker() {
+  if (!tacticPickerMenu || !tacticPickerTrigger) return;
+
+  tacticPickerMenu.classList.remove("hidden");
+  tacticPickerMenu.scrollTop = 0;
+  tacticPickerTrigger.classList.add("is-open");
+  tacticPickerTrigger.setAttribute("aria-expanded", "true");
+}
+
+function initTacticPicker() {
+  if (
+    !tacticPicker ||
+    !tacticPickerTrigger ||
+    !tacticPickerText ||
+    !tacticPickerMenu ||
+    !tacticSelectEl
+  ) {
+    return;
+  }
+
+  const items = Array.from(
+    tacticPickerMenu.querySelectorAll(".result-category-item")
+  );
+
+  tacticPickerTrigger.addEventListener("click", event => {
+    event.stopPropagation();
+
+    if (tacticPickerMenu.classList.contains("hidden")) {
+      openTacticPicker();
+    } else {
+      closeTacticPicker();
+    }
+  });
+
+  items.forEach(item => {
+    item.addEventListener("click", event => {
+      event.stopPropagation();
+
+      const value = String(item.dataset.value || "silver");
+      tacticSelectEl.value = value;
+      tacticPickerText.textContent = item.textContent.trim();
+
+      items.forEach(option => {
+        const selected = option === item;
+        option.classList.toggle("is-selected", selected);
+        option.setAttribute("aria-selected", String(selected));
+      });
+
+      closeTacticPicker();
+    });
+  });
+
+  document.addEventListener("click", event => {
+    if (!tacticPicker.contains(event.target)) {
+      closeTacticPicker();
+    }
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      closeTacticPicker();
+    }
+  });
+}
+
 // Modal controls
 function openTacticModal() {
   if (!tacticModal) return; // لو ما فيه مودال
+  closeTacticPicker();
   tacticModal.classList.remove("hidden");
   tacticModal.classList.add("flex");
 }
 
 function closeTacticModal() {
   if (!tacticModal) return;
+  closeTacticPicker();
   tacticModal.classList.add("hidden");
   tacticModal.classList.remove("flex");
 }
@@ -573,6 +655,8 @@ function applyTactic() {
 }
 
 // ===================================================
+
+initTacticPicker();
 
 function confirmSelection() {
   if (selectedBoxes.length !== roundCount) {

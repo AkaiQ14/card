@@ -40,6 +40,105 @@
       to{opacity:1; transform: translateY(0) scale(1);}
     }
     .modal-card{ animation: popIn .16s ease-out; }
+
+    /* Same glass picker and scrollbar used by result category picker */
+    .result-category-picker{
+      position:relative;
+      flex:1;
+      min-width:0;
+      z-index:30;
+    }
+    .result-category-trigger{
+      width:100%;
+      min-height:42px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      padding:8px 12px;
+      color:#fff;
+      font-size:.875rem;
+      font-weight:800;
+      border:1.5px solid rgba(255,215,0,.7);
+      border-radius:12px;
+      background:rgba(255,255,255,.08);
+      backdrop-filter:blur(14px) saturate(135%);
+      -webkit-backdrop-filter:blur(14px) saturate(135%);
+      box-shadow:0 8px 24px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.10);
+      transition:.18s ease;
+      cursor:pointer;
+      outline:none;
+    }
+    .result-category-trigger:hover,
+    .result-category-trigger.is-open{
+      border-color:#FFD700;
+      background:rgba(255,255,255,.13);
+      box-shadow:0 10px 28px rgba(0,0,0,.25), 0 0 0 2px rgba(255,215,0,.08);
+    }
+    .result-category-trigger-text{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .result-category-chevron{
+      flex:none;
+      color:#FFD700;
+      font-size:18px;
+      line-height:1;
+      transition:transform .18s ease;
+    }
+    .result-category-trigger.is-open .result-category-chevron{
+      transform:rotate(180deg);
+    }
+    .result-category-menu{
+      position:absolute;
+      bottom:calc(100% + 7px);
+      right:0;
+      width:100%;
+      min-width:190px;
+      max-height:360px;
+      overflow-y:auto;
+      padding:6px;
+      border:1px solid rgba(255,215,0,.55);
+      border-radius:14px;
+      background:rgba(48,10,24,.82);
+      backdrop-filter:blur(20px) saturate(145%);
+      -webkit-backdrop-filter:blur(20px) saturate(145%);
+      box-shadow:0 18px 45px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.08);
+      scrollbar-width:thin;
+      scrollbar-color:rgba(255,215,0,.75) transparent;
+    }
+    .result-category-menu::-webkit-scrollbar{width:14px}
+    .result-category-menu::-webkit-scrollbar-track{background:transparent}
+    .result-category-menu::-webkit-scrollbar-thumb{
+      background:rgba(255,215,0,.72);
+      border-radius:999px;
+    }
+    .result-category-item{
+      width:100%;
+      min-height:38px;
+      border-radius:10px;
+      padding:7px 10px;
+      color:#fff;
+      text-align:right;
+      font-size:.85rem;
+      font-weight:800;
+      background:transparent;
+      border:1px solid transparent;
+      transition:.15s ease;
+      cursor:pointer;
+    }
+    .result-category-item:hover,
+    .result-category-item:focus{
+      background:rgba(255,215,0,.13);
+      border-color:rgba(255,215,0,.35);
+      color:#FFD700;
+      outline:none;
+    }
+    .result-category-item.is-selected{
+      color:#FFD700;
+      background:rgba(255,215,0,.12);
+    }
   </style>
 </head>
 
@@ -88,26 +187,33 @@
       </div>
 
       <label class="block text-sm mb-2 text-white/80">التكتيك:</label>
-      <select id="tacticSelect"
-        class="w-full p-3 rounded-2xl bg-black/40 text-white
-               border border-white/15 focus:outline-none focus:ring-2 focus:ring-yellow-500/40 cursor-pointer">
-        <option value="silver">درج سلفر</option>
-        <option value="reverse">درج عكسي</option>
-        <option value="range1_11">من 1-11</option>
+      <input id="tacticSelect" type="hidden" value="silver" />
+      <div id="tacticPicker" class="result-category-picker">
+        <button id="tacticPickerTrigger" type="button"
+          class="result-category-trigger"
+          aria-haspopup="listbox" aria-expanded="false">
+          <span id="tacticPickerText" class="result-category-trigger-text">درج سلفر</span>
+          <span class="result-category-chevron">⌄</span>
+        </button>
 
-        <option value="range2_12">من 2-12</option>
-        <option value="range3_13">من 3-13</option>
-        <option value="range4_14">من 4-14</option>
-        <option value="range5_15">من 5-15</option>
-        <option value="range6_16">من 6-16</option>
-        <option value="range7_17">من 7-17</option>
-        <option value="range8_18">من 8-18</option>
-        <option value="range9_19">من 9-19</option>
-        <option value="range10_20">من 10-20</option>
-
-        <option value="odds_plus_14">فردي و 14</option>
-        <option value="evens_plus_random">زوجي + رقم عشوائي</option>
-      </select>
+        <div id="tacticPickerMenu" class="result-category-menu hidden" role="listbox">
+          <button type="button" class="result-category-item is-selected" data-value="silver" role="option" aria-selected="true">درج سلفر</button>
+          <button type="button" class="result-category-item" data-value="reverse" role="option" aria-selected="false">درج عكسي</button>
+          <button type="button" class="result-category-item" data-value="visca_lama" role="option" aria-selected="false">فيسكا لمى</button>
+          <button type="button" class="result-category-item" data-value="range1_11" role="option" aria-selected="false">من 1-11</button>
+          <button type="button" class="result-category-item" data-value="range2_12" role="option" aria-selected="false">من 2-12</button>
+          <button type="button" class="result-category-item" data-value="range3_13" role="option" aria-selected="false">من 3-13</button>
+          <button type="button" class="result-category-item" data-value="range4_14" role="option" aria-selected="false">من 4-14</button>
+          <button type="button" class="result-category-item" data-value="range5_15" role="option" aria-selected="false">من 5-15</button>
+          <button type="button" class="result-category-item" data-value="range6_16" role="option" aria-selected="false">من 6-16</button>
+          <button type="button" class="result-category-item" data-value="range7_17" role="option" aria-selected="false">من 7-17</button>
+          <button type="button" class="result-category-item" data-value="range8_18" role="option" aria-selected="false">من 8-18</button>
+          <button type="button" class="result-category-item" data-value="range9_19" role="option" aria-selected="false">من 9-19</button>
+          <button type="button" class="result-category-item" data-value="range10_20" role="option" aria-selected="false">من 10-20</button>
+          <button type="button" class="result-category-item" data-value="odds_plus_14" role="option" aria-selected="false">فردي و 14</button>
+          <button type="button" class="result-category-item" data-value="evens_plus_random" role="option" aria-selected="false">زوجي + رقم عشوائي</button>
+        </div>
+      </div>
 
       <div class="flex gap-3 mt-5">
         <button onclick="applyTactic()"
@@ -129,7 +235,7 @@
   <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
     class="fixed bottom-4 right-4 w-36 md:w-40 h-auto opacity-90 pointer-events-none" />
 
-  <script src="pick.js"></script>
+  <script src="pick.js?v=tactic-picker-v1"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>
 </body>
