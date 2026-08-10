@@ -31,6 +31,8 @@ if (currentPlayer !== 1 && currentPlayer !== 2) {
 const instruction = document.getElementById("instruction");
 const boxGrid = document.getElementById("boxGrid");
 const confirmBtn = document.getElementById("confirmBtn");
+const selectionCountEl = document.getElementById("selectionCount");
+const selectionTargetEl = document.getElementById("selectionTarget");
 
 // Modal elements (optional if exists)
 const tacticModal = document.getElementById("tacticModal");
@@ -41,6 +43,10 @@ const tacticPickerText = document.getElementById("tacticPickerText");
 const tacticPickerMenu = document.getElementById("tacticPickerMenu");
 
 const BOARD_SIZE = 20;
+
+if (selectionTargetEl) {
+  selectionTargetEl.textContent = String(roundCount);
+}
 
 let imageMap = {};      // 1..20 -> {folder, filename, key, fullPath}
 let selectedBoxes = []; // indices
@@ -394,54 +400,51 @@ async function loadAndRender() {
 function renderBoxes() {
   boxGrid.innerHTML = "";
   selectedBoxes = [];
-  confirmBtn.classList.add("hidden");
+  updateSelectionUI();
 
   for (let i = 1; i <= BOARD_SIZE; i++) {
     const btn = document.createElement("button");
+    btn.type = "button";
 
     btn.innerHTML = `
-      <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
-        <img src="../images/qg144.png" style="width:100px;height:100px;object-fit:contain;">
-        <span style="
-          position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-          color:white; font-size:22px; font-weight:900; text-shadow:1px 1px 3px black;
-        ">${i}</span>
-      </div>
+      <span class="pick-box-visual">
+        <img src="../images/qg144.png" class="pick-box-image" alt="" draggable="false">
+        <span class="pick-box-number">${i}</span>
+      </span>
     `;
 
     btn.dataset.index = i;
-    btn.className = `
-      width:90px;
-      height:90px;
-      border:none;
-      background:transparent;
-      cursor:pointer;
-      transition:transform 0.2s;
-    `;
+    btn.className = "pick-box";
+    btn.setAttribute("aria-label", `اختيار الصندوق رقم ${i}`);
 
     btn.onclick = () => toggleBox(i, btn);
     boxGrid.appendChild(btn);
   }
 }
 
+function updateSelectionUI() {
+  if (selectionCountEl) {
+    selectionCountEl.textContent = String(selectedBoxes.length);
+  }
+
+  confirmBtn.classList.toggle(
+    "hidden",
+    selectedBoxes.length !== roundCount
+  );
+}
+
 function toggleBox(index, btn) {
   if (selectedBoxes.includes(index)) {
     selectedBoxes = selectedBoxes.filter(n => n !== index);
-    btn.style.filter = "none";
-    btn.style.transform = "scale(1)";
+    btn.classList.remove("is-selected");
   } else {
     if (selectedBoxes.length >= roundCount) return;
 
     selectedBoxes.push(index);
-    btn.style.filter = `
-      drop-shadow(0 0 6px gold)
-      drop-shadow(0 0 12px rgba(255,215,0,0.8))
-      drop-shadow(0 0 20px rgba(255,165,0,0.6))
-    `;
-    btn.style.transform = "scale(1.08)";
+    btn.classList.add("is-selected");
   }
 
-  confirmBtn.classList.toggle("hidden", selectedBoxes.length !== roundCount);
+  updateSelectionUI();
 }
 
 function clearSelectionsUI() {

@@ -161,11 +161,7 @@ startBtn.onclick = () => {
 /* ========= Render abilities (read-only) ========= */
 function abilityPill(text, used = false) {
   const btn = document.createElement("div");
-  btn.className =
-    "w-full text-center px-4 py-2.5 rounded-lg font-bold text-base select-none pointer-events-none " +
-    (used
-      ? "bg-yellow-700 text-black/90 border border-yellow-800"
-      : "bg-yellow-400 text-black border border-yellow-500");
+  btn.className = `ability-pill${used ? " is-used" : ""}`;
   btn.textContent = text;
   btn.setAttribute("aria-disabled", "true");
   return btn;
@@ -179,7 +175,7 @@ function renderReadonlyAbilities(containerId, storageKey) {
   const abilities = getAbilityObjects(storageKey);
   if (!abilities.length) {
     const p = document.createElement("p");
-    p.className = "opacity-70 text-sm text-center";
+    p.className = "abilities-empty";
     p.textContent = "لا توجد قدرات";
     container.appendChild(p);
     return;

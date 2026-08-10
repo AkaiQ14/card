@@ -3199,6 +3199,379 @@ function loadMasterAbilities() {
   }
 }
 
+// ======================================================
+// Import abilities from start (current battle only)
+// ======================================================
+let _importTargetKey =
+  null;
+
+const _importSelected =
+  new Set();
+
+function getUniqueMasterAbilities() {
+  return Array.from(
+    new Set(
+      loadMasterAbilities()
+    )
+  );
+}
+
+function getImportableAbilities() {
+  if (!_importTargetKey) {
+    return [];
+  }
+
+  const owned =
+    new Set(
+      normalizeAbilityList(
+        loadAbilities(
+          _importTargetKey
+        )
+      ).map(ab => ab.text)
+    );
+
+  return getUniqueMasterAbilities()
+    .filter(text => !owned.has(text));
+}
+
+function updateImportSelectionUi() {
+  const count =
+    document.getElementById(
+      "importSelectedCount"
+    );
+
+  const selectAllBtn =
+    document.getElementById(
+      "importSelectAllBtn"
+    );
+
+  const importable =
+    getImportableAbilities();
+
+  if (count) {
+    count.textContent =
+      `تم تحديد ${_importSelected.size}`;
+  }
+
+  if (selectAllBtn) {
+    const allSelected =
+      importable.length > 0 &&
+      importable.every(text =>
+        _importSelected.has(text)
+      );
+
+    selectAllBtn.textContent =
+      allSelected
+        ? "إلغاء التحديد"
+        : "تحديد الكل";
+
+    selectAllBtn.disabled =
+      importable.length === 0;
+  }
+}
+
+function renderImportAbilityGrid() {
+  const grid =
+    document.getElementById(
+      "importAbilityGrid"
+    );
+
+  if (!grid) return;
+
+  grid.innerHTML = "";
+
+  const master =
+    getUniqueMasterAbilities();
+
+  const owned =
+    new Set(
+      normalizeAbilityList(
+        loadAbilities(
+          _importTargetKey
+        )
+      ).map(ab => ab.text)
+    );
+
+  if (!master.length) {
+    const empty =
+      document.createElement("p");
+
+    empty.className =
+      "text-yellow-200 text-center py-5";
+
+    empty.textContent =
+      "لا توجد قدرات محفوظة من صفحة البداية.";
+
+    grid.appendChild(empty);
+    updateImportSelectionUi();
+    return;
+  }
+
+  master.forEach(text => {
+    const alreadyOwned =
+      owned.has(text);
+
+    const selected =
+      _importSelected.has(text);
+
+    const option =
+      document.createElement("button");
+
+    option.type = "button";
+    option.className =
+      "import-ability-option" +
+      (selected ? " is-selected" : "");
+
+    option.disabled =
+      alreadyOwned;
+
+    option.setAttribute(
+      "aria-pressed",
+      String(selected)
+    );
+
+    const check =
+      document.createElement("span");
+
+    check.className =
+      "import-ability-check";
+
+    check.textContent =
+      alreadyOwned
+        ? "✓"
+        : selected
+          ? "✓"
+          : "";
+
+    const label =
+      document.createElement("span");
+
+    label.className =
+      "min-w-0 flex-1";
+
+    label.textContent =
+      alreadyOwned
+        ? `${text} — موجودة لدى اللاعب`
+        : text;
+
+    option.appendChild(check);
+    option.appendChild(label);
+
+    option.addEventListener(
+      "click",
+      () => {
+        if (_importSelected.has(text)) {
+          _importSelected.delete(text);
+          option.classList.remove(
+            "is-selected"
+          );
+          option.setAttribute(
+            "aria-pressed",
+            "false"
+          );
+          check.textContent = "";
+        } else {
+          _importSelected.add(text);
+          option.classList.add(
+            "is-selected"
+          );
+          option.setAttribute(
+            "aria-pressed",
+            "true"
+          );
+          check.textContent = "✓";
+        }
+
+        updateImportSelectionUi();
+      }
+    );
+
+    grid.appendChild(option);
+  });
+
+  updateImportSelectionUi();
+}
+
+function openImportAbilityModal(
+  targetKey
+) {
+  if (
+    targetKey !== P1_ABILITIES_KEY &&
+    targetKey !== P2_ABILITIES_KEY
+  ) {
+    return;
+  }
+
+  _importTargetKey =
+    targetKey;
+
+  _importSelected.clear();
+
+  const targetName =
+    targetKey === P1_ABILITIES_KEY
+      ? player1
+      : player2;
+
+  const modal =
+    document.getElementById(
+      "importAbilityModal"
+    );
+
+  const title =
+    document.getElementById(
+      "importAbilityTitle"
+    );
+
+  if (!modal) return;
+
+  if (title) {
+    title.textContent =
+      `استيراد قدرات للمعركة لدى ${targetName}`;
+  }
+
+  renderImportAbilityGrid();
+
+  modal.classList.remove(
+    "hidden"
+  );
+
+  modal.classList.add(
+    "flex"
+  );
+}
+
+function closeImportAbilityModal() {
+  const modal =
+    document.getElementById(
+      "importAbilityModal"
+    );
+
+  if (modal) {
+    modal.classList.add(
+      "hidden"
+    );
+
+    modal.classList.remove(
+      "flex"
+    );
+  }
+
+  _importSelected.clear();
+  _importTargetKey = null;
+}
+
+function toggleImportSelectAll() {
+  const importable =
+    getImportableAbilities();
+
+  const allSelected =
+    importable.length > 0 &&
+    importable.every(text =>
+      _importSelected.has(text)
+    );
+
+  _importSelected.clear();
+
+  if (!allSelected) {
+    importable.forEach(text =>
+      _importSelected.add(text)
+    );
+  }
+
+  renderImportAbilityGrid();
+}
+
+function confirmImportAbilities() {
+  if (!_importTargetKey) return;
+
+  const selected =
+    getUniqueMasterAbilities()
+      .filter(text =>
+        _importSelected.has(text)
+      );
+
+  if (!selected.length) {
+    showToast(
+      "اختر قدرة واحدة على الأقل للاستيراد."
+    );
+    return;
+  }
+
+  const current =
+    normalizeAbilityList(
+      loadAbilities(
+        _importTargetKey
+      )
+    );
+
+  const existing =
+    new Set(
+      current.map(ab => ab.text)
+    );
+
+  const imported =
+    selected.filter(text =>
+      !existing.has(text)
+    );
+
+  if (!imported.length) {
+    showToast(
+      "جميع القدرات المحددة موجودة لدى اللاعب بالفعل."
+    );
+    renderImportAbilityGrid();
+    return;
+  }
+
+  imported.forEach(text => {
+    current.push({
+      text,
+      used: false
+    });
+  });
+
+  saveAbilities(
+    _importTargetKey,
+    current
+  );
+
+  renderAbilities(
+    P2_ABILITIES_KEY,
+    document.getElementById(
+      "p2Abilities"
+    )
+  );
+
+  renderAbilities(
+    P1_ABILITIES_KEY,
+    document.getElementById(
+      "p1Abilities"
+    )
+  );
+
+  syncServerAbilities();
+  broadcast();
+
+  showToast(
+    imported.length === 1
+      ? `✅ تم استيراد «${imported[0]}» للمعركة الحالية.`
+      : `✅ تم استيراد ${imported.length} قدرات للمعركة الحالية.`
+  );
+
+  closeImportAbilityModal();
+}
+
+window.openImportAbilityModal =
+  openImportAbilityModal;
+
+window.closeImportAbilityModal =
+  closeImportAbilityModal;
+
+window.toggleImportSelectAll =
+  toggleImportSelectAll;
+
+window.confirmImportAbilities =
+  confirmImportAbilities;
+
 function openSwapAbilityModal(
   targetKey
 ) {

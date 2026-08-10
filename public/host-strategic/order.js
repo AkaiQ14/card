@@ -9,6 +9,9 @@ const instruction = document.getElementById("instruction");
 const grid = document.getElementById("cardGrid");
 const continueBtn = document.getElementById("continueBtn");
 const okBtn = document.getElementById("okBtn");
+const orderCounter = document.getElementById("orderCounter");
+const orderCountEl = document.getElementById("orderCount");
+const orderTotalEl = document.getElementById("orderTotal");
 
 // Abilities (self)
 const abilitiesWrap = document.getElementById("playerAbilities");
@@ -70,13 +73,9 @@ const chatStatus  = document.getElementById("chatStatus");
 function chatAppend({ from, text, ts, self=false }) {
   if (!chatHistory) return;
   const row = document.createElement("div");
-  row.className = "flex " + (self ? "justify-end" : "justify-start");
+  row.className = `chat-row ${self ? "is-self" : "is-host"}`;
   const bubble = document.createElement("div");
-  bubble.className =
-    "max-w-[85%] px-3 py-2 rounded-lg border " +
-    (self
-      ? "bg-yellow-500/90 text-black border-yellow-400"
-      : "bg-white/10 text-white border-yellow-700/50");
+  bubble.className = "chat-bubble";
   const time = ts ? new Date(ts).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" }) : "";
   bubble.textContent = (from ? `${from}: ` : "") + text + (time ? `  •  ${time}` : "");
   row.appendChild(bubble);
@@ -274,13 +273,11 @@ function renderBadges(container, abilities, { clickable = false, onClick } = {})
     const isUsed = !!ab.used;
     const el = document.createElement(clickable ? "button" : "span");
     el.textContent = ab.text;
-    el.className =
-      "px-3 py-1 rounded-lg font-bold border " +
-      (clickable
-        ? (isUsed
-            ? "bg-gray-500/60 text-black/60 border-gray-600 cursor-not-allowed"
-            : "bg-yellow-400 hover:bg-yellow-300 text-black border-yellow-500")
-        : "bg-gray-400/70 text-black border-gray-500");
+    el.className = [
+      "ability-badge",
+      clickable ? "my-ability" : "opponent-ability",
+      isUsed ? "is-used" : ""
+    ].filter(Boolean).join(" ");
     if (clickable) {
       if (isUsed) { el.disabled = true; el.setAttribute("aria-disabled", "true"); }
       else if (onClick) { el.onclick = () => onClick(ab.text); }
@@ -314,6 +311,9 @@ function refreshAllSelects(selects, N) {
   const { chosenSet, values } = snapshotChosen(selects);
   selects.forEach((sel, idx) => buildOptions(sel, N, chosenSet, values[idx]));
   const allChosen = values.filter(Boolean).length === N && chosenSet.size === N;
+  if (orderCountEl) orderCountEl.textContent = String(values.filter(Boolean).length);
+  if (orderTotalEl) orderTotalEl.textContent = String(N);
+  if (orderCounter) orderCounter.classList.toggle("is-complete", allChosen);
   continueBtn.classList.toggle("hidden", !allChosen);
 }
 
@@ -430,21 +430,29 @@ function renderCards(pickList, lockedOrder = null) {
   grid.innerHTML = "";
   const display = (Array.isArray(lockedOrder) && lockedOrder.length === pickList.length) ? lockedOrder : pickList;
   const selects = [];
+  const isLocked = Array.isArray(lockedOrder) && lockedOrder.length === pickList.length;
+  if (orderTotalEl) orderTotalEl.textContent = String(pickList.length);
+  if (orderCountEl) orderCountEl.textContent = String(isLocked ? pickList.length : 0);
+  if (orderCounter) orderCounter.classList.toggle("is-complete", isLocked);
   display.forEach((url) => {
     const wrapper = document.createElement("div");
-    wrapper.className = "flex flex-col items-center space-y-2";
+    wrapper.className = `order-card${isLocked ? " is-locked" : ""}`;
 
     // Media + shield wrapper (prevents right-click/drag and hides URL affordances)
     const mediaWrap = document.createElement("div");
     mediaWrap.className = "nosave";
-    const media = createMedia(url, "w-36 h-48 object-contain rounded shadow");
+    const media = createMedia(url, "order-card-media");
     const shield = document.createElement("div");
     shield.className = "shield";
     mediaWrap.appendChild(media);
     mediaWrap.appendChild(shield);
 
+    const selectLabel = document.createElement("span");
+    selectLabel.className = "select-label";
+    selectLabel.textContent = isLocked ? "ترتيب البطاقة" : "اختر ترتيب البطاقة";
+
     const select = document.createElement("select");
-    select.className = "w-24 p-1 rounded bg-gray-800 text-white text-center text-lg orderSelect";
+    select.className = "order-select orderSelect";
     const def = document.createElement("option"); def.value = ""; def.textContent = "-- الترتيب --"; select.appendChild(def);
 
     if (Array.isArray(lockedOrder) && lockedOrder.length === pickList.length) {
@@ -460,6 +468,7 @@ function renderCards(pickList, lockedOrder = null) {
     }
 
     wrapper.appendChild(mediaWrap);
+    wrapper.appendChild(selectLabel);
     wrapper.appendChild(select);
     grid.appendChild(wrapper);
     selects.push(select);
@@ -472,7 +481,7 @@ function renderCards(pickList, lockedOrder = null) {
     selects.forEach(sel => sel.addEventListener("change", () => refreshAllSelects(selects, pickList.length)));
     continueBtn.classList.add("hidden");
     continueBtn.disabled = false;
-    continueBtn.textContent = "متابعة";
+    continueBtn.textContent = "متابعة وإرسال الترتيب";
   }
 }
 
@@ -541,13 +550,11 @@ function setOkUi(active, emitChange = true) {
   if (active) {
     // ✅ OK is active on host — show "إلغاء تمام" so player can cancel
     okBtn.textContent = "إلغاء تمام";
-    okBtn.classList.remove("bg-emerald-600", "hover:bg-emerald-700");
-    okBtn.classList.add("bg-gray-600", "hover:bg-gray-700");
+    okBtn.classList.add("is-cancel");
   } else {
     // ❌ OK is not active — show "تمام" (green) to allow activating
     okBtn.textContent = "تمام";
-    okBtn.classList.add("bg-emerald-600", "hover:bg-emerald-700");
-    okBtn.classList.remove("bg-gray-600", "hover:bg-gray-700");
+    okBtn.classList.remove("is-cancel");
   }
 
   if (emitChange) {

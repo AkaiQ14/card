@@ -9,194 +9,497 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
     :root{
-      --bg1:#4B0E1F;
-      --bg2:#12040a;
-      --gold:#FFD700;
+      --wine:#4b0e1f;
+      --wine-dark:#180309;
+      --gold:#ffd700;
+      --panel:rgba(12,2,7,.48);
+      --line:rgba(255,215,0,.24);
+      --soft:rgba(255,255,255,.61);
     }
-    body{font-family:"Cairo",system-ui,sans-serif}
-    .bg-game{
-      background:
-        radial-gradient(900px 500px at 15% 10%, rgba(255,215,0,.10), transparent 60%),
-        radial-gradient(900px 500px at 90% 0%, rgba(59,130,246,.14), transparent 55%),
-        linear-gradient(180deg, var(--bg1), #2a0612 55%, var(--bg2));
+    *{box-sizing:border-box}
+    html{min-height:100%;color-scheme:dark}
+    body{
       min-height:100vh;
+      margin:0;
+      overflow-x:hidden;
+      color:#fff;
+      font-family:"Cairo",system-ui,sans-serif;
+      background:
+        radial-gradient(720px 430px at 13% 8%,rgba(255,215,0,.10),transparent 63%),
+        radial-gradient(680px 450px at 90% 3%,rgba(59,130,246,.12),transparent 65%),
+        linear-gradient(180deg,#591125 0%,var(--wine) 37%,#2c0612 72%,var(--wine-dark));
     }
-    .glass{
-      background: rgba(0,0,0,.35);
-      border:1px solid rgba(255,215,0,.25);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      z-index:-1;
+      pointer-events:none;
+      opacity:.15;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+      background-size:40px 40px;
+      mask-image:linear-gradient(to bottom,black,transparent 84%);
     }
-    /* Keep ultra-tight grid look while feeling premium */
-    #boxGrid{gap:6px !important;}
-
-    /* Modal animation */
-    @keyframes popIn{
-      from{opacity:0; transform: translateY(10px) scale(.98);}
-      to{opacity:1; transform: translateY(0) scale(1);}
+    .hidden{display:none !important}
+    button{font:inherit;cursor:pointer}
+    .home-btn{
+      position:fixed;
+      top:15px;
+      right:15px;
+      z-index:80;
+      min-height:40px;
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      padding:7px 13px;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:12px;
+      color:#fff;
+      font-size:.7rem;
+      font-weight:900;
+      background:rgba(8,1,5,.50);
+      backdrop-filter:blur(13px);
+      -webkit-backdrop-filter:blur(13px);
+      box-shadow:0 10px 25px rgba(0,0,0,.22);
+      transition:.15s ease;
     }
-    .modal-card{ animation: popIn .16s ease-out; }
-
-    /* Same glass picker and scrollbar used by result category picker */
-    .result-category-picker{
+    .home-btn:hover{border-color:rgba(255,215,0,.5);background:rgba(255,255,255,.08);transform:translateY(-1px)}
+    .page{
+      width:min(100%,920px);
+      min-height:100vh;
+      margin-inline:auto;
+      padding:70px 16px 82px;
+    }
+    .page-head{text-align:center;margin-bottom:15px}
+    .brand-kicker{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      color:rgba(255,232,111,.68);
+      font-size:.57rem;
+      font-weight:900;
+      letter-spacing:.14em;
+    }
+    .brand-kicker::before{
+      content:"";
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:var(--gold);
+      box-shadow:0 0 12px rgba(255,215,0,.75);
+    }
+    .brand-title{
+      margin-top:4px;
+      font-size:clamp(1.75rem,4vw,2.45rem);
+      font-weight:900;
+      line-height:1.15;
+      letter-spacing:-.03em;
+      text-shadow:0 9px 28px rgba(0,0,0,.3);
+    }
+    .brand-title span{color:var(--gold)}
+    .instruction{
+      margin-top:7px;
+      color:rgba(255,255,255,.86);
+      font-size:clamp(.85rem,2vw,1.02rem);
+      font-weight:800;
+    }
+    .board-shell{
+      width:min(100%,700px);
+      margin-inline:auto;
+      padding:13px;
+      border:1px solid rgba(255,215,0,.26);
+      border-radius:23px;
+      background:linear-gradient(145deg,rgba(255,255,255,.07),var(--panel));
+      backdrop-filter:blur(15px) saturate(120%);
+      -webkit-backdrop-filter:blur(15px) saturate(120%);
+      box-shadow:0 25px 70px rgba(0,0,0,.31),inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    .board-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:11px;
+      padding:1px 3px 10px;
+      border-bottom:1px solid rgba(255,215,0,.11);
+    }
+    .board-title{font-size:.76rem;font-weight:900;color:#ffe777}
+    .board-copy{margin-top:2px;color:rgba(255,255,255,.42);font-size:.55rem}
+    .selection-counter{
+      min-width:82px;
+      min-height:35px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:5px;
+      flex:none;
+      padding:6px 10px;
+      border:1px solid rgba(255,215,0,.28);
+      border-radius:10px;
+      color:rgba(255,238,151,.86);
+      font-size:.61rem;
+      font-weight:900;
+      background:rgba(255,215,0,.07);
+    }
+    #selectionCount{color:#fff;font-size:.78rem}
+    #boxGrid{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:7px;
+      width:100%;
+      direction:ltr;
+    }
+    .pick-box{
       position:relative;
-      flex:1;
+      width:100%;
+      aspect-ratio:1;
       min-width:0;
-      z-index:30;
+      display:grid;
+      place-items:center;
+      padding:2px;
+      border:1px solid transparent;
+      border-radius:15px;
+      outline:none;
+      background:rgba(255,255,255,.018);
+      transition:transform .17s ease,filter .17s ease,background .17s ease,border-color .17s ease;
     }
+    .pick-box:hover{
+      z-index:2;
+      border-color:rgba(255,215,0,.20);
+      background:rgba(255,215,0,.045);
+      transform:translateY(-2px);
+    }
+    .pick-box:focus-visible{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,215,0,.10)}
+    .pick-box.is-selected{
+      z-index:3;
+      border-color:rgba(255,215,0,.72);
+      background:rgba(255,215,0,.11);
+      filter:drop-shadow(0 0 7px rgba(255,215,0,.62)) drop-shadow(0 0 15px rgba(255,165,0,.34));
+      transform:translateY(-2px) scale(1.035);
+    }
+    .pick-box-visual{
+      position:relative;
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .pick-box-image{
+      width:93%;
+      height:93%;
+      object-fit:contain;
+      pointer-events:none;
+      user-select:none;
+    }
+    .pick-box-number{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-size:clamp(.92rem,2.1vw,1.35rem);
+      font-weight:900;
+      text-shadow:0 2px 5px rgba(0,0,0,.95),1px 1px 2px #000;
+      pointer-events:none;
+    }
+    #boxGrid > p{
+      grid-column:1 / -1;
+      padding:30px 12px;
+      color:#fecaca;
+      text-align:center;
+      font-size:.75rem;
+      font-weight:800;
+    }
+    .actions{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-wrap:wrap;
+      gap:9px;
+      margin-top:14px;
+    }
+    .action-btn{
+      min-width:132px;
+      min-height:47px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:9px 18px;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:13px;
+      color:#fff;
+      font-size:.74rem;
+      font-weight:900;
+      outline:none;
+      box-shadow:0 11px 26px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.10);
+      transition:transform .15s ease,filter .15s ease,box-shadow .15s ease;
+    }
+    .action-btn:hover{transform:translateY(-2px);filter:brightness(1.07);box-shadow:0 15px 30px rgba(0,0,0,.3)}
+    .action-btn:active{transform:translateY(1px) scale(.995)}
+    .random-btn{background:linear-gradient(135deg,#0284c7,#2563eb)}
+    .tactic-btn{background:linear-gradient(135deg,#a21caf,#db2777)}
+    .confirm-btn{border-color:rgba(134,239,172,.36);background:linear-gradient(135deg,#22c55e,#059669)}
+    .btn-icon{font-size:.9rem;line-height:1}
+    .brand-logo{
+      position:fixed;
+      right:12px;
+      bottom:10px;
+      width:clamp(78px,10vw,120px);
+      height:auto;
+      opacity:.55;
+      pointer-events:none;
+      filter:drop-shadow(0 10px 20px rgba(0,0,0,.42));
+    }
+    .modal-root{
+      position:fixed;
+      inset:0;
+      z-index:100;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      background:rgba(8,1,5,.76);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+    }
+    @keyframes popIn{
+      from{opacity:0;transform:translateY(10px) scale(.98)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+    .modal-card{
+      width:min(100%,520px);
+      max-height:calc(100vh - 32px);
+      overflow-y:auto;
+      padding:20px;
+      border:1px solid rgba(255,215,0,.31);
+      border-radius:23px;
+      background:linear-gradient(145deg,rgba(86,17,39,.98),rgba(22,3,11,.98));
+      box-shadow:0 35px 100px rgba(0,0,0,.60),inset 0 1px 0 rgba(255,255,255,.09);
+      animation:popIn .18s ease-out;
+      scrollbar-width:thin;
+      scrollbar-color:rgba(255,215,0,.62) transparent;
+    }
+    .modal-card::-webkit-scrollbar{width:9px}
+    .modal-card::-webkit-scrollbar-track{background:transparent}
+    .modal-card::-webkit-scrollbar-thumb{border-radius:999px;background:rgba(255,215,0,.60)}
+    .modal-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:17px;
+      padding-bottom:13px;
+      border-bottom:1px solid rgba(255,215,0,.13);
+    }
+    .modal-title{font-size:1.12rem;font-weight:900;color:#ffe777}
+    .modal-subtitle{margin-top:2px;color:rgba(255,255,255,.47);font-size:.61rem}
+    .modal-close{
+      width:37px;
+      height:37px;
+      display:grid;
+      place-items:center;
+      flex:none;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:10px;
+      color:#fff;
+      font-weight:900;
+      background:rgba(255,255,255,.06);
+      transition:.15s ease;
+    }
+    .modal-close:hover{border-color:rgba(255,215,0,.3);background:rgba(255,255,255,.10)}
+    .field-label{display:block;margin-bottom:7px;color:rgba(255,255,255,.72);font-size:.68rem;font-weight:900}
+    .result-category-picker{position:relative;min-width:0;z-index:30}
     .result-category-trigger{
       width:100%;
-      min-height:42px;
+      min-height:46px;
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:8px;
-      padding:8px 12px;
+      padding:9px 13px;
       color:#fff;
-      font-size:.875rem;
-      font-weight:800;
-      border:1.5px solid rgba(255,215,0,.7);
+      font-size:.78rem;
+      font-weight:900;
+      border:1.5px solid rgba(255,215,0,.68);
       border-radius:12px;
-      background:rgba(255,255,255,.08);
+      background:rgba(255,255,255,.075);
       backdrop-filter:blur(14px) saturate(135%);
       -webkit-backdrop-filter:blur(14px) saturate(135%);
-      box-shadow:0 8px 24px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.10);
+      box-shadow:0 8px 24px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.09);
       transition:.18s ease;
-      cursor:pointer;
       outline:none;
     }
     .result-category-trigger:hover,
     .result-category-trigger.is-open{
-      border-color:#FFD700;
-      background:rgba(255,255,255,.13);
-      box-shadow:0 10px 28px rgba(0,0,0,.25), 0 0 0 2px rgba(255,215,0,.08);
+      border-color:var(--gold);
+      background:rgba(255,255,255,.12);
+      box-shadow:0 10px 28px rgba(0,0,0,.25),0 0 0 2px rgba(255,215,0,.08);
     }
-    .result-category-trigger-text{
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
-    .result-category-chevron{
-      flex:none;
-      color:#FFD700;
-      font-size:18px;
-      line-height:1;
-      transition:transform .18s ease;
-    }
-    .result-category-trigger.is-open .result-category-chevron{
-      transform:rotate(180deg);
-    }
+    .result-category-trigger-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .result-category-chevron{flex:none;color:var(--gold);font-size:18px;line-height:1;transition:transform .18s ease}
+    .result-category-trigger.is-open .result-category-chevron{transform:rotate(180deg)}
     .result-category-menu{
-      position:absolute;
-      bottom:calc(100% + 7px);
-      right:0;
+      position:relative;
+      bottom:auto;
+      right:auto;
       width:100%;
       min-width:190px;
-      max-height:360px;
-      overflow-y:auto;
+      max-height:260px;
+      overflow-y:scroll;
+      margin-top:7px;
       padding:6px;
       border:1px solid rgba(255,215,0,.55);
       border-radius:14px;
-      background:rgba(48,10,24,.82);
+      background:rgba(48,10,24,.94);
       backdrop-filter:blur(20px) saturate(145%);
       -webkit-backdrop-filter:blur(20px) saturate(145%);
-      box-shadow:0 18px 45px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.08);
+      box-shadow:0 18px 45px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.08);
+      scrollbar-gutter:stable;
       scrollbar-width:thin;
       scrollbar-color:rgba(255,215,0,.75) transparent;
     }
     .result-category-menu::-webkit-scrollbar{width:14px}
     .result-category-menu::-webkit-scrollbar-track{background:transparent}
-    .result-category-menu::-webkit-scrollbar-thumb{
-      background:rgba(255,215,0,.72);
-      border-radius:999px;
-    }
+    .result-category-menu::-webkit-scrollbar-thumb{background:rgba(255,215,0,.72);border-radius:999px}
     .result-category-item{
       width:100%;
-      min-height:38px;
+      min-height:39px;
+      border:1px solid transparent;
       border-radius:10px;
       padding:7px 10px;
       color:#fff;
       text-align:right;
-      font-size:.85rem;
-      font-weight:800;
+      font-size:.74rem;
+      font-weight:900;
       background:transparent;
-      border:1px solid transparent;
       transition:.15s ease;
-      cursor:pointer;
     }
     .result-category-item:hover,
     .result-category-item:focus{
-      background:rgba(255,215,0,.13);
-      border-color:rgba(255,215,0,.35);
-      color:#FFD700;
+      border-color:rgba(255,215,0,.34);
+      color:var(--gold);
       outline:none;
-    }
-    .result-category-item.is-selected{
-      color:#FFD700;
       background:rgba(255,215,0,.12);
+    }
+    .result-category-item.is-selected{color:var(--gold);background:rgba(255,215,0,.11)}
+    .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
+    .modal-btn{
+      min-height:45px;
+      padding:9px 14px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:12px;
+      color:#fff;
+      font-size:.72rem;
+      font-weight:900;
+      transition:.15s ease;
+    }
+    .modal-btn:hover{transform:translateY(-1px);filter:brightness(1.07)}
+    .apply-btn{background:linear-gradient(135deg,#a21caf,#db2777)}
+    .cancel-btn{background:rgba(255,255,255,.07)}
+    .modal-note{
+      margin-top:12px;
+      padding:9px 10px;
+      border:1px solid rgba(255,255,255,.075);
+      border-radius:10px;
+      color:rgba(255,255,255,.49);
+      font-size:.59rem;
+      line-height:1.65;
+      background:rgba(0,0,0,.14);
+    }
+    @media (max-width:640px){
+      .page{padding:69px 9px 76px}
+      .page-head{margin-bottom:12px}
+      .board-shell{padding:9px;border-radius:19px}
+      #boxGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+      .pick-box{border-radius:12px}
+      .actions{gap:7px}
+      .action-btn{min-width:calc(50% - 5px);padding-inline:12px}
+      .confirm-btn{width:100%}
+      .brand-logo{right:7px;bottom:7px;opacity:.38}
+    }
+    @media (max-width:420px){
+      .home-btn span:last-child{display:none}
+      .home-btn{width:40px;justify-content:center;padding:7px}
+      .board-head{align-items:flex-start}
+      .board-copy{display:none}
+      .selection-counter{min-width:72px}
+      .action-btn{font-size:.67rem}
+      .modal-card{padding:16px 13px;border-radius:19px}
+    }
+    @media (prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
     }
   </style>
 </head>
 
-<body class="bg-game text-white p-6 min-h-screen flex flex-col items-center space-y-5">
-  <header class="w-full max-w-6xl text-center">
-    <h1 class="text-3xl md:text-4xl font-black">
-      QG14 <span class="text-yellow-300">Card Clash</span>
-    </h1>
-    <p id="instruction" class="mt-2 text-lg md:text-xl text-white/85">اللاعب ... اختر بطاقاتك</p>
-  </header>
+<body>
+  <button id="homeBtn" class="home-btn" type="button" title="العودة للرئيسية">
+    <span>⌂</span><span>الرئيسية</span>
+  </button>
 
-  <section class="glass w-full max-w-6xl rounded-3xl p-3 md:p-5">
-    <div id="boxGrid" class="grid grid-cols-4 sm:grid-cols-5 w-full" dir="ltr">
-      <!-- Boxes inserted via JS -->
-    </div>
-  </section>
+  <main class="page">
+    <header class="page-head">
+      <span class="brand-kicker">CARD SELECTION</span>
+      <h1 class="brand-title">QG14 <span>Card Clash</span></h1>
+      <p id="instruction" class="instruction">اللاعب ... اختر بطاقاتك</p>
+    </header>
 
-  <!-- Buttons -->
-  <div class="flex flex-col sm:flex-row gap-3 mt-2">
-    <button id="randomBtn" onclick="randomSelect()"
-      class="px-7 py-3 rounded-2xl font-black bg-sky-600 hover:bg-sky-700 shadow-xl shadow-black/25">
-      عشوائي
-    </button>
+    <section class="board-shell">
+      <header class="board-head">
+        <div>
+          <h2 class="board-title">لوحة اختيار البطاقات</h2>
+          <p class="board-copy">اختر العدد المطلوب يدويًا، عشوائيًا، أو باستخدام تكتيك.</p>
+        </div>
+        <div class="selection-counter" aria-live="polite">
+          <span id="selectionCount">0</span><span>من</span><span id="selectionTarget">0</span>
+        </div>
+      </header>
 
-    <!-- ✅ NEW: Tactic button -->
-    <button id="tacticBtn" onclick="openTacticModal()"
-      class="px-7 py-3 rounded-2xl font-black bg-fuchsia-600 hover:bg-fuchsia-700 shadow-xl shadow-black/25">
-      تكتيك
-    </button>
-
-    <button id="confirmBtn" onclick="confirmSelection()"
-      class="px-7 py-3 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-black/25 hidden">
-      تأكيد الإختيارات
-    </button>
-  </div>
-
-  <!-- ✅ NEW: Tactic Modal (UI only – functions are in pick.js) -->
-  <div id="tacticModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
-    <div class="glass modal-card w-full max-w-lg rounded-3xl p-5 md:p-6 bg-[#4B0E1F]/80 border border-yellow-300/20">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl md:text-2xl font-extrabold text-yellow-200">اختر تكتيك</h2>
-        <button onclick="closeTacticModal()"
-          class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 font-extrabold">
-          ✕
-        </button>
+      <div id="boxGrid" aria-label="صناديق البطاقات">
+        <!-- تُنشأ الصناديق بواسطة JavaScript -->
       </div>
+    </section>
 
-      <label class="block text-sm mb-2 text-white/80">التكتيك:</label>
+    <div class="actions">
+      <button id="randomBtn" class="action-btn random-btn" type="button" onclick="randomSelect()">
+        <span class="btn-icon" aria-hidden="true">⤨</span><span>اختيار عشوائي</span>
+      </button>
+      <button id="tacticBtn" class="action-btn tactic-btn" type="button" onclick="openTacticModal()">
+        <span class="btn-icon" aria-hidden="true">✦</span><span>اختيار تكتيك</span>
+      </button>
+      <button id="confirmBtn" class="action-btn confirm-btn hidden" type="button" onclick="confirmSelection()">
+        <span class="btn-icon" aria-hidden="true">✓</span><span>تأكيد الاختيارات</span>
+      </button>
+    </div>
+  </main>
+
+  <div id="tacticModal" class="modal-root hidden" role="dialog" aria-modal="true" aria-labelledby="tacticModalTitle">
+    <section class="modal-card">
+      <header class="modal-head">
+        <div>
+          <h2 id="tacticModalTitle" class="modal-title">اختيار التكتيك</h2>
+          <p class="modal-subtitle">اختر مجموعة الأرقام التي تريد تطبيقها على اللوحة.</p>
+        </div>
+        <button type="button" class="modal-close" onclick="closeTacticModal()" aria-label="إغلاق">✕</button>
+      </header>
+
+      <label class="field-label" for="tacticPickerTrigger">التكتيك</label>
       <input id="tacticSelect" type="hidden" value="silver" />
       <div id="tacticPicker" class="result-category-picker">
-        <button id="tacticPickerTrigger" type="button"
-          class="result-category-trigger"
-          aria-haspopup="listbox" aria-expanded="false">
+        <button id="tacticPickerTrigger" type="button" class="result-category-trigger" aria-haspopup="listbox" aria-expanded="false">
           <span id="tacticPickerText" class="result-category-trigger-text">درج سلفر</span>
-          <span class="result-category-chevron">⌄</span>
+          <span class="result-category-chevron" aria-hidden="true">⌄</span>
         </button>
 
-        <div id="tacticPickerMenu" class="result-category-menu hidden" role="listbox">
+        <div id="tacticPickerMenu" class="result-category-menu hidden" role="listbox" aria-label="قائمة التكتيكات">
           <button type="button" class="result-category-item is-selected" data-value="silver" role="option" aria-selected="true">درج سلفر</button>
           <button type="button" class="result-category-item" data-value="reverse" role="option" aria-selected="false">درج عكسي</button>
           <button type="button" class="result-category-item" data-value="visca_lama" role="option" aria-selected="false">فيسكا لمى</button>
@@ -210,32 +513,26 @@
           <button type="button" class="result-category-item" data-value="range8_18" role="option" aria-selected="false">من 8-18</button>
           <button type="button" class="result-category-item" data-value="range9_19" role="option" aria-selected="false">من 9-19</button>
           <button type="button" class="result-category-item" data-value="range10_20" role="option" aria-selected="false">من 10-20</button>
-          <button type="button" class="result-category-item" data-value="odds_plus_14" role="option" aria-selected="false">فردي و 14</button>
+          <button type="button" class="result-category-item" data-value="odds_plus_14" role="option" aria-selected="false">فردي و14</button>
           <button type="button" class="result-category-item" data-value="evens_plus_random" role="option" aria-selected="false">زوجي + رقم عشوائي</button>
         </div>
       </div>
 
-      <div class="flex gap-3 mt-5">
-        <button onclick="applyTactic()"
-          class="flex-1 px-5 py-3 rounded-2xl font-black bg-fuchsia-600 hover:bg-fuchsia-700 shadow-xl shadow-black/25">
-          تطبيق
-        </button>
-        <button onclick="closeTacticModal()"
-          class="flex-1 px-5 py-3 rounded-2xl font-black bg-white/10 hover:bg-white/20">
-          إلغاء
-        </button>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn apply-btn" onclick="applyTactic()">تطبيق التكتيك</button>
+        <button type="button" class="modal-btn cancel-btn" onclick="closeTacticModal()">إلغاء</button>
       </div>
 
-      <p class="mt-4 text-sm text-white/75">
-        ملاحظة: سيتم اختيار عدد الصناديق المطلوب من داخل مجموعة التكتيك فقط.
-      </p>
-    </div>
+      <p class="modal-note">سيتم اختيار العدد المطلوب من الصناديق داخل مجموعة التكتيك، وإذا لم تكفِ المجموعة سيُكمل النظام العدد تلقائيًا.</p>
+    </section>
   </div>
 
-  <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo"
-    class="fixed bottom-4 right-4 w-36 md:w-40 h-auto opacity-90 pointer-events-none" />
+  <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo" class="brand-logo" />
 
-  <script src="pick.js?v=tactic-picker-v1"></script>
+  <script>
+    document.getElementById("homeBtn").onclick = () => { window.location.href = "/"; };
+  </script>
+  <script src="pick.js?v=pick-ui-v2"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>
 </body>

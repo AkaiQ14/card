@@ -57,6 +57,70 @@
       max-height: var(--ability-max-h);
       overflow-y: auto; /* scrollable within fixed height */
     }
+    .ability-actions{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:.5rem;
+    }
+    .ability-actions .btn-gold{
+      min-width:0;
+      padding-inline:.45rem;
+    }
+    .import-btn{
+      background:#075985;
+    }
+    .import-btn:hover{
+      background:#0369a1;
+    }
+    .import-ability-option{
+      width:100%;
+      min-height:44px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:9px 11px;
+      border:2px solid rgba(255,215,0,.45);
+      border-radius:11px;
+      color:#fff;
+      text-align:right;
+      font-weight:800;
+      background:rgba(123,33,49,.78);
+      transition:.15s ease;
+    }
+    .import-ability-option:hover:not(:disabled){
+      border-color:#FFD700;
+      background:#8b2a3a;
+      transform:translateY(-1px);
+    }
+    .import-ability-option.is-selected{
+      color:#111827;
+      border-color:#fde047;
+      background:#facc15;
+      box-shadow:0 0 0 2px rgba(250,204,21,.14);
+    }
+    .import-ability-option:disabled{
+      opacity:.42;
+      cursor:not-allowed;
+    }
+    .import-ability-check{
+      width:24px;
+      height:24px;
+      display:grid;
+      place-items:center;
+      flex:none;
+      border:1px solid rgba(255,215,0,.55);
+      border-radius:7px;
+      color:#FFD700;
+      background:rgba(0,0,0,.22);
+    }
+    .import-ability-option.is-selected .import-ability-check{
+      color:#111827;
+      border-color:rgba(17,24,39,.35);
+      background:rgba(255,255,255,.34);
+    }
+    @media (max-width:520px){
+      .ability-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
 
     /* ===== Result page: compact glass category picker ===== */
     .result-category-picker{
@@ -323,7 +387,7 @@
             <!-- 🔒 Fixed-height abilities pane -->
             <div id="p2Abilities" class="abilities-pane space-y-2.5 no-scrollbar text-base"></div>
             <!-- Buttons in one row -->
-            <div class="mt-2.5 flex gap-2">
+            <div class="ability-actions mt-2.5">
               <button class="btn-gold flex-1 py-2.5 text-base"
                       onclick="openTransferModal('player2Abilities')">
                 نقل
@@ -332,9 +396,9 @@
                       onclick="openAddAbilityModal('player2Abilities')">
                 اضافة
               </button>
-              <button class="btn-gold flex-1 py-2.5 text-base bg-[#7b2131] hover:bg-[#8b2a3a]"
-                      onclick="openSwapAbilityModal('player2Abilities')">
-                تبديل
+              <button class="btn-gold import-btn flex-1 py-2.5 text-base"
+                      onclick="openImportAbilityModal('player2Abilities')">
+                استيراد
               </button>
             </div>
           </div>
@@ -359,7 +423,7 @@
             <!-- 🔒 Fixed-height abilities pane -->
             <div id="p1Abilities" class="abilities-pane space-y-2.5 no-scrollbar text-base"></div>
             <!-- Buttons in one row -->
-            <div class="mt-2.5 flex gap-2">
+            <div class="ability-actions mt-2.5">
               <button class="btn-gold flex-1 py-2.5 text-base"
                       onclick="openTransferModal('player1Abilities')">
                 نقل
@@ -368,9 +432,9 @@
                       onclick="openAddAbilityModal('player1Abilities')">
                 اضافة
               </button>
-              <button class="btn-gold flex-1 py-2.5 text-base bg-[#7b2131] hover:bg-[#8b2a3a]"
-                      onclick="openSwapAbilityModal('player1Abilities')">
-                تبديل
+              <button class="btn-gold import-btn flex-1 py-2.5 text-base"
+                      onclick="openImportAbilityModal('player1Abilities')">
+                استيراد
               </button>
             </div>
           </div>
@@ -494,6 +558,25 @@
     </div>
   </div>
 
+  <!-- Import Battle Abilities Modal -->
+  <div id="importAbilityModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2200]">
+    <div class="bg-[#511522] border-2 border-yellow-500 rounded-xl p-4 w-[92%] max-w-[560px]">
+      <h3 id="importAbilityTitle" class="text-lg font-bold text-yellow-300 mb-2 text-center">استيراد قدرات للمعركة</h3>
+      <p class="text-xs text-yellow-100/90 mb-3 text-center">
+        اختر أي عدد من قدرات صفحة البداية. ستُضاف للمعركة الحالية فقط ولن تُضاف إلى القائمة الرئيسية.
+      </p>
+      <div class="mb-3 flex items-center justify-between gap-2 rounded-lg border border-yellow-500/40 bg-black/20 px-3 py-2">
+        <span id="importSelectedCount" class="text-sm font-bold text-yellow-200">تم تحديد 0</span>
+        <button id="importSelectAllBtn" type="button" class="btn-gold px-3 py-1.5 text-sm" onclick="toggleImportSelectAll()">تحديد الكل</button>
+      </div>
+      <div id="importAbilityGrid" class="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto no-scrollbar"></div>
+      <div class="mt-4 flex gap-2 justify-center">
+        <button class="btn-gold px-5 py-2" onclick="confirmImportAbilities()">إضافة المحدد</button>
+        <button class="btn-gold px-5 py-2 bg-[#7b2131]" onclick="closeImportAbilityModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Swap Ability Modal -->
   <div id="swapAbilityModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2000]">
@@ -553,7 +636,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/webm-sfx.js"></script>
-  <script src="result.js"></script>
+  <script src="result.js?v=ability-import-20260810"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>
 </body>
