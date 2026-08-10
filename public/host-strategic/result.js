@@ -370,7 +370,9 @@ function getRoundNotesForRecap(roundIndex) {
 // Socket
 // ======================================================
 const gameID = localStorage.getItem("gameID");
-const socket = typeof io !== "undefined" ? io() : null;
+const socket = typeof io !== "undefined"
+  ? io({ transports: ["websocket"], upgrade: false })
+  : null;
 
 function joinRoomReliably() {
   if (!socket || !gameID) return;

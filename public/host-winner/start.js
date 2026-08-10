@@ -1,5 +1,8 @@
 // public/host-winner/start.js
-const socket = io();
+const socket = io({
+  transports: ["websocket"],
+  upgrade: false
+});
 let createdGameID = null;
 
 socket.on("diagEvent", ({ message }) =>

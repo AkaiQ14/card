@@ -63,7 +63,10 @@ window.addEventListener("keydown", (e) => {
 document.addEventListener("contextmenu", (e) => e.preventDefault(), { capture: true });
 
 // ====== Socket ======
-const socket = io();
+const socket = io({
+  transports: ["websocket"],
+  upgrade: false
+});
 // ===== Chat (player -> host) =====
 const chatHistory = document.getElementById("chatHistory");
 const chatInput   = document.getElementById("chatInput");
