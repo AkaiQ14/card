@@ -3,10 +3,7 @@
   const gameID = params.get("game");
 
   // Auto-refresh via socket.io
-  const socket = io({
-  transports: ["websocket"],
-  upgrade: false
-});
+  const socket = io();
   socket.emit("joinGame", { gameID, role: "viewer" });
   socket.emit("requestResultSnapshot", { gameID });
 

@@ -125,10 +125,7 @@ try {
 
 
 
-const socket = io({
-  transports: ["websocket"],
-  upgrade: false
-});
+const socket = io();
 
 const playerName = currentPlayer === 1 ? player1 : player2;
 instruction.textContent = `اللاعب ${playerName} اختر ${roundCount} بطاقات`;

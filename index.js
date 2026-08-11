@@ -18,16 +18,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Vercel / Socket.IO diagnostics: log the exact Engine.IO handshake failure.
-io.engine.on("connection_error", (err) => {
-  console.error("[socket][engine] connection_error", {
-    code: err.code,
-    message: err.message,
-    context: err.context,
-    transport: err.req?._query?.transport,
-  });
-});
-
 // ====== Configuration ======
 const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || "your-secure-secret";

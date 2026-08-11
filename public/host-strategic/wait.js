@@ -122,10 +122,7 @@ copyP1Btn.onclick = () => copyLinkFor("player1", copyP1Btn);
 copyP2Btn.onclick = () => copyLinkFor("player2", copyP2Btn);
 
 const startBtn = document.getElementById("startBtn");
-const socket = io({
-  transports: ["websocket"],
-  upgrade: false
-});
+const socket = io();
 socket.emit("joinGame", { gameID, role: "host" }); // join room for timer sync
 let orders = {};
 

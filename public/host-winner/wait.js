@@ -5,10 +5,7 @@ const p1 = localStorage.getItem("player1") || "player1";
 const p2 = localStorage.getItem("player2") || "player2";
 const totalRounds = localStorage.getItem("totalRounds") || "3";
 
-const socket = io({
-  transports: ["websocket"],
-  upgrade: false
-});
+const socket = io();
 socket.emit("joinGame", { gameID, role: "host" }); // join room for timer sync
 
 const baseURL = `${window.location.origin}/host-winner/pick.html`;

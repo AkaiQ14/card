@@ -12,10 +12,7 @@ if (!gameID || !playerKey || !playerName) {
   location.href = "/";
 }
 
-const socket = io({
-  transports: ["websocket"],
-  upgrade: false
-});
+const socket = io();
 const instruction = document.getElementById("instruction");
 const boxGrid = document.getElementById("boxGrid");
 const confirmBtn = document.getElementById("confirmBtn");

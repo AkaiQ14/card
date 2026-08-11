@@ -45,9 +45,7 @@ function ensureSecondLine(text) {
 
 // ===== socket =====
 const gameID = localStorage.getItem("gameID");
-const socket = typeof io !== "undefined"
-  ? io({ transports: ["websocket"], upgrade: false })
-  : null;
+const socket = typeof io !== "undefined" ? io() : null;
 
 /* 🔑 ensure this page's socket is IN the room */
 function joinRoomReliably() {
