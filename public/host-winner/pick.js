@@ -1,840 +1,466 @@
-const randomSound = new Audio("/sounds/random.mp3");
-randomSound.volume = 1.0;
+// public/host-winner/pick.js
+const params = new URLSearchParams(window.location.search);
+const gameID = params.get("game");
+const playerKey = params.get("player");
+const playerName = params.get("name");
+const opponentName = params.get("opp") || "";
+const oppAbsParam = params.get("oppabs") || "";
+const roundCount = parseInt(params.get("rounds") || "3");
 
-// Each of the 20 boxes independently has a 10% chance
-// to receive a legendary card. The ratio remains unchanged even with
-// the full-card rotation system.
-const LEGENDARY_CHANCE = 0.1;
-
-const roundCount = parseInt(localStorage.getItem("totalRounds") || "3", 10);
-const player1 = localStorage.getItem("player1") || "لاعب 1";
-const player2 = localStorage.getItem("player2") || "لاعب 2";
-const gameID = localStorage.getItem("gameID") || "default";
-const PICK_SESSION_KEY =
-  `pickStarted:v2:${String(gameID)}`;
-
-let currentPlayer = parseInt(localStorage.getItem("currentPlayer") || "1", 10);
-
-// ===== FIX: منع تخطي اللاعب الأول =====
-const gameStarted = localStorage.getItem(PICK_SESSION_KEY);
-const isNewPickSession = !gameStarted;
-if (!gameStarted) {
-  localStorage.setItem(PICK_SESSION_KEY, "true");
-  localStorage.setItem("currentPlayer", "1");
-  currentPlayer = 1;
+if (!gameID || !playerKey || !playerName) {
+  alert("الرابط غير صالح.");
+  location.href = "/";
 }
-if (currentPlayer !== 1 && currentPlayer !== 2) {
-  localStorage.setItem("currentPlayer", "1");
-  currentPlayer = 1;
-}
-// =========================================
 
+const socket = io();
 const instruction = document.getElementById("instruction");
 const boxGrid = document.getElementById("boxGrid");
 const confirmBtn = document.getElementById("confirmBtn");
-const selectionCountEl = document.getElementById("selectionCount");
-const selectionTargetEl = document.getElementById("selectionTarget");
+const modal = document.getElementById("imageModal");
+const modalOptions = document.getElementById("modalOptions");
 
-// Modal elements (optional if exists)
-const tacticModal = document.getElementById("tacticModal");
-const tacticSelectEl = document.getElementById("tacticSelect");
-const tacticPicker = document.getElementById("tacticPicker");
-const tacticPickerTrigger = document.getElementById("tacticPickerTrigger");
-const tacticPickerText = document.getElementById("tacticPickerText");
-const tacticPickerMenu = document.getElementById("tacticPickerMenu");
+// Read-only abilities UI refs (you)
+const abilitiesWrap = document.getElementById("playerAbilities");
+const abilityHint = document.getElementById("abilityHint");
 
-const BOARD_SIZE = 20;
+// Opponent panel refs
+const oppAbilitiesWrap = document.getElementById("oppAbilities");
+const oppHint = document.getElementById("oppHint");
 
-if (selectionTargetEl) {
-  selectionTargetEl.textContent = String(roundCount);
+// Selected images panel refs
+const selectedGrid = document.getElementById("selectedGrid");
+const selectedCountEl = document.getElementById("selectedCount");
+const selectedTotalEl = document.getElementById("selectedTotal");
+if (selectedTotalEl) selectedTotalEl.textContent = String(roundCount);
+
+instruction.textContent = `اللاعب ${playerName} اختر ${roundCount} بطاقة`;
+
+let animeList = [];
+let allUniqueImages = [];
+let picks = [];
+let boxOptions = {};
+let currentModalBox = null;
+
+// Pools
+let legendaryPoolAll = [];
+let normalPoolAll = [];
+
+// Exclusions from Player 1
+let excludedKeys = new Set();
+
+// Tracking
+let usedFullPaths = new Set();
+let reservedFullPaths = new Set();
+
+// Legendary % per-option (not global, not per-box guarantee)
+const LEGENDARY_RATE = Math.max(0, Math.min(1, parseFloat(localStorage.getItem("legendaryRate") || "0.10")));
+
+/* ========= Persistent keys ========= */
+const optKeyFor = (boxIndex) => `pickOptions:${gameID}:${playerName}:box-${boxIndex}`;
+const PENDING_KEY = `pendingBox:${gameID}:${playerName}`;
+
+/* ========= Helpers ========= */
+function saveBoxOptions(boxIndex, options) {
+  try { localStorage.setItem(optKeyFor(boxIndex), JSON.stringify(options.map(o => o.fullPath))); } catch {}
 }
-
-let imageMap = {};      // 1..20 -> {folder, filename, key, fullPath}
-let selectedBoxes = []; // indices
-
-const BOARD_STORAGE_VERSION = 2;
-
-// ===== Full-card rotation =====
-// Keeps a persistent shuffled cycle for every category so all cards in that
-// category get a turn before a new cycle begins. This does NOT change the
-// 20-box board size or LEGENDARY_CHANCE.
-const ROTATION_STORAGE_VERSION = 1;
-
-function rotationKey(folder) {
-  return `card_rotation_v3_${String(folder)}`;
-}
-
-function createRotationState(folder, cards) {
-  const unique = uniqueCards(cards);
-  const cardsByKey = new Map(
-    unique.map(card => [cardIdentity(card), card])
-  );
-  const actualKeys = Array.from(cardsByKey.keys());
-
-  let stored = null;
+function loadBoxOptions(boxIndex) {
   try {
-    stored = JSON.parse(
-      localStorage.getItem(rotationKey(folder)) || "null"
-    );
-  } catch {
-    stored = null;
+    const raw = localStorage.getItem(optKeyFor(boxIndex));
+    if (!raw) return null;
+    const paths = JSON.parse(raw);
+    if (!Array.isArray(paths) || !paths.length) return null;
+    const map = new Map(allUniqueImages.map(o => [o.fullPath, o]));
+    const rebuilt = paths.map(fp => map.get(fp)).filter(Boolean);
+    return rebuilt.length ? rebuilt : null;
+  } catch { return null; }
+}
+function clearBoxOptions(boxIndex) { try { localStorage.removeItem(optKeyFor(boxIndex)); } catch {} }
+function getPendingBox() { try { const raw = localStorage.getItem(PENDING_KEY); return raw ? parseInt(raw) : null; } catch { return null; } }
+function setPendingBox(i) { try { localStorage.setItem(PENDING_KEY, String(i)); } catch {} }
+function clearPendingBox() { try { localStorage.removeItem(PENDING_KEY); } catch {} }
+
+function normTexts(arr) {
+  return (Array.isArray(arr) ? arr : []).map(a => (typeof a === "string" ? a : a?.text || "")).filter(Boolean);
+}
+function renderPills(el, list, {gold=false} = {}) {
+  if (!el) return;
+  el.innerHTML = "";
+  normTexts(list).forEach(text => {
+    const pill = document.createElement("span");
+    pill.textContent = text;
+    pill.className = gold
+      ? "px-3 py-1 rounded-lg font-bold border border-yellow-500 bg-yellow-400 text-black select-none"
+      : "px-3 py-1 rounded-lg font-bold border border-yellow-700 bg-gray-500/30 text-yellow-200 select-none";
+    pill.setAttribute("aria-disabled","true");
+    pill.style.pointerEvents = "none";
+    el.appendChild(pill);
+  });
+}
+
+/* ===== Abilities (you + opponent) ===== */
+// You
+socket.emit("requestAbilities", { gameID, playerName });
+socket.on("receiveAbilities", ({ abilities }) => {
+  if (!abilitiesWrap.dataset.filled) {
+    renderPills(abilitiesWrap, abilities, { gold: true });
+    abilityHint.textContent = abilities?.length
+      ? "يمكنك طلب استخدام القدرات من صفحة ترتيب البطاقات."
+      : "لا توجد قدرات محددة لك حتى الآن.";
+    abilitiesWrap.dataset.filled = "1";
   }
+});
 
-  let order = [];
-  let cursor = 0;
+// Opponent (socket by name if present, else URL fallback)
+if (opponentName) {
+  socket.emit("requestAbilities", { gameID, playerName: opponentName });
+  socket.on("receiveAbilities", ({ abilities }) => {
+    if (!oppAbilitiesWrap.dataset.filled && Array.isArray(abilities)) {
+      renderPills(oppAbilitiesWrap, abilities, { gold: false });
+      oppHint.textContent = abilities.length ? "" : "لا توجد قدرات مسجلة للخصم.";
+      oppAbilitiesWrap.dataset.filled = "1";
+    }
+  });
+}
+if (!oppAbilitiesWrap.dataset.filled && oppAbsParam) {
+  const parsed = oppAbsParam.split("|").map(s => s.trim()).filter(Boolean);
+  renderPills(oppAbilitiesWrap, parsed, { gold: false });
+  oppHint.textContent = parsed.length ? "" : "لا توجد قدرات مسجلة للخصم.";
+  oppAbilitiesWrap.dataset.filled = "1";
+}
 
-  if (
-    stored &&
-    stored.version === ROTATION_STORAGE_VERSION &&
-    Array.isArray(stored.order) &&
-    Number.isInteger(stored.cursor)
-  ) {
-    const actualSet = new Set(actualKeys);
-    const rawOrder = stored.order
-      .map(key => String(key || "").trim().toLowerCase())
-      .filter(Boolean);
-    const rawCursor = Math.max(0, Math.min(stored.cursor, rawOrder.length));
-
-    const consumed = Array.from(new Set(
-      rawOrder.slice(0, rawCursor).filter(key => actualSet.has(key))
-    ));
-    const consumedSet = new Set(consumed);
-    const remaining = Array.from(new Set(
-      rawOrder
-        .slice(rawCursor)
-        .filter(key => actualSet.has(key) && !consumedSet.has(key))
-    ));
-    const known = new Set([...consumed, ...remaining]);
-
-    // Newly-added cards join the not-yet-used portion of the current cycle.
-    const added = actualKeys.filter(key => !known.has(key));
-    shuffleInPlace(added);
-    remaining.push(...added);
-    shuffleInPlace(remaining);
-
-    order = [...consumed, ...remaining];
-    cursor = consumed.length;
+/* ===== Utility helpers for picks UI ===== */
+function sampleK(arr, k) {
+  const a = arr.slice(); const n = a.length;
+  for (let i = 0; i < Math.min(k, n); i++) {
+    const j = i + Math.floor(Math.random() * (n - i));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, k);
+}
+function createPreviewMedia(url, className) {
+  const isWebm = /\.webm(\?|#|$)/i.test(url);
+  if (isWebm) {
+    const v = document.createElement("video");
+    v.src = url; v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+    v.className = className; v.setAttribute("aria-hidden", "true"); v.style.pointerEvents = "none";
+    return v;
   } else {
-    order = shuffleInPlace([...actualKeys]);
-    cursor = 0;
+    const img = document.createElement("img");
+    img.src = url; img.className = className; img.alt = "اختيارك"; img.draggable = false;
+    return img;
   }
-
-  // If the previous cycle is complete, start a fresh full-card cycle.
-  if (cursor >= order.length && actualKeys.length) {
-    order = shuffleInPlace([...actualKeys]);
-    cursor = 0;
+}
+function renderSelected() {
+  if (!selectedGrid) return;
+  selectedGrid.innerHTML = "";
+  if (selectedCountEl) selectedCountEl.textContent = String(picks.length);
+  if (!picks.length) {
+    const p = document.createElement("p");
+    p.className = "text-sm opacity-75";
+    p.textContent = "لم تقم باختيار أي بطاقة بعد.";
+    selectedGrid.appendChild(p);
+    return;
   }
-
-  return { folder, cardsByKey, order, cursor };
+  picks.forEach((fullPath) => {
+    const card = document.createElement("div");
+    card.className = "bg-black/30 border border-yellow-700 rounded-lg p-2 flex items-center justify-center";
+    const media = createPreviewMedia(fullPath, "w-full h-36 object-contain rounded");
+    card.appendChild(media);
+    selectedGrid.appendChild(card);
+  });
+}
+function isBoxResolved(boxIndex) {
+  const opts = loadBoxOptions(boxIndex);
+  if (!opts || !opts.length) return false;
+  const chosen = new Set(picks.map(fp => decodeURIComponent(fp)));
+  return opts.some(o => chosen.has(decodeURIComponent(o.fullPath)));
 }
 
-function saveRotationState(state) {
-  if (!state) return;
-
-  localStorage.setItem(
-    rotationKey(state.folder),
-    JSON.stringify({
-      version: ROTATION_STORAGE_VERSION,
-      order: state.order,
-      cursor: state.cursor
-    })
-  );
-}
-
-function drawFromRotation(state, usedKeys) {
-  if (!state || !state.cardsByKey.size) return null;
-
-  const allKeys = Array.from(state.cardsByKey.keys());
-
-  // Start a new cycle only after the entire current one has been consumed.
-  if (state.cursor >= state.order.length) {
-    state.order = shuffleInPlace([...allKeys]);
-    state.cursor = 0;
+/* ===== Restore pick progress ===== */
+socket.emit("getPickProgress", { gameID, playerName });
+socket.on("pickProgress", ({ picks: serverPicks = [], locked = false }) => {
+  if (Array.isArray(serverPicks) && serverPicks.length) {
+    picks = serverPicks.slice();
+    serverPicks.forEach(fp => usedFullPaths.add(fp));
   }
+  if (locked || picks.length === roundCount) {
+    clearPendingBox();
+    confirmBtn.classList.remove("hidden");
+  }
+  renderSelected();
+});
 
-  // Prefer the next card in the cycle. If it is already reserved in this
-  // game, move another not-yet-used card forward without losing its turn.
-  let foundIndex = -1;
-  for (let i = state.cursor; i < state.order.length; i++) {
-    const key = state.order[i];
-    if (!usedKeys.has(key) && state.cardsByKey.has(key)) {
-      foundIndex = i;
-      break;
+/* ===== Flow to load images ===== */
+socket.emit("getAnimeList", { gameID });
+
+socket.on("animeList", (list) => {
+  animeList = list;
+  if (playerKey === "player1") loadAndRender();
+  else if (playerKey === "player2") waitForExclusionsThenLoad();
+});
+
+socket.on("exclusionsData", (arr) => {
+  if (playerKey !== "player2") return;
+  if (Array.isArray(arr) && arr.length) {
+    excludedKeys = new Set(arr.map(String));
+    if (allUniqueImages.length === 0) loadAndRender();
+  }
+});
+
+function waitForExclusionsThenLoad() {
+  socket.emit("requestExclusions", { gameID });
+
+  socket.once("exclusionsData", (arr) => {
+    if (!Array.isArray(arr) || arr.length === 0) {
+      instruction.textContent = "جارٍ التحقق من اختيارات اللاعب الأول...";
+      setTimeout(waitForExclusionsThenLoad, 800);
+      return;
     }
-  }
+    excludedKeys = new Set(arr.map(String));
+    loadAndRender();
+  });
 
-  if (foundIndex === -1) {
-    return null;
-  }
-
-  if (foundIndex !== state.cursor) {
-    [state.order[state.cursor], state.order[foundIndex]] =
-      [state.order[foundIndex], state.order[state.cursor]];
-  }
-
-  const key = state.order[state.cursor];
-  state.cursor += 1;
-  return state.cardsByKey.get(key) || null;
-}
-
-function usedCardsKey() {
-  return `distributed_cards_v2_${String(gameID)}`;
-}
-
-// One stable board per player so refreshing never changes their boxes.
-function boardKey(playerNumber = currentPlayer) {
-  return `random_board_v2_${String(gameID)}_p${playerNumber}`;
-}
-
-if (isNewPickSession) {
-  localStorage.removeItem(usedCardsKey());
-  localStorage.removeItem(boardKey(1));
-  localStorage.removeItem(boardKey(2));
-}
-
-// Remove the obsolete global session flag from the old system.
-localStorage.removeItem("pickStarted");
-
-// ===== Auto Clean Old Games (Fix Storage Overflow) =====
-function purgeOldGameStorage(currentID) {
-  const id = String(currentID);
-
-  for (let i = localStorage.length - 1; i >= 0; i--) {
-    const k = localStorage.key(i);
-    if (!k) continue;
-
-    // The old deck/cursor system is no longer used.
-    if (
-      k.startsWith("deck_legendary_") ||
-      k.startsWith("deck_legendary_pos_") ||
-      k.startsWith("deck_normal_") ||
-      k.startsWith("deck_normal_pos_") ||
-      k.startsWith("current_board_")
-    ) {
-      localStorage.removeItem(k);
-      continue;
-    }
-
-    if (
-      k.startsWith("distributed_cards_v2_") &&
-      k !== `distributed_cards_v2_${id}`
-    ) {
-      localStorage.removeItem(k);
-      continue;
-    }
-
-    if (
-      k.startsWith("random_board_v2_") &&
-      !k.startsWith(`random_board_v2_${id}_p`)
-    ) {
-      localStorage.removeItem(k);
-      continue;
-    }
-
-    if (
-      k.startsWith("pickStarted:v2:") &&
-      k !== `pickStarted:v2:${id}`
-    ) {
-      localStorage.removeItem(k);
-    }
-  }
-}
-
-try {
-  purgeOldGameStorage(gameID);
-} catch (e) {
-  console.warn("Storage cleanup failed:", e);
-}
-// =====================================================
-
-
-
-const socket = io();
-
-const playerName = currentPlayer === 1 ? player1 : player2;
-instruction.textContent = `اللاعب ${playerName} اختر ${roundCount} بطاقات`;
-
-// ---------- helpers ----------
-function shuffleInPlace(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-// ✅ صور + فيديو
-function isMediaFile(f) {
-  return /\.(png|jpg|jpeg|webp|gif|avif|bmp|svg|apng|webm|mp4|ogg)$/i.test(String(f));
+  socket.once("exclusionsNotReady", () => {
+    instruction.textContent = "انتظر قليلاً حتى ينتهي اللاعب الأول من اختياراته...";
+    setTimeout(waitForExclusionsThenLoad, 800);
+  });
 }
 
 async function fetchFolderList(folder) {
-  const res = await fetch(`/list-images/${folder}`);
+  const res = await fetch(`/list-images/${folder}?gameID=${gameID}`);
   if (!res.ok) throw new Error(`Failed to list ${folder}`);
   return res.json();
 }
 
-function makeCard(folder, filename) {
-  return {
-    folder,
-    filename,
-    key: `${folder}/${filename}`,
-    fullPath: `/images/${folder}/${encodeURIComponent(filename)}`
-  };
-}
-
-function cardIdentity(card) {
-  return String(card?.key || card?.fullPath || "")
-    .trim()
-    .toLowerCase();
-}
-
-function uniqueCards(cards) {
-  const seen = new Set();
-  const result = [];
-
-  for (const card of Array.isArray(cards) ? cards : []) {
-    const key = cardIdentity(card);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    result.push(card);
-  }
-
-  return result;
-}
-
-function loadUsedCardKeys() {
-  try {
-    const stored = JSON.parse(
-      localStorage.getItem(usedCardsKey()) || "[]"
-    );
-
-    return new Set(
-      (Array.isArray(stored) ? stored : [])
-        .map(key => String(key || "").trim().toLowerCase())
-        .filter(Boolean)
-    );
-  } catch {
-    return new Set();
-  }
-}
-
-function saveUsedCardKeys(usedKeys) {
-  localStorage.setItem(
-    usedCardsKey(),
-    JSON.stringify(Array.from(usedKeys || []))
-  );
-}
-
-function loadSavedBoard(playerNumber) {
-  try {
-    const stored = JSON.parse(
-      localStorage.getItem(boardKey(playerNumber)) || "null"
-    );
-
-    if (
-      !stored ||
-      stored.version !== BOARD_STORAGE_VERSION ||
-      !Array.isArray(stored.cards) ||
-      stored.cards.length !== BOARD_SIZE
-    ) {
-      return null;
-    }
-
-    const cards = uniqueCards(stored.cards);
-    return cards.length === BOARD_SIZE ? cards : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveBoard(playerNumber, cards) {
-  localStorage.setItem(
-    boardKey(playerNumber),
-    JSON.stringify({
-      version: BOARD_STORAGE_VERSION,
-      cards
-    })
-  );
-}
-
-function reserveCards(usedKeys, cards) {
-  for (const card of cards) {
-    const key = cardIdentity(card);
-    if (key) usedKeys.add(key);
-  }
-}
-
-function buildRandomUniqueBoard(
-  legendaryCards,
-  normalCards,
-  usedKeys
-) {
-  const legendaryRotation = createRotationState(
-    "legendary",
-    legendaryCards
-  );
-  const normalRotation = createRotationState(
-    "normal",
-    normalCards
-  );
-
-  const availableUniqueCount = uniqueCards([
-    ...legendaryCards,
-    ...normalCards
-  ]).filter(card => !usedKeys.has(cardIdentity(card))).length;
-
-  if (availableUniqueCount < BOARD_SIZE) {
-    throw new Error(
-      "لا توجد بطاقات فريدة كافية لإنشاء 20 خانة دون تكرار."
-    );
-  }
-
-  const board = [];
-
-  for (let slot = 0; slot < BOARD_SIZE; slot++) {
-    // Same existing ratio: every box independently has a 10% legendary roll.
-    const wantsLegendary = Math.random() < LEGENDARY_CHANCE;
-
-    const preferredRotation = wantsLegendary
-      ? legendaryRotation
-      : normalRotation;
-
-    const fallbackRotation = wantsLegendary
-      ? normalRotation
-      : legendaryRotation;
-
-    let card = drawFromRotation(preferredRotation, usedKeys);
-
-    if (!card) {
-      card = drawFromRotation(fallbackRotation, usedKeys);
-    }
-
-    if (!card) {
-      throw new Error(
-        "تعذر إكمال اللوحة دون تكرار البطاقات."
-      );
-    }
-
-    board.push(card);
-    usedKeys.add(cardIdentity(card));
-  }
-
-  saveRotationState(legendaryRotation);
-  saveRotationState(normalRotation);
-
-  return board;
-}
-
-// ---------- load & render ----------
-loadAndRender();
-
 async function loadAndRender() {
-  try {
-    if (roundCount > BOARD_SIZE) {
-      throw new Error(
-        "عدد الجولات يجب ألا يتجاوز 20 جولة."
-      );
-    }
+  const map = new Map();
+  legendaryPoolAll = [];
+  normalPoolAll = [];
 
-    const [legendaryFilesRaw, normalFilesRaw] = await Promise.all([
-      fetchFolderList("legendary").catch(() => []),
-      fetchFolderList("normal").catch(() => []),
-    ]);
+  for (const animeRaw of animeList) {
+    const slug = String(animeRaw || "").toLowerCase().replace(/\s+/g, "");
 
-    const legendaryCards = uniqueCards(
-      legendaryFilesRaw
-        .filter(isMediaFile)
-        .map(file => makeCard("legendary", file))
-    );
+    if (slug === "rarities") {
+      const [legendaryFiles, normalFiles] = await Promise.all([
+        fetchFolderList("legendary").catch(() => []),
+        fetchFolderList("normal").catch(() => []),
+      ]);
 
-    const normalCards = uniqueCards(
-      normalFilesRaw
-        .filter(isMediaFile)
-        .map(file => makeCard("normal", file))
-    );
-
-    if (!legendaryCards.length && !normalCards.length) {
-      boxGrid.innerHTML =
-        `<p class="text-red-500">لا توجد ملفات كروت.</p>`;
-      return;
-    }
-
-    const usedKeys = loadUsedCardKeys();
-
-    // Reserve a valid board already created for the other player too.
-    const otherPlayer = currentPlayer === 1 ? 2 : 1;
-    const otherBoard = loadSavedBoard(otherPlayer);
-    if (otherBoard) reserveCards(usedKeys, otherBoard);
-
-    const savedBoard = loadSavedBoard(currentPlayer);
-    let boardCards;
-
-    if (savedBoard) {
-      boardCards = savedBoard;
-      reserveCards(usedKeys, boardCards);
+      legendaryFiles.forEach((file) => {
+        const key = `legendary/${file}`;
+        if (excludedKeys.has(key)) return;
+        const fullPath = `/images/legendary/${file}`;
+        if (!map.has(fullPath)) {
+          const obj = { folder: "legendary", filename: file, key, fullPath };
+          map.set(fullPath, obj);
+          legendaryPoolAll.push(obj);
+        }
+      });
+      normalFiles.forEach((file) => {
+        const key = `normal/${file}`;
+        if (excludedKeys.has(key)) return;
+        const fullPath = `/images/normal/${file}`;
+        if (!map.has(fullPath)) {
+          const obj = { folder: "normal", filename: file, key, fullPath };
+          map.set(fullPath, obj);
+          normalPoolAll.push(obj);
+        }
+      });
     } else {
-      const availableUniqueCount = uniqueCards([
-        ...legendaryCards,
-        ...normalCards
-      ]).filter(
-        card => !usedKeys.has(cardIdentity(card))
-      ).length;
-
-      // When player 1 starts, reserve enough unique media for both
-      // 20-card boards so player 2 can never be left without a board.
-      const requiredUniqueCount =
-        currentPlayer === 1 && !otherBoard
-          ? BOARD_SIZE * 2
-          : BOARD_SIZE;
-
-      if (availableUniqueCount < requiredUniqueCount) {
-        throw new Error(
-          `يلزم ${requiredUniqueCount} بطاقة فريدة متاحة لإكمال التوزيع دون تكرار، والمتوفر ${availableUniqueCount} فقط.`
-        );
+      try {
+        const files = await fetchFolderList(slug);
+        files.forEach((file) => {
+          const key = `${slug}/${file}`;
+          if (excludedKeys.has(key)) return;
+          const fullPath = `/images/${slug}/${file}`;
+          if (!map.has(fullPath)) {
+            const obj = { folder: slug, filename: file, key, fullPath };
+            map.set(fullPath, obj);
+            if (slug === "legendary") legendaryPoolAll.push(obj);
+            else if (slug === "normal") normalPoolAll.push(obj);
+          }
+        });
+      } catch (e) {
+        console.warn(`فشل تحميل صور: ${slug}`, e);
       }
-
-      boardCards = buildRandomUniqueBoard(
-        legendaryCards,
-        normalCards,
-        usedKeys
-      );
-
-      reserveCards(usedKeys, boardCards);
-      saveBoard(currentPlayer, boardCards);
     }
-
-    saveUsedCardKeys(usedKeys);
-
-    // imageMap 1..20
-    imageMap = {};
-    for (let i = 1; i <= BOARD_SIZE; i++) {
-      imageMap[i] = boardCards[i - 1];
-    }
-
-    renderBoxes();
-
-  } catch (err) {
-    console.error(err);
-    boxGrid.innerHTML = "";
-    const errorText = document.createElement("p");
-    errorText.className = "text-red-500";
-    errorText.textContent =
-      err?.message || "خطأ في التحميل";
-    boxGrid.appendChild(errorText);
   }
+
+  allUniqueImages = Array.from(map.values());
+
+  if (allUniqueImages.length < 71) {
+    boxGrid.innerHTML = `<p class="text-red-500 text-lg">عدد الصور غير كافٍ لجميع البطاقات.</p>`;
+    return;
+  }
+
+  renderBoxes();
+  renderSelected();
 }
 
-// ---------- UI ----------
 function renderBoxes() {
   boxGrid.innerHTML = "";
-  selectedBoxes = [];
-  updateSelectionUI();
-
-  for (let i = 1; i <= BOARD_SIZE; i++) {
+  for (let i = 1; i <= 20; i++) {
     const btn = document.createElement("button");
-    btn.type = "button";
-
-    btn.innerHTML = `
-      <span class="pick-box-visual">
-        <img src="../images/qg144.png" class="pick-box-image" alt="" draggable="false">
-        <span class="pick-box-number">${i}</span>
-      </span>
-    `;
-
+    btn.textContent = i;
     btn.dataset.index = i;
-    btn.className = "pick-box";
-    btn.setAttribute("aria-label", `اختيار الصندوق رقم ${i}`);
-
-    btn.onclick = () => toggleBox(i, btn);
+    btn.className = `
+      px-6 py-4 rounded bg-amber-400 text-black text-xl font-bold
+      hover:bg-yellow-400 hover:ring-4 hover:ring-yellow-300
+    `;
+    btn.onclick = () => openImageSelection(i);
     boxGrid.appendChild(btn);
   }
 }
 
-function updateSelectionUI() {
-  if (selectionCountEl) {
-    selectionCountEl.textContent = String(selectedBoxes.length);
-  }
-
-  confirmBtn.classList.toggle(
-    "hidden",
-    selectedBoxes.length !== roundCount
-  );
-}
-
-function toggleBox(index, btn) {
-  if (selectedBoxes.includes(index)) {
-    selectedBoxes = selectedBoxes.filter(n => n !== index);
-    btn.classList.remove("is-selected");
+function createPickableMedia(url, className, onPick) {
+  const isWebm = /\.webm(\?|#|$)/i.test(url);
+  if (isWebm) {
+    const vid = document.createElement("video");
+    vid.src = url; vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
+    vid.className = className; vid.onclick = () => onPick(url);
+    return vid;
   } else {
-    if (selectedBoxes.length >= roundCount) return;
-
-    selectedBoxes.push(index);
-    btn.classList.add("is-selected");
+    const img = document.createElement("img");
+    img.src = url; img.className = className; img.onclick = () => onPick(url);
+    return img;
   }
-
-  updateSelectionUI();
 }
 
-function clearSelectionsUI() {
-  document.querySelectorAll("#boxGrid button").forEach(btn => {
-    const index = Number(btn.dataset.index);
-    if (selectedBoxes.includes(index)) toggleBox(index, btn);
+/* ===== Independent per-option 10% legendary selection ===== */
+function eligibleFrom(poolArray) {
+  return poolArray.filter((img) => {
+    const fp = decodeURIComponent(img.fullPath);
+    return !usedFullPaths.has(fp) && !reservedFullPaths.has(fp);
   });
 }
-
-function pickFromPool(pool) {
-  // pool: array of allowed indices (1..20)
-  const uniq = Array.from(new Set(pool)).filter(n => Number.isFinite(n) && n >= 1 && n <= BOARD_SIZE);
-  shuffleInPlace(uniq);
-
-  // فك تحديد الحالي
-  clearSelectionsUI();
-
-  // إذا ما يكفي، نكمّل من باقي الأرقام
-  if (uniq.length < roundCount) {
-    const rest = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1).filter(n => !uniq.includes(n));
-    shuffleInPlace(rest);
-    uniq.push(...rest);
-  }
-
-  while (selectedBoxes.length < roundCount && uniq.length) {
-    const index = uniq.pop();
-    const btn = document.querySelector(`#boxGrid button[data-index="${index}"]`);
-    if (btn) toggleBox(index, btn);
-  }
+function pickOneFrom(poolArray, takenSet) {
+  const elig = eligibleFrom(poolArray).filter(img => !takenSet.has(decodeURIComponent(img.fullPath)));
+  if (!elig.length) return null;
+  const i = Math.floor(Math.random() * elig.length);
+  return elig[i];
 }
 
-function randomSelect() {
-  randomSound.currentTime = 0;
-  randomSound.play().catch(() => {});
+/**
+ * For each of the 3 options inside this box, roll independently:
+ *   if (rand < LEGENDARY_RATE) pick from legendary, else from normal.
+ * Fallbacks: if chosen pool empty, try the other; then union as last resort.
+ * Result: 0..3 legendary options possible. No guarantee a box has any legendary.
+ */
+function getOptionsForBox_PerOptionRolls() {
+  const taken = new Set(); // avoid duplicates within this box
+  const opts = [];
 
-  // نفس منطقك الحالي: اختيار من 1..20
-  clearSelectionsUI();
+  for (let slot = 0; slot < 3; slot++) {
+    const preferLegend = Math.random() < LEGENDARY_RATE;
 
-  const indices = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1);
-  shuffleInPlace(indices);
+    let pick = preferLegend ? pickOneFrom(legendaryPoolAll, taken)
+                            : pickOneFrom(normalPoolAll, taken);
 
-  while (selectedBoxes.length < roundCount && indices.length) {
-    const index = indices.pop();
-    const btn = document.querySelector(`#boxGrid button[data-index="${index}"]`);
-    if (btn) toggleBox(index, btn);
-  }
-}
+    if (!pick) pick = preferLegend ? pickOneFrom(normalPoolAll, taken)
+                                   : pickOneFrom(legendaryPoolAll, taken);
 
-// ===================== TACTICS =====================
-function range(a, b) {
-  const out = [];
-  for (let i = a; i <= b; i++) out.push(i);
-  return out;
-}
-
-function getTacticPool(tacticId) {
-  switch (tacticId) {
-    case "silver":
-      return [1,2,6,7,8,12,13,14,18,19,20];
-
-    case "reverse":
-      return [4,5,10,9,8,14,13,12,16,17,18];
-
-    case "visca_lama":
-      return [4,5,6,7,8,9,10,11,17,18,14];
-
-    case "range1_11":
-      return range(1, 11);
-
-    case "range2_12":
-      return range(2, 12);
-
-    case "range3_13":
-      return range(3, 13);
-
-    case "range4_14":
-      return range(4, 14);
-
-    case "range5_15":
-      return range(5, 15);
-
-    case "range6_16":
-      return range(6, 16);
-
-    case "range7_17":
-      return range(7, 17);
-
-    case "range8_18":
-      return range(8, 18);
-
-    case "range9_19":
-      return range(9, 19);
-
-    case "range10_20":
-      return range(10, 20);
-
-    case "odds_plus_14": {
-      const odds = range(1, 20).filter(n => n % 2 === 1);
-      if (!odds.includes(14)) odds.push(14);
-      return odds;
+    if (!pick) {
+      const union = eligibleFrom([...legendaryPoolAll, ...normalPoolAll])
+        .filter(img => !taken.has(decodeURIComponent(img.fullPath)));
+      if (union.length) {
+        pick = union[Math.floor(Math.random() * union.length)];
+      }
     }
 
-    case "evens_plus_random": {
-      const evens = range(1, 20).filter(n => n % 2 === 0);
-      const odds = range(1, 20).filter(n => n % 2 === 1);
-      const randomOdd = odds[Math.floor(Math.random() * odds.length)];
-      if (Number.isFinite(randomOdd)) evens.push(randomOdd);
-      return evens;
-    }
-
-    default:
-      // fallback
-      return range(1, 20);
-  }
-}
-
-function closeTacticPicker() {
-  if (!tacticPickerMenu || !tacticPickerTrigger) return;
-
-  tacticPickerMenu.classList.add("hidden");
-  tacticPickerTrigger.classList.remove("is-open");
-  tacticPickerTrigger.setAttribute("aria-expanded", "false");
-}
-
-function openTacticPicker() {
-  if (!tacticPickerMenu || !tacticPickerTrigger) return;
-
-  tacticPickerMenu.classList.remove("hidden");
-  tacticPickerMenu.scrollTop = 0;
-  tacticPickerTrigger.classList.add("is-open");
-  tacticPickerTrigger.setAttribute("aria-expanded", "true");
-}
-
-function initTacticPicker() {
-  if (
-    !tacticPicker ||
-    !tacticPickerTrigger ||
-    !tacticPickerText ||
-    !tacticPickerMenu ||
-    !tacticSelectEl
-  ) {
-    return;
-  }
-
-  const items = Array.from(
-    tacticPickerMenu.querySelectorAll(".result-category-item")
-  );
-
-  tacticPickerTrigger.addEventListener("click", event => {
-    event.stopPropagation();
-
-    if (tacticPickerMenu.classList.contains("hidden")) {
-      openTacticPicker();
+    if (pick) {
+      opts.push(pick);
+      taken.add(decodeURIComponent(pick.fullPath));
     } else {
-      closeTacticPicker();
+      // If we truly can't fill this slot, break early.
+      break;
     }
-  });
+  }
 
-  items.forEach(item => {
-    item.addEventListener("click", event => {
-      event.stopPropagation();
-
-      const value = String(item.dataset.value || "silver");
-      tacticSelectEl.value = value;
-      tacticPickerText.textContent = item.textContent.trim();
-
-      items.forEach(option => {
-        const selected = option === item;
-        option.classList.toggle("is-selected", selected);
-        option.setAttribute("aria-selected", String(selected));
-      });
-
-      closeTacticPicker();
-    });
-  });
-
-  document.addEventListener("click", event => {
-    if (!tacticPicker.contains(event.target)) {
-      closeTacticPicker();
-    }
-  });
-
-  document.addEventListener("keydown", event => {
-    if (event.key === "Escape") {
-      closeTacticPicker();
-    }
-  });
+  return opts;
 }
 
-// Modal controls
-function openTacticModal() {
-  if (!tacticModal) return; // لو ما فيه مودال
-  closeTacticPicker();
-  tacticModal.classList.remove("hidden");
-  tacticModal.classList.add("flex");
-}
+/* ===== Core modal flow ===== */
+function openImageSelection(boxIndex) {
+  if (picks.length >= roundCount) { alert("تم اختيار كل البطاقات."); return; }
 
-function closeTacticModal() {
-  if (!tacticModal) return;
-  closeTacticPicker();
-  tacticModal.classList.add("hidden");
-  tacticModal.classList.remove("flex");
-}
-
-function applyTactic() {
-  const tacticId = tacticSelectEl ? tacticSelectEl.value : "silver";
-  const pool = getTacticPool(tacticId);
-  pickFromPool(pool);
-
-  closeTacticModal();
-}
-
-// ===================================================
-
-initTacticPicker();
-
-function confirmSelection() {
-  if (selectedBoxes.length !== roundCount) {
-    alert("اختر العدد الصحيح");
+  const pending = getPendingBox();
+  if (pending && pending !== boxIndex && !isBoxResolved(pending)) {
+    alert(`يجب اختيار بطاقة من الصندوق رقم ${pending} أولاً قبل اختيار صندوق آخر.`);
     return;
   }
 
-  const picks = selectedBoxes
-    .map(i => imageMap[i]?.fullPath)
-    .filter(Boolean);
+  currentModalBox = boxIndex;
 
-  if (
-    picks.length !== roundCount ||
-    new Set(picks).size !== picks.length
-  ) {
-    alert("تعذر تأكيد الاختيارات: توجد بطاقة ناقصة أو متكررة.");
-    return;
+  let options = loadBoxOptions(boxIndex);
+  if (!options) {
+    // ⬇️ Independent per-option roll @ 10% legendary
+    options = getOptionsForBox_PerOptionRolls();
+    if (!options.length) { alert("لا توجد صور كافية للاختيار."); return; }
+    saveBoxOptions(boxIndex, options);
   }
 
-  const playerKey = currentPlayer === 1 ? "player1" : "player2";
+  setPendingBox(boxIndex);
+  boxOptions[boxIndex] = options;
 
-  socket.emit("playerSubmitPicks", {
-    gameID,
-    playerName,
-    playerKey,
-    picks
+  options.forEach(obj => reservedFullPaths.add(decodeURIComponent(obj.fullPath)));
+
+  modalOptions.innerHTML = "";
+  modal.classList.remove("hidden");
+
+  options.forEach((imgObj) => {
+    const onPick = (mediaUrl) => {
+      const fullPath = decodeURIComponent(new URL(mediaUrl, window.location.origin).pathname);
+
+      if (usedFullPaths.has(fullPath) || picks.includes(fullPath)) {
+        closeModalAndRelease(currentModalBox, fullPath);
+        return;
+      }
+
+      picks.push(fullPath);
+      usedFullPaths.add(fullPath);
+
+      socket.emit("savePickProgress", { gameID, playerName, picks });
+
+      clearPendingBox();
+      clearBoxOptions(currentModalBox);
+
+      closeModalAndRelease(currentModalBox, fullPath);
+
+      renderSelected();
+
+      if (picks.length === roundCount) {
+        confirmBtn.classList.remove("hidden");
+      }
+    };
+
+    const mediaEl = createPickableMedia(
+      imgObj.fullPath,
+      "w-32 h-44 rounded cursor-pointer hover:scale-110 transition object-contain",
+      onPick
+    );
+
+    modalOptions.appendChild(mediaEl);
   });
-
-  // The board is removed after submission, while its 20 cards remain
-  // reserved for this game so neither player can ever receive them again.
-  localStorage.removeItem(boardKey(currentPlayer));
-
-  if (currentPlayer === 1) {
-    localStorage.setItem("currentPlayer", "2");
-    location.reload();
-  } else {
-    localStorage.removeItem("currentPlayer");
-    localStorage.removeItem(PICK_SESSION_KEY);
-    location.href = "wait.html";
-  }
 }
 
-window.confirmSelection = confirmSelection;
-window.randomSelect = randomSelect;
+function closeModalAndRelease(boxIndex, pickedFullPath) {
+  const opts = boxOptions[boxIndex] || [];
+  opts.forEach(o => {
+    const fp = decodeURIComponent(o.fullPath);
+    if (fp !== pickedFullPath) reservedFullPaths.delete(fp);
+  });
+  boxOptions[boxIndex] = [];
 
-// expose tactics
-window.openTacticModal = openTacticModal;
-window.closeTacticModal = closeTacticModal;
-window.applyTactic = applyTactic;
+  modal.classList.add("hidden");
+  modalOptions.innerHTML = "";
+  currentModalBox = null;
+}
+
+confirmBtn.onclick = () => {
+  socket.emit("playerSubmitPicks", { gameID, playerName, playerKey, picks });
+
+  localStorage.setItem(`${playerKey}Picks`, JSON.stringify(picks));
+  localStorage.setItem("currentPlayer", playerKey);
+
+  window.location.href = `order.html?game=${gameID}&player=${playerKey}&name=${encodeURIComponent(playerName)}`;
+};
