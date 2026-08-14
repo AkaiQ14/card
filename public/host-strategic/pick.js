@@ -1,20 +1,22 @@
 const randomSound = new Audio("/sounds/random.mp3");
 randomSound.volume = 1.0;
 
-// Each of the 20 boxes independently has a 10% chance
+// Each of the 20 boxes independently keeps the original 10% chance
 // to receive a legendary card.
 const LEGENDARY_CHANCE = 0.1;
+const BOARD_SIZE = 20;
+const DISTRIBUTION_VERSION = 4;
+const BOARD_STORAGE_VERSION = 4;
 
 const roundCount = parseInt(localStorage.getItem("totalRounds") || "3", 10);
 const player1 = localStorage.getItem("player1") || "لاعب 1";
 const player2 = localStorage.getItem("player2") || "لاعب 2";
 const gameID = localStorage.getItem("gameID") || "default";
-const PICK_SESSION_KEY =
-  `pickStarted:v2:${String(gameID)}`;
+const PICK_SESSION_KEY = `pickStarted:v4:${String(gameID)}`;
 
 let currentPlayer = parseInt(localStorage.getItem("currentPlayer") || "1", 10);
 
-// ===== FIX: منع تخطي اللاعب الأول =====
+// ===== Keep the existing sequential player flow =====
 const gameStarted = localStorage.getItem(PICK_SESSION_KEY);
 const isNewPickSession = !gameStarted;
 if (!gameStarted) {
@@ -26,7 +28,6 @@ if (currentPlayer !== 1 && currentPlayer !== 2) {
   localStorage.setItem("currentPlayer", "1");
   currentPlayer = 1;
 }
-// =========================================
 
 const instruction = document.getElementById("instruction");
 const boxGrid = document.getElementById("boxGrid");
@@ -34,15 +35,13 @@ const confirmBtn = document.getElementById("confirmBtn");
 const selectionCountEl = document.getElementById("selectionCount");
 const selectionTargetEl = document.getElementById("selectionTarget");
 
-// Modal elements (optional if exists)
+// Modal elements
 const tacticModal = document.getElementById("tacticModal");
 const tacticSelectEl = document.getElementById("tacticSelect");
 const tacticPicker = document.getElementById("tacticPicker");
 const tacticPickerTrigger = document.getElementById("tacticPickerTrigger");
 const tacticPickerText = document.getElementById("tacticPickerText");
 const tacticPickerMenu = document.getElementById("tacticPickerMenu");
-
-const BOARD_SIZE = 20;
 
 if (selectionTargetEl) {
   selectionTargetEl.textContent = String(roundCount);
@@ -51,65 +50,117 @@ if (selectionTargetEl) {
 let imageMap = {};      // 1..20 -> {folder, filename, key, fullPath}
 let selectedBoxes = []; // indices
 
-const BOARD_STORAGE_VERSION = 2;
+// =====================================================
+// Daily comprehensive rotation + previous-match exclusion
+// =====================================================
 
-function usedCardsKey() {
-  return `distributed_cards_v2_${String(gameID)}`;
+function getLocalDayKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
-// One stable board per player so refreshing never changes their boxes.
+const DAILY_KEY = getLocalDayKey();
+
+function usedCardsKey() {
+  return `distributed_cards_v4_${String(gameID)}`;
+}
+
+// Stable 20-card board per player: refresh never changes a generated board.
 function boardKey(playerNumber = currentPlayer) {
-  return `random_board_v2_${String(gameID)}_p${playerNumber}`;
+  return `random_board_v4_${String(gameID)}_p${playerNumber}`;
+}
+
+function dailyRotationKey(folder) {
+  return `card_rotation_v4_${String(folder)}_${DAILY_KEY}`;
+}
+
+function lastMatchKey() {
+  return `last_match_played_v4_${DAILY_KEY}`;
+}
+
+function currentMatchPicksKey() {
+  return `match_played_picks_v4_${String(gameID)}`;
 }
 
 if (isNewPickSession) {
   localStorage.removeItem(usedCardsKey());
   localStorage.removeItem(boardKey(1));
   localStorage.removeItem(boardKey(2));
+  localStorage.removeItem(currentMatchPicksKey());
 }
 
-// Remove the obsolete global session flag from the old system.
+// Remove obsolete session flags from older versions.
 localStorage.removeItem("pickStarted");
 
-// ===== Auto Clean Old Games (Fix Storage Overflow) =====
+// Keep storage small without deleting today's daily rotation.
 function purgeOldGameStorage(currentID) {
   const id = String(currentID);
+  const keepDailySuffix = `_${DAILY_KEY}`;
 
   for (let i = localStorage.length - 1; i >= 0; i--) {
     const k = localStorage.key(i);
     if (!k) continue;
 
-    // The old deck/cursor system is no longer used.
     if (
       k.startsWith("deck_legendary_") ||
       k.startsWith("deck_legendary_pos_") ||
       k.startsWith("deck_normal_") ||
       k.startsWith("deck_normal_pos_") ||
-      k.startsWith("current_board_")
+      k.startsWith("current_board_") ||
+      k.startsWith("distributed_cards_v2_") ||
+      k.startsWith("random_board_v2_") ||
+      k.startsWith("pickStarted:v2:")
     ) {
       localStorage.removeItem(k);
       continue;
     }
 
     if (
-      k.startsWith("distributed_cards_v2_") &&
-      k !== `distributed_cards_v2_${id}`
+      k.startsWith("distributed_cards_v4_") &&
+      k !== `distributed_cards_v4_${id}`
     ) {
       localStorage.removeItem(k);
       continue;
     }
 
     if (
-      k.startsWith("random_board_v2_") &&
-      !k.startsWith(`random_board_v2_${id}_p`)
+      k.startsWith("random_board_v4_") &&
+      !k.startsWith(`random_board_v4_${id}_p`)
     ) {
       localStorage.removeItem(k);
       continue;
     }
 
     if (
-      k.startsWith("pickStarted:v2:") &&
-      k !== `pickStarted:v2:${id}`
+      k.startsWith("pickStarted:v4:") &&
+      k !== `pickStarted:v4:${id}`
+    ) {
+      localStorage.removeItem(k);
+      continue;
+    }
+
+    if (
+      k.startsWith("match_played_picks_v4_") &&
+      k !== `match_played_picks_v4_${id}`
+    ) {
+      localStorage.removeItem(k);
+      continue;
+    }
+
+    // Daily rotations automatically reset with a new date.
+    if (
+      k.startsWith("card_rotation_v4_") &&
+      !k.endsWith(keepDailySuffix)
+    ) {
+      localStorage.removeItem(k);
+      continue;
+    }
+
+    if (
+      k.startsWith("last_match_played_v4_") &&
+      k !== lastMatchKey()
     ) {
       localStorage.removeItem(k);
     }
@@ -121,9 +172,6 @@ try {
 } catch (e) {
   console.warn("Storage cleanup failed:", e);
 }
-// =====================================================
-
-
 
 const socket = io();
 
@@ -139,7 +187,7 @@ function shuffleInPlace(arr) {
   return arr;
 }
 
-// ✅ صور + فيديو
+// Images + video cards
 function isMediaFile(f) {
   return /\.(png|jpg|jpeg|webp|gif|avif|bmp|svg|apng|webm|mp4|ogg)$/i.test(String(f));
 }
@@ -165,6 +213,21 @@ function cardIdentity(card) {
     .toLowerCase();
 }
 
+function identityFromPath(path) {
+  const value = String(path || "").trim();
+  if (!value) return "";
+
+  try {
+    const decoded = decodeURIComponent(value);
+    const match = decoded.match(/\/images\/(normal|legendary)\/(.+)$/i);
+    if (match) {
+      return `${match[1]}/${match[2]}`.toLowerCase();
+    }
+  } catch {}
+
+  return value.toLowerCase();
+}
+
 function uniqueCards(cards) {
   const seen = new Set();
   const result = [];
@@ -177,6 +240,16 @@ function uniqueCards(cards) {
   }
 
   return result;
+}
+
+function uniqueStrings(values) {
+  return Array.from(
+    new Set(
+      (Array.isArray(values) ? values : [])
+        .map(v => String(v || "").trim())
+        .filter(Boolean)
+    )
+  );
 }
 
 function loadUsedCardKeys() {
@@ -241,57 +314,260 @@ function reserveCards(usedKeys, cards) {
   }
 }
 
-function buildRandomUniqueBoard(
-  legendaryCards,
-  normalCards,
-  usedKeys
-) {
-  const legendaryPool = shuffleInPlace(
-    uniqueCards(legendaryCards).filter(
-      card => !usedKeys.has(cardIdentity(card))
-    )
-  );
+// -----------------------------------------------------
+// Previous match: ONLY the actually selected/played cards
+// are excluded from the immediately following match.
+// -----------------------------------------------------
+function loadPreviousMatchKeys() {
+  try {
+    const data = JSON.parse(localStorage.getItem(lastMatchKey()) || "null");
 
-  const normalPool = shuffleInPlace(
-    uniqueCards(normalCards).filter(
-      card => !usedKeys.has(cardIdentity(card))
-    )
-  );
+    if (
+      !data ||
+      data.version !== DISTRIBUTION_VERSION ||
+      data.day !== DAILY_KEY ||
+      String(data.gameID || "") === String(gameID) ||
+      !Array.isArray(data.cards)
+    ) {
+      return new Set();
+    }
 
-  if (
-    legendaryPool.length + normalPool.length < BOARD_SIZE
-  ) {
-    throw new Error(
-      "لا توجد بطاقات فريدة كافية لإنشاء 20 خانة دون تكرار."
+    return new Set(
+      data.cards
+        .map(identityFromPath)
+        .filter(Boolean)
     );
+  } catch {
+    return new Set();
+  }
+}
+
+function loadCurrentMatchPlayedPicks() {
+  try {
+    const data = JSON.parse(
+      localStorage.getItem(currentMatchPicksKey()) || "{}"
+    );
+
+    return {
+      player1: Array.isArray(data?.player1) ? data.player1 : [],
+      player2: Array.isArray(data?.player2) ? data.player2 : []
+    };
+  } catch {
+    return { player1: [], player2: [] };
+  }
+}
+
+function saveCurrentPlayerPicks(playerKey, picks) {
+  const state = loadCurrentMatchPlayedPicks();
+  state[playerKey] = uniqueStrings(picks);
+  localStorage.setItem(currentMatchPicksKey(), JSON.stringify(state));
+  return state;
+}
+
+function finalizePreviousMatchExclusion(currentMatchState) {
+  const cards = uniqueStrings([
+    ...(currentMatchState?.player1 || []),
+    ...(currentMatchState?.player2 || [])
+  ]);
+
+  // Save only when both players have actually submitted their selections.
+  if (
+    !Array.isArray(currentMatchState?.player1) ||
+    !currentMatchState.player1.length ||
+    !Array.isArray(currentMatchState?.player2) ||
+    !currentMatchState.player2.length
+  ) {
+    return;
   }
 
+  localStorage.setItem(
+    lastMatchKey(),
+    JSON.stringify({
+      version: DISTRIBUTION_VERSION,
+      day: DAILY_KEY,
+      gameID: String(gameID),
+      cards,
+      savedAt: Date.now()
+    })
+  );
+
+  localStorage.removeItem(currentMatchPicksKey());
+}
+
+// -----------------------------------------------------
+// Daily category rotation
+// Every card in a category is consumed once before that
+// category reshuffles, except cards temporarily blocked by
+// the previous match/current match. New cards join the
+// unconsumed part automatically; deleted cards disappear.
+// -----------------------------------------------------
+function normalizeRotationState(folder, cards) {
+  const pool = uniqueCards(cards);
+  const validKeys = pool.map(cardIdentity).filter(Boolean);
+  const validSet = new Set(validKeys);
+
+  let raw = null;
+  try {
+    raw = JSON.parse(localStorage.getItem(dailyRotationKey(folder)) || "null");
+  } catch {}
+
+  if (
+    !raw ||
+    raw.version !== DISTRIBUTION_VERSION ||
+    raw.day !== DAILY_KEY ||
+    raw.folder !== folder ||
+    !Array.isArray(raw.order)
+  ) {
+    const fresh = {
+      version: DISTRIBUTION_VERSION,
+      day: DAILY_KEY,
+      folder,
+      order: shuffleInPlace([...validKeys]),
+      cursor: 0,
+      cycles: 0
+    };
+    localStorage.setItem(dailyRotationKey(folder), JSON.stringify(fresh));
+    return fresh;
+  }
+
+  const oldOrder = raw.order
+    .map(v => String(v || "").trim().toLowerCase())
+    .filter(Boolean);
+  const oldCursor = Math.max(0, Math.min(Number(raw.cursor) || 0, oldOrder.length));
+
+  const consumed = [];
+  const remaining = [];
+  const seen = new Set();
+
+  oldOrder.slice(0, oldCursor).forEach(key => {
+    if (validSet.has(key) && !seen.has(key)) {
+      seen.add(key);
+      consumed.push(key);
+    }
+  });
+
+  oldOrder.slice(oldCursor).forEach(key => {
+    if (validSet.has(key) && !seen.has(key)) {
+      seen.add(key);
+      remaining.push(key);
+    }
+  });
+
+  // Newly added cards are inserted into the not-yet-consumed portion.
+  const added = shuffleInPlace(
+    validKeys.filter(key => !seen.has(key))
+  );
+  remaining.push(...added);
+
+  const state = {
+    version: DISTRIBUTION_VERSION,
+    day: DAILY_KEY,
+    folder,
+    order: [...consumed, ...remaining],
+    cursor: consumed.length,
+    cycles: Math.max(0, Number(raw.cycles) || 0)
+  };
+
+  // If a complete category cycle finished, begin a fresh shuffled cycle.
+  if (state.cursor >= state.order.length && validKeys.length) {
+    state.order = shuffleInPlace([...validKeys]);
+    state.cursor = 0;
+    state.cycles += 1;
+  }
+
+  localStorage.setItem(dailyRotationKey(folder), JSON.stringify(state));
+  return state;
+}
+
+function saveRotationState(folder, state) {
+  localStorage.setItem(dailyRotationKey(folder), JSON.stringify(state));
+}
+
+function beginNextRotationCycle(state, validKeys) {
+  state.order = shuffleInPlace([...validKeys]);
+  state.cursor = 0;
+  state.cycles = (Number(state.cycles) || 0) + 1;
+}
+
+function drawNextRotatedCard(folder, cards, blockedKeys) {
+  const pool = uniqueCards(cards);
+  if (!pool.length) return null;
+
+  const byKey = new Map(pool.map(card => [cardIdentity(card), card]));
+  const validKeys = Array.from(byKey.keys());
+  const blocked = blockedKeys instanceof Set ? blockedKeys : new Set();
+  const state = normalizeRotationState(folder, pool);
+
+  const tryCurrentCycle = () => {
+    for (let idx = state.cursor; idx < state.order.length; idx++) {
+      const key = state.order[idx];
+      if (!byKey.has(key) || blocked.has(key)) continue;
+
+      // Move the chosen eligible card to the cursor. Temporarily blocked
+      // cards stay in the unconsumed tail so they become available again
+      // naturally in the next match.
+      [state.order[state.cursor], state.order[idx]] =
+        [state.order[idx], state.order[state.cursor]];
+
+      const chosenKey = state.order[state.cursor];
+      state.cursor += 1;
+      saveRotationState(folder, state);
+      return byKey.get(chosenKey) || null;
+    }
+    return null;
+  };
+
+  let card = tryCurrentCycle();
+  if (card) return card;
+
+  // All eligible cards in this category's current cycle were consumed.
+  // Start the next cycle only if this board still needs a card from it.
+  beginNextRotationCycle(state, validKeys);
+  saveRotationState(folder, state);
+
+  card = tryCurrentCycle();
+  return card;
+}
+
+function buildComprehensiveBoard(
+  legendaryCards,
+  normalCards,
+  usedKeys,
+  previousMatchKeys
+) {
   const board = [];
+  const blockedKeys = new Set([
+    ...Array.from(usedKeys || []),
+    ...Array.from(previousMatchKeys || [])
+  ]);
 
   for (let slot = 0; slot < BOARD_SIZE; slot++) {
-    // A separate independent roll for every single box.
-    const wantsLegendary =
-      Math.random() < LEGENDARY_CHANCE;
+    // Preserve the exact existing mechanism: independent 10% roll per slot.
+    const wantsLegendary = Math.random() < LEGENDARY_CHANCE;
 
-    const preferredPool = wantsLegendary
-      ? legendaryPool
-      : normalPool;
+    let card = wantsLegendary
+      ? drawNextRotatedCard("legendary", legendaryCards, blockedKeys)
+      : drawNextRotatedCard("normal", normalCards, blockedKeys);
 
-    const fallbackPool = wantsLegendary
-      ? normalPool
-      : legendaryPool;
-
-    const card =
-      preferredPool.pop() ||
-      fallbackPool.pop();
+    // Safety fallback only when the requested category has no eligible card.
+    // This prevents failures with small/temporarily blocked folders while the
+    // primary per-slot legendary probability remains 0.1.
+    if (!card) {
+      card = wantsLegendary
+        ? drawNextRotatedCard("normal", normalCards, blockedKeys)
+        : drawNextRotatedCard("legendary", legendaryCards, blockedKeys);
+    }
 
     if (!card) {
       throw new Error(
-        "تعذر إكمال اللوحة دون تكرار البطاقات."
+        "تعذر إكمال اللوحة دون تكرار أو استخدام بطاقات المباراة السابقة."
       );
     }
 
+    const key = cardIdentity(card);
     board.push(card);
+    blockedKeys.add(key);
+    usedKeys.add(key);
   }
 
   return board;
@@ -303,14 +579,12 @@ loadAndRender();
 async function loadAndRender() {
   try {
     if (roundCount > BOARD_SIZE) {
-      throw new Error(
-        "عدد الجولات يجب ألا يتجاوز 20 جولة."
-      );
+      throw new Error("عدد الجولات يجب ألا يتجاوز 20 جولة.");
     }
 
     const [legendaryFilesRaw, normalFilesRaw] = await Promise.all([
       fetchFolderList("legendary").catch(() => []),
-      fetchFolderList("normal").catch(() => []),
+      fetchFolderList("normal").catch(() => [])
     ]);
 
     const legendaryCards = uniqueCards(
@@ -326,14 +600,15 @@ async function loadAndRender() {
     );
 
     if (!legendaryCards.length && !normalCards.length) {
-      boxGrid.innerHTML =
-        `<p class="text-red-500">لا توجد ملفات كروت.</p>`;
+      boxGrid.innerHTML = `<p class="text-red-500">لا توجد ملفات كروت.</p>`;
       return;
     }
 
+    const previousMatchKeys = loadPreviousMatchKeys();
     const usedKeys = loadUsedCardKeys();
 
-    // Reserve a valid board already created for the other player too.
+    // Reserve the other player's saved board too, preserving the existing
+    // guarantee that the same card never appears for both players in a game.
     const otherPlayer = currentPlayer === 1 ? 2 : 1;
     const otherBoard = loadSavedBoard(otherPlayer);
     if (otherBoard) reserveCards(usedKeys, otherBoard);
@@ -345,15 +620,21 @@ async function loadAndRender() {
       boardCards = savedBoard;
       reserveCards(usedKeys, boardCards);
     } else {
-      const availableUniqueCount = uniqueCards([
+      const allUnique = uniqueCards([
         ...legendaryCards,
         ...normalCards
-      ]).filter(
-        card => !usedKeys.has(cardIdentity(card))
+      ]);
+
+      const unavailable = new Set([
+        ...Array.from(usedKeys),
+        ...Array.from(previousMatchKeys)
+      ]);
+
+      const availableUniqueCount = allUnique.filter(
+        card => !unavailable.has(cardIdentity(card))
       ).length;
 
-      // When player 1 starts, reserve enough unique media for both
-      // 20-card boards so player 2 can never be left without a board.
+      // Player 1 must leave enough unique cards for player 2's 20 boxes too.
       const requiredUniqueCount =
         currentPlayer === 1 && !otherBoard
           ? BOARD_SIZE * 2
@@ -361,23 +642,22 @@ async function loadAndRender() {
 
       if (availableUniqueCount < requiredUniqueCount) {
         throw new Error(
-          `يلزم ${requiredUniqueCount} بطاقة فريدة متاحة لإكمال التوزيع دون تكرار، والمتوفر ${availableUniqueCount} فقط.`
+          `يلزم ${requiredUniqueCount} بطاقة فريدة بعد استبعاد بطاقات المباراة السابقة، والمتوفر ${availableUniqueCount} فقط.`
         );
       }
 
-      boardCards = buildRandomUniqueBoard(
+      boardCards = buildComprehensiveBoard(
         legendaryCards,
         normalCards,
-        usedKeys
+        usedKeys,
+        previousMatchKeys
       );
 
-      reserveCards(usedKeys, boardCards);
       saveBoard(currentPlayer, boardCards);
     }
 
     saveUsedCardKeys(usedKeys);
 
-    // imageMap 1..20
     imageMap = {};
     for (let i = 1; i <= BOARD_SIZE; i++) {
       imageMap[i] = boardCards[i - 1];
@@ -390,8 +670,7 @@ async function loadAndRender() {
     boxGrid.innerHTML = "";
     const errorText = document.createElement("p");
     errorText.className = "text-red-500";
-    errorText.textContent =
-      err?.message || "خطأ في التحميل";
+    errorText.textContent = err?.message || "خطأ في التحميل";
     boxGrid.appendChild(errorText);
   }
 }
@@ -688,14 +967,23 @@ function confirmSelection() {
     picks
   });
 
-  // The board is removed after submission, while its 20 cards remain
-  // reserved for this game so neither player can ever receive them again.
+  // Record only the cards that were actually selected for play. They become
+  // the one-match exclusion set after both players finish this match.
+  const matchPlayedState = saveCurrentPlayerPicks(playerKey, picks);
+
+  // The board is removed after submission, while its distributed cards remain
+  // reserved for the current game so the two players can never share a card.
   localStorage.removeItem(boardKey(currentPlayer));
 
   if (currentPlayer === 1) {
     localStorage.setItem("currentPlayer", "2");
     location.reload();
   } else {
+    // From the NEXT game only, exclude the cards played in this completed game.
+    // The game after that will instead exclude the newer match, so this is not
+    // a permanent ban and the daily rotation continues normally.
+    finalizePreviousMatchExclusion(matchPlayedState);
+
     localStorage.removeItem("currentPlayer");
     localStorage.removeItem(PICK_SESSION_KEY);
     location.href = "wait.html";
