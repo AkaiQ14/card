@@ -215,13 +215,15 @@
       pointer-events:none;
     }
 
-    .mode-grid{
+    .mode-grid,
+    .scope-grid{
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:8px;
     }
 
-    .mode-option{
+    .mode-option,
+    .scope-option{
       position:relative;
       min-height:76px;
       padding:12px 11px;
@@ -236,24 +238,28 @@
       transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease;
     }
 
-    .mode-option:hover{
+    .mode-option:hover,
+    .scope-option:hover{
       transform:translateY(-1px);
       border-color:rgba(255,215,0,.30);
       background:rgba(255,255,255,.065);
     }
 
-    .mode-option:focus-visible{
+    .mode-option:focus-visible,
+    .scope-option:focus-visible{
       border-color:var(--gold);
       box-shadow:0 0 0 3px rgba(255,215,0,.10);
     }
 
-    .mode-option.is-selected{
+    .mode-option.is-selected,
+    .scope-option.is-selected{
       border-color:rgba(255,215,0,.72);
       background:linear-gradient(145deg,rgba(255,215,0,.13),rgba(255,215,0,.05));
       box-shadow:0 10px 24px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.08);
     }
 
-    .mode-option.is-selected::after{
+    .mode-option.is-selected::after,
+    .scope-option.is-selected::after{
       content:"";
       position:absolute;
       top:9px;
@@ -263,6 +269,12 @@
       border-radius:50%;
       background:var(--gold);
       box-shadow:0 0 11px rgba(255,215,0,.72);
+    }
+
+    .scope-block{
+      margin-top:14px;
+      padding-top:14px;
+      border-top:1px solid rgba(255,255,255,.075);
     }
 
     .mode-name{
@@ -398,8 +410,8 @@
       .page{align-items:flex-start;padding-top:22px;padding-bottom:22px}
       .brand-title{font-size:2rem}
       .logo-wrap{min-height:150px}
-      .mode-grid{gap:6px}
-      .mode-option{min-height:72px;padding:10px 8px}
+      .mode-grid,.scope-grid{gap:6px}
+      .mode-option,.scope-option{min-height:72px;padding:10px 8px}
       .mode-name{font-size:.76rem}
       .mode-desc{font-size:.52rem}
       .quick-grid{grid-template-columns:1fr}
@@ -468,6 +480,28 @@
               </button>
             </div>
 
+            <div class="scope-block">
+              <span class="section-label">اختر طور البطاقات</span>
+              <p class="section-copy">حدد مجموعة البطاقات التي ستُستخدم في المباراة.</p>
+
+              <select id="cardScope" class="mode-select-native" aria-label="طور البطاقات">
+                <option value="all">الكل</option>
+                <option value="anime">طور الأنمي</option>
+              </select>
+
+              <div class="scope-grid" role="group" aria-label="اختيار طور البطاقات">
+                <button class="scope-option is-selected" type="button" data-scope="all" aria-pressed="true">
+                  <span class="mode-name">الكل</span>
+                  <span class="mode-desc">استخدام جميع البطاقات</span>
+                </button>
+
+                <button class="scope-option" type="button" data-scope="anime" aria-pressed="false">
+                  <span class="mode-name">طور الأنمي</span>
+                  <span class="mode-desc">استخدام بطاقات الأنمي فقط</span>
+                </button>
+              </div>
+            </div>
+
             <button id="startGameBtn" class="start-btn" type="button" onclick="logoutAndStart()">
               ابدأ اللعبة
             </button>
@@ -504,6 +538,8 @@
   <script>
     const modeSelect = document.getElementById("mode");
     const modeButtons = Array.from(document.querySelectorAll(".mode-option"));
+    const cardScopeSelect = document.getElementById("cardScope");
+    const scopeButtons = Array.from(document.querySelectorAll(".scope-option"));
     const startGameBtn = document.getElementById("startGameBtn");
 
     function setMode(mode) {
@@ -525,7 +561,27 @@
       });
     });
 
+    function setCardScope(scope) {
+      if (!cardScopeSelect) return;
+
+      const validScope = scope === "anime" ? "anime" : "all";
+      cardScopeSelect.value = validScope;
+
+      scopeButtons.forEach((button) => {
+        const isSelected = button.dataset.scope === validScope;
+        button.classList.toggle("is-selected", isSelected);
+        button.setAttribute("aria-pressed", String(isSelected));
+      });
+    }
+
+    scopeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setCardScope(button.dataset.scope);
+      });
+    });
+
     setMode(modeSelect?.value || "strategic");
+    setCardScope(cardScopeSelect?.value || "all");
 
     function logoutAndStart() {
       if (!localStorage.getItem("homepageRefreshed")) return;
@@ -533,16 +589,23 @@
       localStorage.removeItem("homepageRefreshed");
 
       const selectedMode = document.getElementById("mode").value;
-      let targetPath = "/";
+      const selectedScope = document.getElementById("cardScope").value === "anime"
+        ? "anime"
+        : "all";
+      let modeFolder = "host-strategic";
 
       switch (selectedMode) {
-        case "manual": targetPath = "/host-manual"; break;
-        case "strategic": targetPath = "/host-strategic"; break;
-        case "winner": targetPath = "/host-winner"; break;
-        default: targetPath = "/host-strategic";
+        case "manual": modeFolder = "host-manual"; break;
+        case "strategic": modeFolder = "host-strategic"; break;
+        case "winner": modeFolder = "host-winner"; break;
+        default: modeFolder = "host-strategic";
       }
 
+      const scopePrefix = selectedScope === "anime" ? "/anime" : "";
+      const targetPath = `${scopePrefix}/${modeFolder}`;
+
       localStorage.setItem("gameMode", selectedMode);
+      localStorage.setItem("cardScope", selectedScope);
 
       if (startGameBtn) {
         startGameBtn.disabled = true;

@@ -1,12 +1,16 @@
 // public/host-winner/start.js
 const socket = io();
+const CARD_SCOPE = window.location.pathname.startsWith("/anime/") ? "anime" : "all";
+const GAME_MODE = "winner";
 let createdGameID = null;
+
+localStorage.setItem("cardScope", CARD_SCOPE);
 
 socket.on("diagEvent", ({ message }) =>
   console.log("📊 Server diag:", message),
 );
 
-socket.emit("createGame");
+socket.emit("createGame", { cardScope: CARD_SCOPE });
 socket.on("gameCreated", (gameID) => {
   createdGameID = gameID;
   localStorage.setItem("gameID", gameID);
@@ -225,10 +229,16 @@ function sendGameMeta() {
 
   socket.emit("setGameMeta", {
     gameID,
-    mode: "winner",
+    mode: GAME_MODE,
+    cardScope: CARD_SCOPE,
     countLeaderboard: count,
   });
-  console.log("[meta] setGameMeta sent:", { gameID, mode: "winner", count });
+  console.log("[meta] setGameMeta sent:", {
+    gameID,
+    mode: GAME_MODE,
+    cardScope: CARD_SCOPE,
+    count,
+  });
 }
 
 document.addEventListener("change", (e) => {

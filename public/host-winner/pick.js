@@ -1,5 +1,7 @@
 // public/host-winner/pick.js
 const params = new URLSearchParams(window.location.search);
+const CARD_SCOPE = window.location.pathname.startsWith("/anime/") ? "anime" : "all";
+const CARD_ASSET_PREFIX = CARD_SCOPE === "anime" ? "/anime" : "";
 const gameID = params.get("game");
 const playerKey = params.get("player");
 const playerName = params.get("name");
@@ -227,7 +229,9 @@ function waitForExclusionsThenLoad() {
 }
 
 async function fetchFolderList(folder) {
-  const res = await fetch(`/list-images/${folder}?gameID=${gameID}`);
+  const res = await fetch(
+    `/list-images/${encodeURIComponent(folder)}?gameID=${encodeURIComponent(gameID || "")}&scope=${encodeURIComponent(CARD_SCOPE)}`
+  );
   if (!res.ok) throw new Error(`Failed to list ${folder}`);
   return res.json();
 }
@@ -249,7 +253,7 @@ async function loadAndRender() {
       legendaryFiles.forEach((file) => {
         const key = `legendary/${file}`;
         if (excludedKeys.has(key)) return;
-        const fullPath = `/images/legendary/${file}`;
+        const fullPath = `${CARD_ASSET_PREFIX}/images/legendary/${encodeURIComponent(file)}`;
         if (!map.has(fullPath)) {
           const obj = { folder: "legendary", filename: file, key, fullPath };
           map.set(fullPath, obj);
@@ -259,7 +263,7 @@ async function loadAndRender() {
       normalFiles.forEach((file) => {
         const key = `normal/${file}`;
         if (excludedKeys.has(key)) return;
-        const fullPath = `/images/normal/${file}`;
+        const fullPath = `${CARD_ASSET_PREFIX}/images/normal/${encodeURIComponent(file)}`;
         if (!map.has(fullPath)) {
           const obj = { folder: "normal", filename: file, key, fullPath };
           map.set(fullPath, obj);
@@ -272,7 +276,7 @@ async function loadAndRender() {
         files.forEach((file) => {
           const key = `${slug}/${file}`;
           if (excludedKeys.has(key)) return;
-          const fullPath = `/images/${slug}/${file}`;
+          const fullPath = `${CARD_ASSET_PREFIX}/images/${slug}/${encodeURIComponent(file)}`;
           if (!map.has(fullPath)) {
             const obj = { folder: slug, filename: file, key, fullPath };
             map.set(fullPath, obj);

@@ -1,4 +1,6 @@
-const randomSound = new Audio("/sounds/random.mp3");
+const CARD_SCOPE = window.location.pathname.startsWith("/anime/") ? "anime" : "all";
+const CARD_ASSET_PREFIX = CARD_SCOPE === "anime" ? "/anime" : "";
+const randomSound = new Audio(`${CARD_ASSET_PREFIX}/sounds/random.mp3`);
 randomSound.volume = 1.0;
 
 // Each of the 20 boxes independently keeps the original 10% chance
@@ -193,7 +195,9 @@ function isMediaFile(f) {
 }
 
 async function fetchFolderList(folder) {
-  const res = await fetch(`/list-images/${folder}`);
+  const res = await fetch(
+    `/list-images/${encodeURIComponent(folder)}?scope=${encodeURIComponent(CARD_SCOPE)}`
+  );
   if (!res.ok) throw new Error(`Failed to list ${folder}`);
   return res.json();
 }
@@ -203,7 +207,7 @@ function makeCard(folder, filename) {
     folder,
     filename,
     key: `${folder}/${filename}`,
-    fullPath: `/images/${folder}/${encodeURIComponent(filename)}`
+    fullPath: `${CARD_ASSET_PREFIX}/images/${folder}/${encodeURIComponent(filename)}`
   };
 }
 

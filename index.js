@@ -31,6 +31,22 @@ function getLegendaryRate() {
   return Math.max(0, Math.min(1, base));
 }
 
+function normalizeCardScope(scope) {
+  return String(scope || "").toLowerCase() === "anime" ? "anime" : "all";
+}
+
+function getCardAssets(scope) {
+  const cardScope = normalizeCardScope(scope);
+  const scopeDirectory = cardScope === "anime" ? "anime" : "";
+  const urlPrefix = cardScope === "anime" ? "/anime" : "";
+
+  return {
+    cardScope,
+    imageRoot: path.join(__dirname, "public", scopeDirectory, "images"),
+    imageUrlBase: `${urlPrefix}/images`,
+  };
+}
+
 
 // Admin credentials from env (no hard-coded defaults)
 const ADMIN_USERNAME = process.env.USERNAME || "";
@@ -495,13 +511,20 @@ app.get("/", (req, res) => {
 
 // ====== Serve Image Filenames ======
 app.get("/list-images/:folder", (req, res) => {
-  const folder = req.params.folder.toLowerCase();
-  const folderPath = path.join(__dirname, "public", "images", folder);
+  const folder = String(req.params.folder || "").toLowerCase();
+  const cardScope = normalizeCardScope(req.query.scope);
+  const { imageRoot } = getCardAssets(cardScope);
+  const folderPath = path.join(imageRoot, folder);
+
+  if (!folder || folder === "." || folder === ".." || folder.includes("\\")) {
+    return res.status(400).json({ error: "Invalid folder" });
+  }
 
   fs.readdir(folderPath, (err, files = []) => {
     if (err) {
       console.error("[diag] Folder read error:", {
         folder,
+        cardScope,
         folderPath,
         error: err.message,
       });
@@ -512,13 +535,17 @@ app.get("/list-images/:folder", (req, res) => {
     const images = files.filter((f) => imageRegex.test(f));
     const nonImages = files.filter((f) => !imageRegex.test(f));
 
-    if (!loggedNonImageOnce.has(folder)) {
-      loggedNonImageOnce.add(folder);
+    const logKey = `${cardScope}:${folder}`;
+    if (!loggedNonImageOnce.has(logKey)) {
+      loggedNonImageOnce.add(logKey);
       console.log(
-        `[diag] /list-images/${folder}: total=${files.length}, images=${images.length}, non-images=${nonImages.length}`
+        `[diag] /list-images/${folder} (${cardScope}): total=${files.length}, images=${images.length}, non-images=${nonImages.length}`
       );
       if (nonImages.length) {
-        console.log(`[diag] non-image examples (${folder}):`, nonImages.slice(0, 20));
+        console.log(
+          `[diag] non-image examples (${cardScope}/${folder}):`,
+          nonImages.slice(0, 20)
+        );
       }
     }
 
@@ -657,11 +684,31 @@ function snapshotTimer(game) {
 }
 
 // ====== Socket.IO Game Logic ======
-function getImagePath(anime, filename) {
-  return `/images/${anime.toLowerCase()}/${encodeURIComponent(filename)}`;
+function getImagePath(cardScope, anime, filename) {
+  const { imageUrlBase } = getCardAssets(cardScope);
+  return `${imageUrlBase}/${anime.toLowerCase()}/${encodeURIComponent(filename)}`;
 }
 
-function createNewGame(socket) {
+function imageKeyFromUrl(url) {
+  try {
+    const pathname = new URL(String(url || ""), "http://local").pathname;
+    const marker = "/images/";
+    const markerIndex = pathname.toLowerCase().lastIndexOf(marker);
+    if (markerIndex < 0) return "";
+
+    const relativePath = pathname.slice(markerIndex + marker.length);
+    const separatorIndex = relativePath.indexOf("/");
+    if (separatorIndex <= 0) return "";
+
+    const folder = decodeURIComponent(relativePath.slice(0, separatorIndex)).toLowerCase();
+    const filename = decodeURIComponent(relativePath.slice(separatorIndex + 1));
+    return folder && filename ? `${folder}/${filename}` : "";
+  } catch {
+    return "";
+  }
+}
+
+function createNewGame(socket, cardScope = "all") {
   const gameID = uuidv4().slice(0, 5).toUpperCase();
   games[gameID] = {
     host: socket.id,
@@ -676,7 +723,11 @@ function createNewGame(socket) {
     abilities: {},
     pickProgress: {},
     picksLocked: {},
-    meta: { mode: "winner", countLeaderboard: false },
+    meta: {
+      mode: "winner",
+      cardScope: normalizeCardScope(cardScope),
+      countLeaderboard: false,
+    },
     // timer will be created lazily by ensureTimer
   };
   socket.join(gameID);
@@ -707,19 +758,20 @@ if (!SOCKET_ALLOW_PUBLIC) {
 }
 
 io.on("connection", (socket) => {
-  socket.on("createGame", () => {
-    const gameID = createNewGame(socket);
+  socket.on("createGame", (payload = {}) => {
+    const gameID = createNewGame(socket, payload?.cardScope);
     socket.emit("gameCreated", gameID);
   });
 
-  socket.on("restartGame", ({ gameID }) => {
+  socket.on("restartGame", (payload = {}) => {
+    const { gameID, cardScope } = payload || {};
     if (games[gameID]) safeDeleteGame(gameID);
-    const newID = createNewGame(socket);
+    const newID = createNewGame(socket, cardScope);
     socket.emit("gameCreated", newID);
   });
 
   // meta (mode + count flag)
-  socket.on("setGameMeta", ({ gameID, mode, countLeaderboard }) => {
+  socket.on("setGameMeta", ({ gameID, mode, cardScope, countLeaderboard } = {}) => {
     const game = games[gameID];
     if (!game) return;
     socket.join(gameID);
@@ -727,8 +779,15 @@ io.on("connection", (socket) => {
       mode === "manual" || mode === "strategic" || mode === "winner"
         ? mode
         : "winner";
+    const safeCardScope = normalizeCardScope(
+      cardScope ?? game.meta?.cardScope
+    );
     const shouldCount = safeMode === "manual" ? false : !!countLeaderboard;
-    game.meta = { mode: safeMode, countLeaderboard: shouldCount };
+    game.meta = {
+      mode: safeMode,
+      cardScope: safeCardScope,
+      countLeaderboard: shouldCount,
+    };
   });
 
   socket.on("manualAddPlayers", ({ gameID, playerNames }) => {
@@ -838,7 +897,11 @@ io.on("connection", (socket) => {
     const key = `${folderName}/${fileName}`;
     if (game.usedImages.has(key)) return;
 
-    player.picks[round] = getImagePath(folderName, fileName);
+    player.picks[round] = getImagePath(
+      game.meta?.cardScope,
+      folderName,
+      fileName
+    );
     game.usedImages.add(key);
 
     const allPicked = Object.values(game.players).every((p) => p.picks[round]);
@@ -871,20 +934,9 @@ io.on("connection", (socket) => {
     game.picksLocked[playerName] = true;
 
     if (playerKey === "player1") {
-      exclusionMap[gameID] = (picks || []).map((url) => {
-        try {
-          const pathname = decodeURIComponent(new URL(url, "http://x").pathname);
-          const parts = pathname.split("/");
-          const anime = String(parts[2] || "").toLowerCase();
-          const filename = String(parts[3] || "");
-          return `${anime}/${filename}`;
-        } catch {
-          const parts = (url || "").split("/");
-          const anime = String(parts[2] || "").toLowerCase();
-          const filename = String(parts[3] || parts[parts.length - 1] || "");
-          return `${anime}/${filename}`;
-        }
-      });
+      exclusionMap[gameID] = Array.from(
+        new Set((picks || []).map(imageKeyFromUrl).filter(Boolean))
+      );
       io.to(gameID).emit("exclusionsData", exclusionMap[gameID]);
       console.log("[winner][exclusions built]", gameID, exclusionMap[gameID]);
     }
@@ -1219,11 +1271,13 @@ function startRound(gameID) {
 
   const round = game.round;
   const anime = game.animeList[round];
+  const cardScope = normalizeCardScope(game.meta?.cardScope);
+  const { imageRoot } = getCardAssets(cardScope);
 
   // Virtual source: "rarities" pulls from both /normal and /legendary
   if (anime === "rarities") {
-    const normalDir = path.join(__dirname, "public", "images", "normal");
-    const legendaryDir = path.join(__dirname, "public", "images", "legendary");
+    const normalDir = path.join(imageRoot, "normal");
+    const legendaryDir = path.join(imageRoot, "legendary");
 
     let normalFiles = [];
     let legendaryFiles = [];
@@ -1327,6 +1381,7 @@ wantLegendary = Math.max(0, Math.min(BOARD, wantLegendary));
     pushDiag({
       gameID,
       anime: "rarities",
+      cardScope,
       round,
       normal: availableNormal.length,
       legendary: availableLegend.length,
@@ -1342,6 +1397,7 @@ wantLegendary = Math.max(0, Math.min(BOARD, wantLegendary));
     io.to(gameID).emit("startRound", {
       round,
       anime,
+      cardScope,
       imageMap: game.imageMap,
       players: Object.values(game.players).map((p) => p.name),
     });
@@ -1349,7 +1405,7 @@ wantLegendary = Math.max(0, Math.min(BOARD, wantLegendary));
   }
 
   // === Default (single real folder) ===
-  const folderPath = path.join(__dirname, "public", "images", anime);
+  const folderPath = path.join(imageRoot, anime);
 
   let allFilenames = [];
   try {
@@ -1389,6 +1445,7 @@ wantLegendary = Math.max(0, Math.min(BOARD, wantLegendary));
   pushDiag({
     gameID,
     anime,
+    cardScope,
     round,
     total: allFilenames.length,
     available: available.length,
@@ -1403,6 +1460,7 @@ wantLegendary = Math.max(0, Math.min(BOARD, wantLegendary));
   io.to(gameID).emit("startRound", {
     round,
     anime,
+    cardScope,
     imageMap: game.imageMap,
     players: Object.values(game.players).map((p) => p.name),
   });

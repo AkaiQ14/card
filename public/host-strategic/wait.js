@@ -11,7 +11,8 @@ if (!gameID) {
 // Read player names saved in start phase
 const p1 = localStorage.getItem("player1") || "player1";
 const p2 = localStorage.getItem("player2") || "player2";
-const baseUrl = `${window.location.origin}/host-strategic/order.html`;
+const CARD_ROUTE_PREFIX = window.location.pathname.startsWith("/anime/") ? "/anime" : "";
+const baseUrl = `${window.location.origin}${CARD_ROUTE_PREFIX}/host-strategic/order.html`;
 
 document.getElementById("p1NameBox").textContent = `قدرات ${p1}`;
 document.getElementById("p2NameBox").textContent = `قدرات ${p2}`;

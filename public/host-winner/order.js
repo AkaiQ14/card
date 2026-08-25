@@ -1,5 +1,6 @@
 // ========== Extract Parameters ==========
 const params = new URLSearchParams(window.location.search);
+const CARD_ROUTE_PREFIX = window.location.pathname.startsWith("/anime/") ? "/anime" : "";
 const playerParam = params.get("player");
 const gameID = params.get("game");
 const playerName = params.get("name");
@@ -535,7 +536,7 @@ socket.on("diagEvent", () => {
   if (btn && wrap && frame) {
     btn.addEventListener("click", () => {
       // Build same URL that used to open in new tab
-      const url = `${location.origin}/host-strategic/player-view.html?game=${encodeURIComponent(gameID||"")}&name=${encodeURIComponent(playerName||"")}`;
+      const url = `${location.origin}${CARD_ROUTE_PREFIX}/host-strategic/player-view.html?game=${encodeURIComponent(gameID||"")}&name=${encodeURIComponent(playerName||"")}`;
 
       if (wrap.classList.contains("hidden")) {
         // show + load

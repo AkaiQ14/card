@@ -1,5 +1,6 @@
 // public/js/webm-sfx.js
 (function () {
+  const CARD_ASSET_PREFIX = location.pathname.startsWith("/anime/") ? "/anime" : "";
   const SFX = {
     map: {},
     audio: new Audio(),
@@ -37,9 +38,14 @@
   function soundPathFor(webmUrl) {
     const key = filenameFrom(webmUrl);
     const mapped = SFX.map[key];
-    if (mapped) return mapped.startsWith("/") ? mapped : `/sounds/${mapped}`;
+    if (mapped) {
+      const mappedPath = mapped.startsWith("/") ? mapped : `/sounds/${mapped}`;
+      return CARD_ASSET_PREFIX && mappedPath.startsWith("/sounds/")
+        ? `${CARD_ASSET_PREFIX}${mappedPath}`
+        : mappedPath;
+    }
     const base = key.replace(/\.webm$/i, "");
-    return `/sounds/${base}.mp3`;
+    return `${CARD_ASSET_PREFIX}/sounds/${base}.mp3`;
   }
 
   function ensureResumeHook() {
@@ -115,13 +121,18 @@
     }
   }
 
+  function replaySide(side) {
+    if (!side || !SFX.perSide[side] || !SFX.perSide[side].length) return false;
+    SFX.perSide[side].forEach((src) => SFX.queue.push(src));
+    if (!SFX.playing) playNext();
+    return true;
+  }
+
   function wireReplayButton(btn, side) {
     if (!btn || btn._sfxWired) return;
     btn._sfxWired = true;
     btn.addEventListener("click", () => {
-      if (!SFX.perSide[side].length) return;
-      SFX.perSide[side].forEach((src) => SFX.queue.push(src));
-      if (!SFX.playing) playNext();
+      replaySide(side);
     });
   }
 
@@ -254,10 +265,11 @@
   window.WebmSfx = {
     attachToMedia,
     markSide,
+    replaySide,
     setVolume: (p) => { /* unchanged, keep same */ },
     toggleMute: () => { /* unchanged */ },
     _load: () =>
-      fetch("/sounds/webm-sfx.json")
+      fetch(`${CARD_ASSET_PREFIX}/sounds/webm-sfx.json`)
         .then((r) => r.json())
         .then((j) => (SFX.map = j || {}))
         .catch(() => (SFX.map = {})),

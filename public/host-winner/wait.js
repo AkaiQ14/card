@@ -8,7 +8,8 @@ const totalRounds = localStorage.getItem("totalRounds") || "3";
 const socket = io();
 socket.emit("joinGame", { gameID, role: "host" }); // join room for timer sync
 
-const baseURL = `${window.location.origin}/host-winner/pick.html`;
+const CARD_ROUTE_PREFIX = window.location.pathname.startsWith("/anime/") ? "/anime" : "";
+const baseURL = `${window.location.origin}${CARD_ROUTE_PREFIX}/host-winner/pick.html`;
 
 const copyP1 = document.getElementById("copyP1");
 const copyP2 = document.getElementById("copyP2");
@@ -58,6 +59,25 @@ function getAbilityTextsLS(key) {
     const arr = JSON.parse(localStorage.getItem(key) || "[]");
     return norm(arr);
   } catch { return []; }
+}
+
+function imageKeyFromUrl(url) {
+  try {
+    const pathname = new URL(String(url || ""), window.location.origin).pathname;
+    const marker = "/images/";
+    const markerIndex = pathname.toLowerCase().lastIndexOf(marker);
+    if (markerIndex < 0) return "";
+
+    const relativePath = pathname.slice(markerIndex + marker.length);
+    const separatorIndex = relativePath.indexOf("/");
+    if (separatorIndex <= 0) return "";
+
+    const folder = decodeURIComponent(relativePath.slice(0, separatorIndex)).toLowerCase();
+    const filename = decodeURIComponent(relativePath.slice(separatorIndex + 1));
+    return folder && filename ? `${folder}/${filename}` : "";
+  } catch {
+    return "";
+  }
 }
 
 // === Copy links include opponent name + opponent abilities fallback ===
@@ -122,20 +142,9 @@ socket.on("playerOrderSubmitted", ({ playerName, ordered }) => {
   if (playerName === p1) {
     showStatus(statusP1);
     // Build composite exclusion keys: "<anime>/<filename>"
-    const exclude = (ordered || []).map(url => {
-      try {
-        const pathname = decodeURIComponent(new URL(url, window.location.origin).pathname);
-        const parts = pathname.split("/");
-        const anime = String(parts[2] || "").toLowerCase();
-        const filename = String(parts[3] || "");
-        return `${anime}/${filename}`;
-      } catch {
-        const parts = String(url || "").split("/");
-        const anime = String(parts[2] || "").toLowerCase();
-        const filename = String(parts[3] || parts[parts.length - 1] || "");
-        return `${anime}/${filename}`;
-      }
-    });
+    const exclude = Array.from(
+      new Set((ordered || []).map(imageKeyFromUrl).filter(Boolean))
+    );
     socket.emit("storeExclusions", { gameID, exclude });
     p2Block.classList.remove("hidden");
   }
