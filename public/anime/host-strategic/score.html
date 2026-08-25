@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --wine:#73142d;
+      --wine-2:#8b2039;
+      --wine-deep:#4b0e1f;
+      --gold:#d9aa49;
+      --gold-2:#edc96f;
+      --gold-light:#ffe9ad;
+      --cream:#fff6df;
+      --cream-2:#f9e8ca;
+      --ink:#5a1528;
+      --muted:#805262;
+    }
+
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
+
+    body{
+      margin:0;
+      font-family:"Cairo",system-ui,sans-serif;
+      color:var(--ink);
+      overflow-x:hidden;
+      background-color:#651125;
+    }
+
+    button,input,textarea,select{font:inherit}
+    button{-webkit-appearance:none;appearance:none}
+
+    .score-page{
+      position:relative;
+      min-height:100vh;
+      padding:30px 18px 34px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      isolation:isolate;
+      background:
+        linear-gradient(rgba(102,20,43,.10),rgba(83,12,31,.18)),
+        url('../images/QG14Background.png') center/cover fixed no-repeat;
+    }
+
+    .score-shell{
+      width:min(1160px,100%);
+      margin-inline:auto;
+      text-align:center;
+    }
+
+    .score-heading{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:166px;
+      min-height:40px;
+      margin:0 0 10px;
+      padding:7px 24px;
+      border:1.5px solid rgba(233,194,102,.95);
+      border-radius:999px;
+      background:linear-gradient(180deg,rgba(132,29,53,.94),rgba(105,18,41,.94));
+      color:#fff0c5;
+      font-size:1.02rem;
+      line-height:1;
+      font-weight:900;
+      box-shadow:
+        0 8px 20px rgba(70,8,25,.12),
+        inset 0 1px 0 rgba(255,255,255,.18);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+    }
+
+    #scoreBox{width:100%}
+
+    .scoreboard-wrap{
+      position:relative;
+      width:min(1035px,95vw);
+      margin:0 auto;
+      aspect-ratio:1080 / 253;
+      user-select:none;
+      filter:none;
+      box-shadow:none;
+    }
+
+    .scoreboard-image{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit:contain;
+      pointer-events:none;
+    }
+
+    .scoreboard-name,
+    .scoreboard-result{
+      position:absolute;
+      z-index:2;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      line-height:1;
+      white-space:nowrap;
+      pointer-events:none;
+    }
+
+    .scoreboard-name{
+      top:44.8%;
+      height:29.2%;
+      padding:0 2.2%;
+      color:#fff2c8;
+      font-size:clamp(1rem,2.48vw,2.1rem);
+      font-weight:900;
+      letter-spacing:-.015em;
+      text-shadow:0 2px 3px rgba(42,0,10,.72);
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .scoreboard-name.left{
+      left:7.2%;
+      width:30.3%;
+    }
+
+    .scoreboard-name.right{
+      right:7.2%;
+      width:30.3%;
+    }
+
+    .scoreboard-result{
+      top:43.3%;
+      left:39.55%;
+      width:20.9%;
+      height:37.4%;
+      direction:ltr;
+      gap:clamp(5px,.7vw,10px);
+      color:#ffe6a2;
+      font-size:clamp(1.5rem,3.85vw,3.3rem);
+      font-weight:900;
+      font-variant-numeric:tabular-nums;
+      letter-spacing:.01em;
+      text-shadow:0 2px 4px rgba(0,0,0,.9),0 0 8px rgba(236,196,97,.13);
+    }
+
+    .scoreboard-result .score-separator{
+      color:#d9ac50;
+      font-size:.62em;
+      font-weight:900;
+      transform:translateY(-1px);
+    }
+
+    .result-panel{
+      position:relative;
+      width:min(700px,90%);
+      min-height:0;
+      margin:10px auto 0;
+      padding:0;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      box-shadow:none;
+      backdrop-filter:none;
+      -webkit-backdrop-filter:none;
+      overflow:visible;
+    }
+
+    .result-panel::before{
+      display:none;
+      content:none;
+    }
+
+    .winner-label{
+      margin:10px 0 0;
+      width:auto;
+      max-width:min(90vw,560px);
+      min-width:166px;
+      min-height:40px;
+      padding:7px 24px;
+      white-space:normal;
+    }
+
+    .winner-label strong{
+      color:inherit;
+      font-weight:900;
+    }
+
+    .score-actions{
+      width:100%;
+      margin-top:13px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      flex-wrap:nowrap;
+    }
+
+    /* ===== Premium score buttons ===== */
+    .score-btn{
+      position:relative;
+      isolation:isolate;
+      min-width:238px;
+      min-height:54px;
+      padding:12px 30px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid rgba(230,190,96,.96);
+      border-radius:15px;
+      outline:none;
+      overflow:hidden;
+      text-decoration:none;
+      font-size:1rem;
+      line-height:1.2;
+      font-weight:900;
+      letter-spacing:-.01em;
+      white-space:nowrap;
+      cursor:pointer;
+      user-select:none;
+      transform:translateZ(0);
+      transition:
+        transform .16s ease,
+        border-color .16s ease,
+        box-shadow .18s ease,
+        filter .18s ease,
+        opacity .18s ease;
+    }
+
+    .score-btn::before{
+      content:"";
+      position:absolute;
+      z-index:-1;
+      inset:3px;
+      border-radius:11px;
+      border:1px solid rgba(255,255,255,.14);
+      pointer-events:none;
+    }
+
+    .score-btn::after{
+      content:"";
+      position:absolute;
+      z-index:-1;
+      top:0;
+      left:14%;
+      width:72%;
+      height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,245,205,.72),transparent);
+      pointer-events:none;
+    }
+
+    .score-btn:hover:not(:disabled){
+      transform:translateY(-2px);
+      filter:saturate(1.06) brightness(1.03);
+    }
+
+    .score-btn:active:not(:disabled){
+      transform:translateY(1px);
+      filter:saturate(1.02) brightness(.98);
+    }
+
+    .score-btn:focus-visible{
+      outline:3px solid rgba(255,225,143,.30);
+      outline-offset:3px;
+    }
+
+    .score-btn-primary{
+      color:#fff2c9;
+      border-color:#e2b85f;
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,0) 48%),
+        linear-gradient(135deg,#912a45 0%,#7b1935 48%,#681029 100%);
+      box-shadow:
+        0 10px 22px rgba(76,11,29,.18),
+        0 2px 0 rgba(79,12,30,.38),
+        inset 0 1px 0 rgba(255,255,255,.14),
+        inset 0 -1px 0 rgba(65,7,22,.18);
+    }
+
+    .score-btn-primary:hover:not(:disabled){
+      border-color:#f0cf7b;
+      box-shadow:
+        0 13px 28px rgba(76,11,29,.22),
+        0 2px 0 rgba(79,12,30,.34),
+        inset 0 1px 0 rgba(255,255,255,.18),
+        0 0 0 3px rgba(221,174,74,.08);
+    }
+
+    .score-btn-gold{
+      color:#68172b;
+      border-color:#c99430;
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.48),rgba(255,255,255,.04) 52%),
+        linear-gradient(135deg,#fff3c8 0%,#edc86e 52%,#dca94c 100%);
+      box-shadow:
+        0 10px 22px rgba(121,78,12,.16),
+        0 2px 0 rgba(135,88,15,.26),
+        inset 0 1px 0 rgba(255,255,255,.7),
+        inset 0 -1px 0 rgba(137,91,16,.12);
+    }
+
+    .score-btn-gold::before{
+      border-color:rgba(112,56,18,.10);
+    }
+
+    .score-btn-gold:hover:not(:disabled){
+      border-color:#d7a743;
+      box-shadow:
+        0 13px 28px rgba(121,78,12,.20),
+        0 2px 0 rgba(135,88,15,.22),
+        inset 0 1px 0 rgba(255,255,255,.78),
+        0 0 0 3px rgba(221,174,74,.10);
+    }
+
+    .score-btn:disabled{
+      opacity:.56;
+      cursor:not-allowed;
+      transform:none;
+      filter:grayscale(.15) saturate(.7);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.10),
+        0 4px 10px rgba(73,18,31,.07);
+    }
+
+
+    .feedback-overlay{
+      position:fixed;
+      inset:0;
+      z-index:99999;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      opacity:0;
+      background:rgba(82,13,31,.18);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+      transition:opacity .2s ease;
+    }
+
+    .feedback-modal{
+      width:min(92vw,430px);
+      padding:26px 24px 23px;
+      border:1.5px solid rgba(216,170,73,.76);
+      border-radius:20px;
+      background:linear-gradient(145deg,rgba(255,251,241,.985),rgba(249,231,201,.97));
+      color:var(--ink);
+      text-align:center;
+      box-shadow:
+        0 22px 55px rgba(76,13,30,.18),
+        inset 0 1px 0 rgba(255,255,255,.95);
+      transform:translateY(8px) scale(.98);
+      transition:transform .22s ease;
+    }
+
+    .feedback-modal.is-visible{transform:translateY(0) scale(1)}
+    .feedback-modal.error{border-color:rgba(190,78,92,.48)}
+
+    .feedback-title{
+      margin:0 0 8px;
+      color:var(--wine-deep);
+      font-size:1.45rem;
+      line-height:1.35;
+      font-weight:900;
+    }
+
+    .feedback-modal.error .feedback-title{color:#a13348}
+
+    .feedback-text{
+      margin:0;
+      color:#6b3b49;
+      font-size:.98rem;
+      line-height:1.8;
+      font-weight:700;
+    }
+
+    .feedback-player{color:#9c6711;font-weight:900}
+    .feedback-actions{margin-top:18px}
+
+    .feedback-modal.error .score-btn-primary{
+      color:#fff7f7;
+      border-color:#cf7c88;
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0) 50%),
+        linear-gradient(135deg,#b94f62,#9f354a);
+      box-shadow:
+        0 10px 22px rgba(135,39,58,.16),
+        inset 0 1px 0 rgba(255,255,255,.15);
+    }
+
+    .feedback-modal.error .score-btn-primary:hover:not(:disabled){
+      border-color:#e49aa3;
+      box-shadow:
+        0 13px 28px rgba(135,39,58,.20),
+        0 0 0 3px rgba(186,78,96,.08),
+        inset 0 1px 0 rgba(255,255,255,.18);
+    }
+
+    .corner-logo{
+      position:fixed;
+      right:18px;
+      bottom:14px;
+      width:clamp(105px,10vw,145px);
+      height:auto;
+      opacity:.9;
+      pointer-events:none;
+      filter:drop-shadow(0 5px 10px rgba(50,7,19,.11));
+    }
+
+    @media (max-width:800px){
+      .score-page{
+        padding:24px 10px 28px;
+        align-items:center;
+      }
+
+      .score-heading{
+        min-width:150px;
+        min-height:37px;
+        margin-bottom:7px;
+        padding:6px 18px;
+        font-size:.94rem;
+      }
+
+      .scoreboard-wrap{width:min(1035px,98vw)}
+
+      .result-panel{
+        width:min(700px,94%);
+        min-height:70px;
+        margin-top:5px;
+        padding:14px 15px;
+        border-radius:16px;
+      }
+
+      .score-actions{
+        margin-top:10px;
+        gap:10px;
+      }
+
+      .score-btn{
+        min-height:51px;
+        padding:11px 22px;
+        font-size:.96rem;
+        border-radius:14px;
+      }
+
+      .corner-logo{
+        right:10px;
+        bottom:9px;
+        width:100px;
+        opacity:.76;
+      }
+    }
+
+    @media (max-width:560px){
+      .score-page{padding-inline:4px}
+      .scoreboard-wrap{width:100vw}
+      .scoreboard-name{
+        top:43.9%;
+        height:30%;
+        font-size:clamp(.76rem,3.75vw,1.18rem);
+        padding-inline:1.4%;
+      }
+      .scoreboard-result{font-size:clamp(1.05rem,5.55vw,1.72rem);gap:3px}
+      .winner-label{
+        min-width:150px;
+        min-height:37px;
+        margin-top:7px;
+        padding:6px 18px;
+        font-size:.94rem;
+      }
+      .score-actions{
+        width:min(94vw,520px);
+        flex-wrap:wrap;
+      }
+      .score-actions .score-btn{
+        flex:1 1 210px;
+        min-width:0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="score-page">
+    <section class="score-shell" aria-labelledby="scoreTitle">
+      <h1 id="scoreTitle" class="score-heading">النتيجة النهائية</h1>
+
+      <div id="scoreBox"></div>
+
+    </section>
+  </main>
+
+  <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo" class="corner-logo" />
+
+  <script src="score.js?v=scoreboard-no-light-20260813"></script>
+  <script src="/copyright.js"></script>
+  <script src="/security.js"></script>
+</body>
+</html>

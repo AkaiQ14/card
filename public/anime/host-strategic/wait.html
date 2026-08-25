@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>QG14 Card Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --wine:#4b0e1f;
+      --wine-dark:#22050e;
+      --gold:#ffd700;
+      --gold-soft:rgba(255,215,0,.13);
+      --panel:rgba(12,2,7,.43);
+      --line:rgba(255,215,0,.25);
+      --soft:rgba(255,255,255,.62);
+      --green:#4ade80;
+    }
+    *{box-sizing:border-box}
+    html{min-height:100%;color-scheme:dark}
+    body{
+      min-height:100vh;
+      margin:0;
+      overflow-x:hidden;
+      color:#fff;
+      font-family:"Cairo",system-ui,sans-serif;
+      background:
+        radial-gradient(700px 420px at 15% 5%,rgba(255,215,0,.09),transparent 62%),
+        radial-gradient(650px 450px at 88% 12%,rgba(219,39,119,.10),transparent 66%),
+        linear-gradient(180deg,#5a1126 0%,var(--wine) 34%,#310816 72%,var(--wine-dark) 100%);
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      z-index:-1;
+      pointer-events:none;
+      opacity:.14;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+      background-size:38px 38px;
+      mask-image:linear-gradient(to bottom,black,transparent 85%);
+    }
+    .hidden{display:none !important}
+    button{font:inherit;cursor:pointer}
+    .home-btn{
+      position:fixed;
+      top:15px;
+      right:15px;
+      z-index:80;
+      min-height:40px;
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      padding:7px 13px;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:12px;
+      color:#fff;
+      font-size:.7rem;
+      font-weight:900;
+      background:rgba(8,1,5,.48);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      box-shadow:0 10px 25px rgba(0,0,0,.22);
+      transition:.15s ease;
+    }
+    .home-btn:hover{border-color:rgba(255,215,0,.5);background:rgba(255,255,255,.08);transform:translateY(-1px)}
+    .timer-dock{
+      position:relative;
+      width:min(100%,580px);
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto auto;
+      align-items:center;
+      gap:10px;
+      margin:0 auto 16px;
+      padding:11px 12px;
+      overflow:hidden;
+      border:1px solid rgba(255,215,0,.30);
+      border-radius:18px;
+      background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(10,1,5,.46));
+      backdrop-filter:blur(16px) saturate(125%);
+      -webkit-backdrop-filter:blur(16px) saturate(125%);
+      box-shadow:0 14px 38px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    .timer-dock::before{
+      content:"";
+      position:absolute;
+      top:0;
+      right:18%;
+      left:18%;
+      height:1px;
+      background:linear-gradient(90deg,transparent,var(--gold),transparent);
+    }
+    .timer-meta{min-width:0;display:flex;align-items:center;gap:10px}
+    .timer-icon{
+      width:39px;
+      height:39px;
+      display:grid;
+      place-items:center;
+      flex:none;
+      border:1px solid rgba(255,215,0,.27);
+      border-radius:11px;
+      color:#ffe775;
+      font-size:1rem;
+      background:rgba(255,215,0,.08);
+    }
+    .timer-title{font-size:.69rem;font-weight:900}
+    .timer-copy{margin-top:2px;color:rgba(255,255,255,.43);font-size:.54rem;white-space:nowrap}
+    .countdown-box{
+      min-height:43px;
+      display:grid;
+      place-items:center;
+      padding:5px 13px;
+      border:1px solid rgba(255,215,0,.45);
+      border-radius:11px;
+      color:#fff3a6;
+      outline:none;
+      background:rgba(0,0,0,.30);
+      transition:.15s ease;
+    }
+    .countdown-box:hover,
+    .countdown-box:focus{border-color:var(--gold);background:rgba(255,215,0,.08);box-shadow:0 0 0 3px rgba(255,215,0,.07)}
+    #countdown{
+      direction:ltr;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+      font-size:1.32rem;
+      font-weight:900;
+      letter-spacing:.08em;
+      line-height:1;
+      user-select:none;
+    }
+    .timer-controls{display:flex;gap:6px}
+    .timer-btn{
+      min-width:58px;
+      min-height:43px;
+      padding:6px 10px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:11px;
+      color:#fff;
+      font-size:.64rem;
+      font-weight:900;
+      outline:none;
+      transition:.15s ease;
+    }
+    .timer-btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.08)}
+    .timer-btn:disabled{opacity:.38;cursor:not-allowed}
+    .timer-start{color:#211600;border-color:rgba(255,239,145,.5);background:linear-gradient(145deg,#ffe86f,#d7a900)}
+    .timer-pause{background:rgba(255,255,255,.08)}
+    .page{
+      width:min(100%,1020px);
+      min-height:100vh;
+      margin-inline:auto;
+      padding:72px 18px 78px;
+    }
+    .brand-header{text-align:center;margin-bottom:20px}
+    .brand-kicker{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      color:rgba(255,228,89,.68);
+      font-size:.58rem;
+      font-weight:900;
+      letter-spacing:.15em;
+    }
+    .brand-kicker::before{
+      content:"";
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:var(--gold);
+      box-shadow:0 0 12px rgba(255,215,0,.72);
+    }
+    .brand-title{
+      margin-top:5px;
+      font-size:clamp(1.9rem,5vw,2.8rem);
+      font-weight:900;
+      line-height:1.15;
+      letter-spacing:-.03em;
+      text-shadow:0 10px 28px rgba(0,0,0,.30);
+    }
+    .brand-title span{color:var(--gold)}
+    .brand-copy{max-width:540px;margin:7px auto 0;color:var(--soft);font-size:.72rem;line-height:1.75}
+    .waiting-line{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      margin-top:10px;
+      padding:5px 10px;
+      border:1px solid rgba(255,215,0,.19);
+      border-radius:999px;
+      color:rgba(255,238,151,.78);
+      font-size:.61rem;
+      font-weight:900;
+      background:rgba(255,215,0,.055);
+    }
+    .waiting-dot{
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:var(--gold);
+      animation:waitingPulse 1.8s ease-in-out infinite;
+    }
+    @keyframes waitingPulse{
+      0%,100%{box-shadow:0 0 0 0 rgba(255,215,0,.45)}
+      50%{box-shadow:0 0 0 6px rgba(255,215,0,0)}
+    }
+    .access-panel{
+      width:min(100%,580px);
+      margin-inline:auto;
+      padding:18px;
+      border:1px solid rgba(255,215,0,.22);
+      border-radius:21px;
+      background:linear-gradient(145deg,rgba(255,255,255,.07),var(--panel));
+      backdrop-filter:blur(15px) saturate(120%);
+      -webkit-backdrop-filter:blur(15px) saturate(120%);
+      box-shadow:0 24px 65px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    .panel-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:13px;
+      padding-bottom:11px;
+      border-bottom:1px solid rgba(255,215,0,.11);
+    }
+    .panel-title{font-size:.9rem;font-weight:900;color:#ffe678}
+    .panel-copy{margin-top:2px;color:rgba(255,255,255,.47);font-size:.61rem}
+    .progress-chip{
+      flex:none;
+      padding:5px 8px;
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:9px;
+      color:rgba(255,255,255,.48);
+      font-size:.54rem;
+      font-weight:900;
+      background:rgba(0,0,0,.17);
+    }
+    .links-list{display:grid;gap:10px}
+    .player-row{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto;
+      align-items:center;
+      gap:10px;
+    }
+    .copy-btn{
+      width:100%;
+      min-height:49px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+      padding:10px 13px;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:13px;
+      color:#fff;
+      font-size:.72rem;
+      font-weight:900;
+      outline:none;
+      box-shadow:0 10px 24px rgba(0,0,0,.23),inset 0 1px 0 rgba(255,255,255,.09);
+      transition:transform .15s ease,filter .15s ease,box-shadow .15s ease;
+    }
+    .copy-btn:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.07);box-shadow:0 14px 28px rgba(0,0,0,.28)}
+    .copy-btn:active:not(:disabled){transform:translateY(1px) scale(.995)}
+    .copy-btn:disabled{cursor:not-allowed}
+    .player-one .copy-btn{background:linear-gradient(135deg,#9333ea,#db2777)}
+    .player-two .copy-btn{background:linear-gradient(135deg,#4f46e5,#0284c7)}
+    .copy-icon{width:18px;height:18px;flex:none}
+    .copy-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1rem}
+    @keyframes copyPop{
+      0%{transform:scale(1)}
+      30%{transform:scale(.97)}
+      55%{transform:scale(1.02)}
+      100%{transform:scale(1)}
+    }
+    .copy-success{animation:copyPop .45s ease}
+    @keyframes checkDraw{
+      0%{stroke-dashoffset:24;opacity:0}
+      20%{opacity:1}
+      100%{stroke-dashoffset:0;opacity:1}
+    }
+    .copy-check path{
+      stroke-dasharray:24;
+      stroke-dashoffset:24;
+      animation:checkDraw .5s ease forwards;
+    }
+    .ready-badge{
+      min-height:34px;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border:1px solid rgba(74,222,128,.35);
+      border-radius:999px;
+      color:#bbf7d0;
+      font-size:.62rem;
+      font-weight:900;
+      background:rgba(34,197,94,.11);
+      white-space:nowrap;
+      animation:badgeIn .4s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes badgeIn{
+      0%{opacity:0;transform:scale(.72) translateY(4px)}
+      60%{opacity:1;transform:scale(1.06)}
+      100%{opacity:1;transform:scale(1)}
+    }
+    .ready-dot{
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:var(--green);
+      box-shadow:0 0 10px rgba(74,222,128,.55);
+    }
+    .start-btn{
+      width:100%;
+      min-height:51px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+      margin-top:13px;
+      padding:10px 18px;
+      border:1px solid rgba(134,239,172,.38);
+      border-radius:14px;
+      color:#fff;
+      font-size:.79rem;
+      font-weight:900;
+      background:linear-gradient(135deg,#22c55e,#059669);
+      box-shadow:0 13px 29px rgba(0,0,0,.27),inset 0 1px 0 rgba(255,255,255,.16);
+      outline:none;
+      transition:.15s ease;
+    }
+    .start-btn:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.06)}
+    .start-btn:disabled{
+      color:rgba(255,255,255,.38);
+      border-color:rgba(255,255,255,.08);
+      background:rgba(255,255,255,.055);
+      box-shadow:none;
+      cursor:not-allowed;
+    }
+    .start-hint{margin-top:7px;color:rgba(255,255,255,.39);text-align:center;font-size:.57rem}
+    .abilities-section{margin-top:20px}
+    .abilities-heading{
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+      padding-inline:3px;
+    }
+    .abilities-title{font-size:.9rem;font-weight:900;color:#ffe678}
+    .abilities-copy{margin-top:2px;color:rgba(255,255,255,.45);font-size:.59rem}
+    .readonly-key{color:rgba(255,255,255,.38);font-size:.55rem;font-weight:800}
+    .abilities-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:18px;
+    }
+    .ability-card{
+      min-width:0;
+      overflow:hidden;
+      border:1px solid rgba(255,215,0,.30);
+      border-radius:18px;
+      background:rgba(0,0,0,.22);
+      box-shadow:0 18px 45px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    .ability-card-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:14px 16px;
+      border-bottom:1px solid rgba(255,215,0,.12);
+      background:rgba(255,255,255,.035);
+    }
+    .ability-owner{min-width:0;display:flex;align-items:center;gap:8px}
+    .player-dot{width:8px;height:8px;flex:none;border-radius:50%}
+    .player-one .player-dot{background:#d946ef;box-shadow:0 0 11px rgba(217,70,239,.6)}
+    .player-two .player-dot{background:#38bdf8;box-shadow:0 0 11px rgba(56,189,248,.6)}
+    .owner-name{overflow:hidden;font-size:.7rem;font-weight:900;text-overflow:ellipsis;white-space:nowrap}
+    .readonly-badge{
+      flex:none;
+      padding:4px 8px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:999px;
+      color:rgba(255,255,255,.42);
+      font-size:.52rem;
+      font-weight:800;
+      background:rgba(255,255,255,.035);
+    }
+    .abilities-view{
+      min-height:102px;
+      max-height:215px;
+      display:grid;
+      align-content:start;
+      gap:7px;
+      overflow-y:auto;
+      padding:12px;
+      scrollbar-width:thin;
+      scrollbar-color:rgba(255,215,0,.62) transparent;
+    }
+    .abilities-view::-webkit-scrollbar{width:9px}
+    .abilities-view::-webkit-scrollbar-track{background:transparent}
+    .abilities-view::-webkit-scrollbar-thumb{border-radius:999px;background:rgba(255,215,0,.60)}
+    .ability-pill{
+      min-height:40px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:7px 10px;
+      border:1px solid rgba(255,215,0,.25);
+      border-radius:10px;
+      color:#211600;
+      text-align:center;
+      font-size:.82rem;
+      font-weight:900;
+      line-height:1.55;
+      background:linear-gradient(145deg,#ffe760,#e6b800);
+      user-select:none;
+      pointer-events:none;
+    }
+    .ability-pill.is-used{
+      color:rgba(255,255,255,.38);
+      border-color:rgba(255,255,255,.07);
+      background:rgba(255,255,255,.045);
+      text-decoration:line-through;
+    }
+    .abilities-empty{margin:auto;color:rgba(255,255,255,.4);text-align:center;font-size:.63rem}
+    #copyToast{
+      position:fixed;
+      bottom:24px;
+      left:50%;
+      z-index:90;
+      transform:translateX(-50%) translateY(12px);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .24s ease,transform .24s ease;
+    }
+    #copyToast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .toast-content{
+      min-height:41px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 14px;
+      border:1px solid rgba(74,222,128,.35);
+      border-radius:999px;
+      color:#bbf7d0;
+      font-size:.67rem;
+      font-weight:900;
+      background:rgba(8,1,5,.88);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      box-shadow:0 15px 38px rgba(0,0,0,.42);
+      white-space:nowrap;
+    }
+    .toast-icon{width:15px;height:15px;flex:none}
+    .brand-logo{
+      position:fixed;
+      right:12px;
+      bottom:10px;
+      width:clamp(78px,10vw,120px);
+      height:auto;
+      opacity:.56;
+      pointer-events:none;
+      filter:drop-shadow(0 10px 20px rgba(0,0,0,.42));
+    }
+    @media (max-width:700px){
+      .page{padding:70px 11px 76px}
+      .brand-header{margin-bottom:16px}
+      .timer-dock{grid-template-columns:1fr auto}
+      .timer-meta{grid-column:1 / -1}
+      .access-panel{padding:14px 12px;border-radius:18px}
+      .panel-head{align-items:flex-start}
+      .player-row{grid-template-columns:1fr}
+      .ready-badge{justify-self:center}
+      .abilities-grid{grid-template-columns:1fr}
+      .abilities-view{min-height:90px;max-height:185px}
+      .brand-logo{right:7px;bottom:7px;opacity:.38}
+    }
+    @media (max-width:470px){
+      .home-btn span:last-child{display:none}
+      .home-btn{width:40px;justify-content:center;padding:7px}
+      .timer-dock{grid-template-columns:1fr}
+      .countdown-box{width:100%}
+      .timer-controls{display:grid;grid-template-columns:1fr 1fr}
+      .timer-btn{min-width:50px;padding-inline:8px}
+      .progress-chip{display:none}
+      .abilities-heading{align-items:flex-start}
+      .readonly-key{display:none}
+    }
+    @media (prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
+    }
+  </style>
+</head>
+
+<body>
+  <button id="homeBtn" class="home-btn" type="button" title="العودة للرئيسية">
+    <span>⌂</span><span>الرئيسية</span>
+  </button>
+
+  <div id="copyToast" role="status" aria-live="polite">
+    <div class="toast-content">
+      <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 13l4 4L19 7" />
+      </svg>
+      <span id="copyToastText">تم نسخ الرابط بنجاح</span>
+    </div>
+  </div>
+
+  <main class="page">
+    <header class="brand-header">
+      <span class="brand-kicker">MATCH LOBBY</span>
+      <h1 class="brand-title">QG14 <span>Card Clash</span></h1>
+      <span class="waiting-line"><span class="waiting-dot"></span>بانتظار ترتيب اللاعبين</span>
+    </header>
+
+    <section class="timer-dock" aria-label="مؤقت ترتيب البطاقات">
+      <div class="timer-meta">
+        <span class="timer-icon" aria-hidden="true">◷</span>
+        <div>
+          <p class="timer-title">مؤقت ترتيب البطاقات</p>
+          <p class="timer-copy">اضغط الوقت للتبديل بين دقيقتين و30 ثانية.</p>
+        </div>
+      </div>
+      <button id="countdownBox" class="countdown-box" type="button" title="اضغط للتبديل بين 2:00 و0:30 عند التوقف">
+        <span id="countdown">02:00</span>
+      </button>
+      <div class="timer-controls">
+        <button id="startTimerBtn" class="timer-btn timer-start" type="button">ابدأ</button>
+        <button id="pauseTimerBtn" class="timer-btn timer-pause" type="button" disabled>إيقاف</button>
+      </div>
+    </section>
+
+    <section class="access-panel">
+      <header class="panel-head">
+        <div>
+          <h2 class="panel-title">روابط اللاعبين</h2>
+          <p class="panel-copy">انسخ الرابط المخصص لكل لاعب وانتظر ظهور حالة الجاهزية.</p>
+        </div>
+        <span class="progress-chip">الخطوة الأخيرة</span>
+      </header>
+
+      <div class="links-list">
+        <div class="player-row player-one">
+          <button id="copyP1" class="copy-btn" type="button">
+            <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2" />
+              <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+            </svg>
+            <span class="copy-label">نسخ رابط ترتيب البطاقات</span>
+          </button>
+          <span id="statusP1" class="ready-badge hidden"><span class="ready-dot"></span>جاهز</span>
+        </div>
+
+        <div class="player-row player-two">
+          <button id="copyP2" class="copy-btn" type="button">
+            <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2" />
+              <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+            </svg>
+            <span class="copy-label">نسخ رابط ترتيب البطاقات</span>
+          </button>
+          <span id="statusP2" class="ready-badge hidden"><span class="ready-dot"></span>جاهز</span>
+        </div>
+      </div>
+
+      <button id="startBtn" class="start-btn" type="button" disabled>
+        <span>بدء المعركة</span><span aria-hidden="true">←</span>
+      </button>
+      
+    </section>
+
+    <section class="abilities-section" aria-label="قدرات اللاعبين">
+      <header class="abilities-heading">
+        <div>
+          <h2 class="abilities-title">قدرات اللاعبين</h2>
+          <p class="abilities-copy">عرض القدرات التي وُزعت قبل بدء المباراة.</p>
+        </div>
+        <span class="readonly-key">عرض فقط</span>
+      </header>
+
+      <div class="abilities-grid">
+        <article class="ability-card player-one">
+          <header class="ability-card-head">
+            <div class="ability-owner">
+              <span class="player-dot"></span>
+              <span id="p1NameBox" class="owner-name">قدرات اللاعب الأول</span>
+            </div>
+            <span class="readonly-badge">عرض فقط</span>
+          </header>
+          <div id="p1AbilitiesView" class="abilities-view"></div>
+        </article>
+
+        <article class="ability-card player-two">
+          <header class="ability-card-head">
+            <div class="ability-owner">
+              <span class="player-dot"></span>
+              <span id="p2NameBox" class="owner-name">قدرات اللاعب الثاني</span>
+            </div>
+            <span class="readonly-badge">عرض فقط</span>
+          </header>
+          <div id="p2AbilitiesView" class="abilities-view"></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Logo" class="brand-logo" />
+
+  <script>
+    document.getElementById("homeBtn").onclick = () => { window.location.href = "/"; };
+  </script>
+  <script src="wait.js?v=wait-ui-v4"></script>
+  <script src="/copyright.js"></script>
+  <script src="/security.js"></script>
+</body>
+</html>
