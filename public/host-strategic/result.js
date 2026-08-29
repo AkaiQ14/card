@@ -775,251 +775,6 @@ function createMedia(url, className, playSfx = false) {
 }
 
 // ======================================================
-// Zoro fullscreen effect + physical replay button
-// ======================================================
-const ZORO_FULLSCREEN_EFFECT_URL = "../images/Zoro.webm";
-let zoroFxSignature = null;
-
-function normalizedMediaPath(url) {
-  if (!url) return "";
-
-  try {
-    const parsed = new URL(String(url), window.location.href);
-    return decodeURIComponent(parsed.pathname)
-      .replace(/\\/g, "/")
-      .replace(/\/{2,}/g, "/")
-      .toLowerCase();
-  } catch {
-    try {
-      return decodeURIComponent(String(url))
-        .split(/[?#]/, 1)[0]
-        .replace(/\\/g, "/")
-        .replace(/\/{2,}/g, "/")
-        .toLowerCase();
-    } catch {
-      return String(url)
-        .split(/[?#]/, 1)[0]
-        .replace(/\\/g, "/")
-        .replace(/\/{2,}/g, "/")
-        .toLowerCase();
-    }
-  }
-}
-
-// The project can store the Zoro card either directly in /images or
-// in /images/legendary. The check is case-insensitive, so both
-// Zoro.webm and ZORO.webm are accepted.
-function isCurrentZoroCardUrl(url) {
-  const path = normalizedMediaPath(url);
-  if (!path) return false;
-
-  return (
-    path.endsWith("/images/zoro.webm") ||
-    path.endsWith("/images/legendary/zoro.webm")
-  );
-}
-
-function currentZoroSide() {
-  const leftUrl = picks?.[player2]?.[round] || "";
-  const rightUrl = picks?.[player1]?.[round] || "";
-
-  if (isCurrentZoroCardUrl(leftUrl)) return "left";
-  if (isCurrentZoroCardUrl(rightUrl)) return "right";
-  return null;
-}
-
-function zoroReplayButtonForSide(side) {
-  return document.getElementById(
-    side === "left" ? "zoroReplayLeft" : "zoroReplayRight"
-  );
-}
-
-function soundReplayButtonForSide(side) {
-  return document.getElementById(
-    side === "left" ? "sfxReplayLeft" : "sfxReplayRight"
-  );
-}
-
-function hideZoroReplayButtons() {
-  ["left", "right"].forEach(side => {
-    const btn = zoroReplayButtonForSide(side);
-    if (!btn) return;
-    btn.classList.remove("is-visible");
-    btn.setAttribute("aria-hidden", "true");
-  });
-}
-
-function positionZoroReplayButton(side) {
-  const zoroBtn = zoroReplayButtonForSide(side);
-  const soundBtn = soundReplayButtonForSide(side);
-  if (!zoroBtn || !soundBtn) return;
-
-  const rect = soundBtn.getBoundingClientRect();
-  if (!rect.width || !rect.height) return;
-
-  // Put the red physical button exactly above the existing sound button.
-  zoroBtn.style.left = `${Math.round(rect.left)}px`;
-  zoroBtn.style.right = "auto";
-  zoroBtn.style.bottom = `${Math.round(window.innerHeight - rect.top + 4)}px`;
-  zoroBtn.style.width = `${Math.round(rect.width)}px`;
-}
-
-function showZoroReplayButton(side) {
-  hideZoroReplayButtons();
-
-  const btn = zoroReplayButtonForSide(side);
-  if (!btn) return;
-
-  btn.classList.add("is-visible");
-  btn.setAttribute("aria-hidden", "false");
-  positionZoroReplayButton(side);
-
-  // webm-sfx.js applies the final sound-button position after DOMContentLoaded.
-  // Re-align a few times so the red button follows that final physical position.
-  requestAnimationFrame(() => positionZoroReplayButton(side));
-  setTimeout(() => positionZoroReplayButton(side), 100);
-  setTimeout(() => positionZoroReplayButton(side), 500);
-}
-
-function stopZoroFullscreenEffect({ resetSignature = false } = {}) {
-  const overlay = document.getElementById("zoroFullscreenFx");
-  const video = document.getElementById("zoroFullscreenVideo");
-
-  if (video) {
-    try {
-      video.pause();
-      video.currentTime = 0;
-    } catch {}
-  }
-
-  if (overlay) {
-    overlay.classList.remove("is-active");
-    overlay.setAttribute("aria-hidden", "true");
-  }
-
-  if (resetSignature) zoroFxSignature = null;
-}
-
-function playZoroFullscreenEffect() {
-  const overlay = document.getElementById("zoroFullscreenFx");
-  const video = document.getElementById("zoroFullscreenVideo");
-  if (!overlay || !video) return;
-
-  // Keep the old/local project path exactly as requested.
-  if (!video.getAttribute("src")) {
-    video.src = ZORO_FULLSCREEN_EFFECT_URL;
-  }
-
-  try {
-    video.pause();
-    video.currentTime = 0;
-  } catch {}
-
-  overlay.classList.add("is-active");
-  overlay.setAttribute("aria-hidden", "false");
-
-  const playPromise = video.play();
-  if (playPromise && typeof playPromise.catch === "function") {
-    playPromise.catch(() => {
-      // Browser autoplay rules may block the effect until interaction.
-      // The physical replay button remains visible for manual playback.
-      overlay.classList.remove("is-active");
-      overlay.setAttribute("aria-hidden", "true");
-    });
-  }
-}
-
-function replayZoroWithCardSound(side) {
-  // Do nothing if the current round is no longer the Zoro round.
-  if (currentZoroSide() !== side) return;
-
-  playZoroFullscreenEffect();
-
-  // Replay the exact card-side sound through the project's existing SFX system.
-  if (
-    window.WebmSfx &&
-    typeof window.WebmSfx.replaySide === "function"
-  ) {
-    window.WebmSfx.replaySide(side);
-    return;
-  }
-
-  // Compatibility fallback for an older webm-sfx.js.
-  const soundBtn = soundReplayButtonForSide(side);
-  if (soundBtn) soundBtn.click();
-}
-
-function syncZoroForCurrentRound() {
-  const side = currentZoroSide();
-
-  if (!side) {
-    hideZoroReplayButtons();
-    stopZoroFullscreenEffect({ resetSignature: true });
-    return;
-  }
-
-  showZoroReplayButton(side);
-
-  const cardUrl =
-    side === "left"
-      ? picks?.[player2]?.[round]
-      : picks?.[player1]?.[round];
-
-  const signature = `${round}|${side}|${String(cardUrl || "")}`;
-  if (zoroFxSignature === signature) return;
-
-  zoroFxSignature = signature;
-  playZoroFullscreenEffect();
-}
-
-function initZoroReplayControls() {
-  const left = zoroReplayButtonForSide("left");
-  const right = zoroReplayButtonForSide("right");
-
-  if (left && !left.dataset.zoroWired) {
-    left.dataset.zoroWired = "1";
-    left.addEventListener("click", () => replayZoroWithCardSound("left"));
-  }
-
-  if (right && !right.dataset.zoroWired) {
-    right.dataset.zoroWired = "1";
-    right.addEventListener("click", () => replayZoroWithCardSound("right"));
-  }
-
-  const video = document.getElementById("zoroFullscreenVideo");
-  if (video && !video.dataset.zoroEndedWired) {
-    video.dataset.zoroEndedWired = "1";
-    video.addEventListener("ended", () => {
-      const overlay = document.getElementById("zoroFullscreenFx");
-      if (overlay) {
-        overlay.classList.remove("is-active");
-        overlay.setAttribute("aria-hidden", "true");
-      }
-      // Intentionally keep the red replay button visible in the Zoro round.
-    });
-  }
-
-  window.addEventListener("resize", () => {
-    const side = currentZoroSide();
-    if (side) positionZoroReplayButton(side);
-  });
-
-  // If webm-sfx rewrites sound-button classes/positions, keep our button aligned.
-  [soundReplayButtonForSide("left"), soundReplayButtonForSide("right")]
-    .filter(Boolean)
-    .forEach(soundBtn => {
-      const observer = new MutationObserver(() => {
-        const side = currentZoroSide();
-        if (side) positionZoroReplayButton(side);
-      });
-      observer.observe(soundBtn, {
-        attributes: true,
-        attributeFilter: ["class", "style"]
-      });
-    });
-}
-
-// ======================================================
 // Ability row
 // ======================================================
 function abilityRow(ab, onToggle) {
@@ -2179,6 +1934,39 @@ function createCategoryPicker(
 // ======================================================
 // VS Row
 // ======================================================
+
+// ===== Thanos: keep the legendary card hidden until its fullscreen clip finishes =====
+function isThanosLegendaryCardUrl(url) {
+  if (!url) return false;
+  let clean = String(url);
+  try {
+    clean = decodeURIComponent(new URL(clean, window.location.href).pathname);
+  } catch {
+    try { clean = decodeURIComponent(clean); } catch {}
+    clean = clean.split(/[?#]/, 1)[0];
+  }
+  clean = clean.replace(/\\/g, "/").replace(/\/{2,}/g, "/").toLowerCase();
+  return /\/images\/legendary\/thanos\.[^/]+$/.test(clean);
+}
+
+function prepareThanosCardForFullscreen(media, mediaUrl, side) {
+  if (!media || !isThanosLegendaryCardUrl(mediaUrl)) return;
+
+  // Preferred path: give the fullscreen manager the EXACT card element now.
+  // It will release this same element when Thanos' automatic clip finishes.
+  if (
+    window.LegendaryFullscreen &&
+    typeof window.LegendaryFullscreen.holdCard === "function"
+  ) {
+    window.LegendaryFullscreen.holdCard(media, mediaUrl, side);
+    return;
+  }
+
+  // Fail-open fallback: if the fullscreen manager is unavailable, do NOT hide
+  // the card. A broken/blocked helper must never leave Thanos invisible.
+  console.warn("[legendary-fullscreen] Manager unavailable; showing Thanos normally.");
+}
+
 function renderVsRow() {
   if (
     window.WebmSfx &&
@@ -2252,6 +2040,8 @@ function renderVsRow() {
           "w-full h-full object-contain",
           true
         );
+
+      prepareThanosCardForFullscreen(media, mediaUrl, pos);
 
       card.appendChild(
         media
@@ -2984,9 +2774,6 @@ function renderRound() {
   }
 
   renderVsRow();
-
-  // Zoro is tied to the CURRENT round only.
-  syncZoroForCurrentRound();
 
   renderAbilities(
     P2_ABILITIES_KEY,
@@ -4742,5 +4529,4 @@ if (
 // ======================================================
 // Initial render
 // ======================================================
-initZoroReplayControls();
 renderRound();

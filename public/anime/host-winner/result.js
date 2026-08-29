@@ -318,6 +318,39 @@ function broadcast() { if (socket && gameID) socket.emit("resultSnapshot", { gam
 if (socket) socket.on("requestResultSnapshot", () => broadcast());
 
 // ======== VS Row ========
+
+// ===== Thanos: keep the legendary card hidden until its fullscreen clip finishes =====
+function isThanosLegendaryCardUrl(url) {
+  if (!url) return false;
+  let clean = String(url);
+  try {
+    clean = decodeURIComponent(new URL(clean, window.location.href).pathname);
+  } catch {
+    try { clean = decodeURIComponent(clean); } catch {}
+    clean = clean.split(/[?#]/, 1)[0];
+  }
+  clean = clean.replace(/\\/g, "/").replace(/\/{2,}/g, "/").toLowerCase();
+  return /\/images\/legendary\/thanos\.[^/]+$/.test(clean);
+}
+
+function prepareThanosCardForFullscreen(media, mediaUrl, side) {
+  if (!media || !isThanosLegendaryCardUrl(mediaUrl)) return;
+
+  // Preferred path: give the fullscreen manager the EXACT card element now.
+  // It will release this same element when Thanos' automatic clip finishes.
+  if (
+    window.LegendaryFullscreen &&
+    typeof window.LegendaryFullscreen.holdCard === "function"
+  ) {
+    window.LegendaryFullscreen.holdCard(media, mediaUrl, side);
+    return;
+  }
+
+  // Fail-open fallback: if the fullscreen manager is unavailable, do NOT hide
+  // the card. A broken/blocked helper must never leave Thanos invisible.
+  console.warn("[legendary-fullscreen] Manager unavailable; showing Thanos normally.");
+}
+
 function renderVsRow() {
   if (window.WebmSfx && typeof window.WebmSfx === "object") {
     try { if (!window.WebmSfx.perSide) window.WebmSfx.perSide = { left: [], right: [] };
@@ -443,7 +476,9 @@ function renderVsRow() {
     const wrap = document.createElement("div"); wrap.className = "flex flex-col items-center";
     const label = document.createElement("div"); label.className = "text-yellow-300 font-extrabold text-xl mb-2"; label.textContent = name;
     const card = document.createElement("div"); card.className = "w-80 md:w-96 h-[26rem] md:h-[30rem] overflow-hidden flex items-center justify-center";
-    const media = createMedia(mediaUrl, "w-full h-full object-contain", true); card.appendChild(media);
+    const media = createMedia(mediaUrl, "w-full h-full object-contain", true);
+    prepareThanosCardForFullscreen(media, mediaUrl, pos);
+    card.appendChild(media);
 
     // 🔊 map correctly: left = player2, right = player1
     if (window.WebmSfx && /\.webm(\?|#|$)/i.test(mediaUrl || "")) {
