@@ -50,7 +50,7 @@
     <h1 class="text-5xl font-bold tracking-wide shine-title">QG14 Card Clash</h1>
 
     <!-- Logo -->
-    <img src="images/qg14-Card-Clash-logo.png" alt="QG14 Card Clash Logo" style="max-width: 300px; width: 100%;" class="mx-auto rounded-xl object-contain" />
+    <img src="../images/qg14-Card-Clash-logo.png" alt="QG14 Card Clash Logo" style="max-width: 300px; width: 100%;" class="mx-auto rounded-xl object-contain" />
 
     <!-- Mode Selection -->
 <div class="space-y-3 text-right">
@@ -109,9 +109,9 @@
       let targetPath = "/";
       switch (selectedMode) {
         case "manual": targetPath = "/host-manual"; break;
-        case "strategic": targetPath = "/host-strategic"; break;
-        case "winner": targetPath = "/host-winner"; break;
-        default: targetPath = "/host-strategic";
+        case "strategic": targetPath = "/anime/host-strategic"; break;
+        case "winner": targetPath = "/anime/host-winner"; break;
+        default: targetPath = "/anime/host-strategic";
       }
 
       localStorage.setItem("gameMode", selectedMode);
@@ -124,7 +124,7 @@
     }
   </script>
 
-  <script src="copyright.js"></script>
-  <script src="security.js"></script>
+  <script src="/copyright.js"></script>
+  <script src="/security.js"></script>
 </body>
 </html>

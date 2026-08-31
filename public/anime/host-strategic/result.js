@@ -1934,39 +1934,6 @@ function createCategoryPicker(
 // ======================================================
 // VS Row
 // ======================================================
-
-// ===== Thanos: keep the legendary card hidden until its fullscreen clip finishes =====
-function isThanosLegendaryCardUrl(url) {
-  if (!url) return false;
-  let clean = String(url);
-  try {
-    clean = decodeURIComponent(new URL(clean, window.location.href).pathname);
-  } catch {
-    try { clean = decodeURIComponent(clean); } catch {}
-    clean = clean.split(/[?#]/, 1)[0];
-  }
-  clean = clean.replace(/\\/g, "/").replace(/\/{2,}/g, "/").toLowerCase();
-  return /\/images\/legendary\/thanos\.[^/]+$/.test(clean);
-}
-
-function prepareThanosCardForFullscreen(media, mediaUrl, side) {
-  if (!media || !isThanosLegendaryCardUrl(mediaUrl)) return;
-
-  // Preferred path: give the fullscreen manager the EXACT card element now.
-  // It will release this same element when Thanos' automatic clip finishes.
-  if (
-    window.LegendaryFullscreen &&
-    typeof window.LegendaryFullscreen.holdCard === "function"
-  ) {
-    window.LegendaryFullscreen.holdCard(media, mediaUrl, side);
-    return;
-  }
-
-  // Fail-open fallback: if the fullscreen manager is unavailable, do NOT hide
-  // the card. A broken/blocked helper must never leave Thanos invisible.
-  console.warn("[legendary-fullscreen] Manager unavailable; showing Thanos normally.");
-}
-
 function renderVsRow() {
   if (
     window.WebmSfx &&
@@ -2040,8 +2007,6 @@ function renderVsRow() {
           "w-full h-full object-contain",
           true
         );
-
-      prepareThanosCardForFullscreen(media, mediaUrl, pos);
 
       card.appendChild(
         media
