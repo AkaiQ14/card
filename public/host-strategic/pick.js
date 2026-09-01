@@ -7,14 +7,14 @@ randomSound.volume = 1.0;
 // to receive a legendary card.
 const LEGENDARY_CHANCE = 0.1;
 const BOARD_SIZE = 20;
-const DISTRIBUTION_VERSION = 4;
-const BOARD_STORAGE_VERSION = 4;
+const DISTRIBUTION_VERSION = 5;
+const BOARD_STORAGE_VERSION = 5;
 
 const roundCount = parseInt(localStorage.getItem("totalRounds") || "3", 10);
 const player1 = localStorage.getItem("player1") || "لاعب 1";
 const player2 = localStorage.getItem("player2") || "لاعب 2";
 const gameID = localStorage.getItem("gameID") || "default";
-const PICK_SESSION_KEY = `pickStarted:v4:${String(gameID)}`;
+const PICK_SESSION_KEY = `pickStarted:v5:${CARD_SCOPE}:${String(gameID)}`;
 
 let currentPlayer = parseInt(localStorage.getItem("currentPlayer") || "1", 10);
 
@@ -53,37 +53,35 @@ let imageMap = {};      // 1..20 -> {folder, filename, key, fullPath}
 let selectedBoxes = []; // indices
 
 // =====================================================
-// Daily comprehensive rotation + previous-match exclusion
+// Persistent fair rotation + previous-match soft exclusion
 // =====================================================
-
-function getLocalDayKey(date = new Date()) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+// Rotation is intentionally NOT tied to a day or a game. It persists in
+// localStorage until every card in a rarity has had its turn, then reshuffles.
+// CARD_SCOPE is part of every persistent key so /anime and /all never interfere.
+function scopeToken() {
+  return CARD_SCOPE === "anime" ? "anime" : "all";
 }
 
-const DAILY_KEY = getLocalDayKey();
-
 function usedCardsKey() {
-  return `distributed_cards_v4_${String(gameID)}`;
+  return `distributed_cards_v5_${scopeToken()}_${String(gameID)}`;
 }
 
 // Stable 20-card board per player: refresh never changes a generated board.
 function boardKey(playerNumber = currentPlayer) {
-  return `random_board_v4_${String(gameID)}_p${playerNumber}`;
+  return `random_board_v5_${scopeToken()}_${String(gameID)}_p${playerNumber}`;
 }
 
-function dailyRotationKey(folder) {
-  return `card_rotation_v4_${String(folder)}_${DAILY_KEY}`;
+function rotationKey(folder) {
+  return `card_rotation_v5_${scopeToken()}_${String(folder)}`;
 }
 
+// Only the immediately previous completed match for this scope is remembered.
 function lastMatchKey() {
-  return `last_match_played_v4_${DAILY_KEY}`;
+  return `last_match_played_v5_${scopeToken()}`;
 }
 
 function currentMatchPicksKey() {
-  return `match_played_picks_v4_${String(gameID)}`;
+  return `match_played_picks_v5_${scopeToken()}_${String(gameID)}`;
 }
 
 if (isNewPickSession) {
@@ -96,15 +94,21 @@ if (isNewPickSession) {
 // Remove obsolete session flags from older versions.
 localStorage.removeItem("pickStarted");
 
-// Keep storage small without deleting today's daily rotation.
+// Keep persistent v5 rotations/last-match data, but remove stale per-game data
+// and all older rotation formats (including the old daily v4 rotation).
 function purgeOldGameStorage(currentID) {
   const id = String(currentID);
-  const keepDailySuffix = `_${DAILY_KEY}`;
+  const scope = scopeToken();
+  const currentBoardPrefix = `random_board_v5_${scope}_${id}_p`;
+  const currentUsedKey = `distributed_cards_v5_${scope}_${id}`;
+  const currentPickSessionKey = `pickStarted:v5:${scope}:${id}`;
+  const currentPlayedKey = `match_played_picks_v5_${scope}_${id}`;
 
   for (let i = localStorage.length - 1; i >= 0; i--) {
     const k = localStorage.key(i);
     if (!k) continue;
 
+    // Legacy transient/deck keys and all v4 daily-rotation keys.
     if (
       k.startsWith("deck_legendary_") ||
       k.startsWith("deck_legendary_pos_") ||
@@ -113,59 +117,39 @@ function purgeOldGameStorage(currentID) {
       k.startsWith("current_board_") ||
       k.startsWith("distributed_cards_v2_") ||
       k.startsWith("random_board_v2_") ||
-      k.startsWith("pickStarted:v2:")
+      k.startsWith("pickStarted:v2:") ||
+      k.startsWith("distributed_cards_v4_") ||
+      k.startsWith("random_board_v4_") ||
+      k.startsWith("pickStarted:v4:") ||
+      k.startsWith("match_played_picks_v4_") ||
+      k.startsWith("card_rotation_v4_") ||
+      k.startsWith("last_match_played_v4_")
     ) {
       localStorage.removeItem(k);
       continue;
     }
 
-    if (
-      k.startsWith("distributed_cards_v4_") &&
-      k !== `distributed_cards_v4_${id}`
-    ) {
+    // v5 game-scoped data is temporary. Keep only the current game.
+    if (k.startsWith(`distributed_cards_v5_${scope}_`) && k !== currentUsedKey) {
       localStorage.removeItem(k);
       continue;
     }
 
-    if (
-      k.startsWith("random_board_v4_") &&
-      !k.startsWith(`random_board_v4_${id}_p`)
-    ) {
+    if (k.startsWith(`random_board_v5_${scope}_`) && !k.startsWith(currentBoardPrefix)) {
       localStorage.removeItem(k);
       continue;
     }
 
-    if (
-      k.startsWith("pickStarted:v4:") &&
-      k !== `pickStarted:v4:${id}`
-    ) {
+    if (k.startsWith(`pickStarted:v5:${scope}:`) && k !== currentPickSessionKey) {
       localStorage.removeItem(k);
       continue;
     }
 
-    if (
-      k.startsWith("match_played_picks_v4_") &&
-      k !== `match_played_picks_v4_${id}`
-    ) {
+    if (k.startsWith(`match_played_picks_v5_${scope}_`) && k !== currentPlayedKey) {
       localStorage.removeItem(k);
-      continue;
     }
 
-    // Daily rotations automatically reset with a new date.
-    if (
-      k.startsWith("card_rotation_v4_") &&
-      !k.endsWith(keepDailySuffix)
-    ) {
-      localStorage.removeItem(k);
-      continue;
-    }
-
-    if (
-      k.startsWith("last_match_played_v4_") &&
-      k !== lastMatchKey()
-    ) {
-      localStorage.removeItem(k);
-    }
+    // IMPORTANT: never purge card_rotation_v5_* or last_match_played_v5_* here.
   }
 }
 
@@ -319,8 +303,10 @@ function reserveCards(usedKeys, cards) {
 }
 
 // -----------------------------------------------------
-// Previous match: ONLY the actually selected/played cards
-// are excluded from the immediately following match.
+// Previous match: ONLY the actually selected/played cards are preferred to be
+// skipped in the immediately following match. This is a SOFT exclusion: if it
+// would cause a shortage, those cards become eligible automatically instead of
+// stopping the game.
 // -----------------------------------------------------
 function loadPreviousMatchKeys() {
   try {
@@ -329,7 +315,7 @@ function loadPreviousMatchKeys() {
     if (
       !data ||
       data.version !== DISTRIBUTION_VERSION ||
-      data.day !== DAILY_KEY ||
+      data.scope !== scopeToken() ||
       String(data.gameID || "") === String(gameID) ||
       !Array.isArray(data.cards)
     ) {
@@ -388,7 +374,7 @@ function finalizePreviousMatchExclusion(currentMatchState) {
     lastMatchKey(),
     JSON.stringify({
       version: DISTRIBUTION_VERSION,
-      day: DAILY_KEY,
+      scope: scopeToken(),
       gameID: String(gameID),
       cards,
       savedAt: Date.now()
@@ -399,11 +385,14 @@ function finalizePreviousMatchExclusion(currentMatchState) {
 }
 
 // -----------------------------------------------------
-// Daily category rotation
-// Every card in a category is consumed once before that
-// category reshuffles, except cards temporarily blocked by
-// the previous match/current match. New cards join the
-// unconsumed part automatically; deleted cards disappear.
+// Persistent category rotation
+// -----------------------------------------------------
+// Rules:
+// 1) Every existing card in a rarity is consumed once before that rarity cycles.
+// 2) New cards are appended to the still-unconsumed tail, so they join without
+//    resetting progress or pushing already-waiting old cards backwards.
+// 3) Deleted cards disappear from the state automatically.
+// 4) A new cycle starts only after the current cycle is genuinely consumed.
 // -----------------------------------------------------
 function normalizeRotationState(folder, cards) {
   const pool = uniqueCards(cards);
@@ -412,25 +401,26 @@ function normalizeRotationState(folder, cards) {
 
   let raw = null;
   try {
-    raw = JSON.parse(localStorage.getItem(dailyRotationKey(folder)) || "null");
+    raw = JSON.parse(localStorage.getItem(rotationKey(folder)) || "null");
   } catch {}
 
   if (
     !raw ||
     raw.version !== DISTRIBUTION_VERSION ||
-    raw.day !== DAILY_KEY ||
+    raw.scope !== scopeToken() ||
     raw.folder !== folder ||
     !Array.isArray(raw.order)
   ) {
     const fresh = {
       version: DISTRIBUTION_VERSION,
-      day: DAILY_KEY,
+      scope: scopeToken(),
       folder,
       order: shuffleInPlace([...validKeys]),
       cursor: 0,
-      cycles: 0
+      cycles: 0,
+      updatedAt: Date.now()
     };
-    localStorage.setItem(dailyRotationKey(folder), JSON.stringify(fresh));
+    localStorage.setItem(rotationKey(folder), JSON.stringify(fresh));
     return fresh;
   }
 
@@ -457,7 +447,8 @@ function normalizeRotationState(folder, cards) {
     }
   });
 
-  // Newly added cards are inserted into the not-yet-consumed portion.
+  // New cards join AFTER cards that were already waiting in this cycle.
+  // This deliberately protects old/unseen cards from being buried by additions.
   const added = shuffleInPlace(
     validKeys.filter(key => !seen.has(key))
   );
@@ -465,26 +456,21 @@ function normalizeRotationState(folder, cards) {
 
   const state = {
     version: DISTRIBUTION_VERSION,
-    day: DAILY_KEY,
+    scope: scopeToken(),
     folder,
     order: [...consumed, ...remaining],
     cursor: consumed.length,
-    cycles: Math.max(0, Number(raw.cycles) || 0)
+    cycles: Math.max(0, Number(raw.cycles) || 0),
+    updatedAt: Date.now()
   };
 
-  // If a complete category cycle finished, begin a fresh shuffled cycle.
-  if (state.cursor >= state.order.length && validKeys.length) {
-    state.order = shuffleInPlace([...validKeys]);
-    state.cursor = 0;
-    state.cycles += 1;
-  }
-
-  localStorage.setItem(dailyRotationKey(folder), JSON.stringify(state));
+  localStorage.setItem(rotationKey(folder), JSON.stringify(state));
   return state;
 }
 
 function saveRotationState(folder, state) {
-  localStorage.setItem(dailyRotationKey(folder), JSON.stringify(state));
+  state.updatedAt = Date.now();
+  localStorage.setItem(rotationKey(folder), JSON.stringify(state));
 }
 
 function beginNextRotationCycle(state, validKeys) {
@@ -493,23 +479,29 @@ function beginNextRotationCycle(state, validKeys) {
   state.cycles = (Number(state.cycles) || 0) + 1;
 }
 
-function drawNextRotatedCard(folder, cards, blockedKeys) {
+function drawNextRotatedCard(
+  folder,
+  cards,
+  hardBlockedKeys,
+  softBlockedKeys
+) {
   const pool = uniqueCards(cards);
   if (!pool.length) return null;
 
   const byKey = new Map(pool.map(card => [cardIdentity(card), card]));
   const validKeys = Array.from(byKey.keys());
-  const blocked = blockedKeys instanceof Set ? blockedKeys : new Set();
+  const hardBlocked = hardBlockedKeys instanceof Set ? hardBlockedKeys : new Set();
+  const softBlocked = softBlockedKeys instanceof Set ? softBlockedKeys : new Set();
   const state = normalizeRotationState(folder, pool);
 
-  const tryCurrentCycle = () => {
+  const tryCurrentCycle = (respectSoftBlock) => {
     for (let idx = state.cursor; idx < state.order.length; idx++) {
       const key = state.order[idx];
-      if (!byKey.has(key) || blocked.has(key)) continue;
+      if (!byKey.has(key) || hardBlocked.has(key)) continue;
+      if (respectSoftBlock && softBlocked.has(key)) continue;
 
-      // Move the chosen eligible card to the cursor. Temporarily blocked
-      // cards stay in the unconsumed tail so they become available again
-      // naturally in the next match.
+      // Move the selected card to the cursor so the consumed prefix remains exact.
+      // Skipped cards remain in the tail and therefore keep their turn.
       [state.order[state.cursor], state.order[idx]] =
         [state.order[idx], state.order[state.cursor]];
 
@@ -521,15 +513,29 @@ function drawNextRotatedCard(folder, cards, blockedKeys) {
     return null;
   };
 
-  let card = tryCurrentCycle();
+  // First preference: preserve previous-match exclusion.
+  let card = tryCurrentCycle(true);
   if (card) return card;
 
-  // All eligible cards in this category's current cycle were consumed.
-  // Start the next cycle only if this board still needs a card from it.
+  // Soft fallback: keep the requested rarity and allow a previous-match card
+  // before distorting the slot's 10%/90% rarity decision.
+  card = tryCurrentCycle(false);
+  if (card) return card;
+
+  // If unconsumed cards remain but every one is hard-blocked by THIS match,
+  // do not start a new cycle. Returning null lets the caller try the other rarity.
+  if (state.cursor < state.order.length) {
+    return null;
+  }
+
+  // The cycle is genuinely complete. Start the next one automatically.
   beginNextRotationCycle(state, validKeys);
   saveRotationState(folder, state);
 
-  card = tryCurrentCycle();
+  card = tryCurrentCycle(true);
+  if (card) return card;
+
+  card = tryCurrentCycle(false);
   return card;
 }
 
@@ -540,37 +546,50 @@ function buildComprehensiveBoard(
   previousMatchKeys
 ) {
   const board = [];
-  const blockedKeys = new Set([
-    ...Array.from(usedKeys || []),
-    ...Array.from(previousMatchKeys || [])
-  ]);
+
+  // HARD block = cards already distributed anywhere in this current game.
+  // These can never repeat between the two players' 20-box boards.
+  const hardBlockedKeys = new Set(Array.from(usedKeys || []));
+
+  // SOFT block = cards actually played in the immediately previous match.
+  // Prefer skipping them, but relax this automatically if needed.
+  const softBlockedKeys = new Set(Array.from(previousMatchKeys || []));
 
   for (let slot = 0; slot < BOARD_SIZE; slot++) {
-    // Preserve the exact existing mechanism: independent 10% roll per slot.
+    // Preserve the exact original mechanism: independent 10% roll per slot.
     const wantsLegendary = Math.random() < LEGENDARY_CHANCE;
+    const primaryFolder = wantsLegendary ? "legendary" : "normal";
+    const primaryCards = wantsLegendary ? legendaryCards : normalCards;
+    const fallbackFolder = wantsLegendary ? "normal" : "legendary";
+    const fallbackCards = wantsLegendary ? normalCards : legendaryCards;
 
-    let card = wantsLegendary
-      ? drawNextRotatedCard("legendary", legendaryCards, blockedKeys)
-      : drawNextRotatedCard("normal", normalCards, blockedKeys);
+    let card = drawNextRotatedCard(
+      primaryFolder,
+      primaryCards,
+      hardBlockedKeys,
+      softBlockedKeys
+    );
 
-    // Safety fallback only when the requested category has no eligible card.
-    // This prevents failures with small/temporarily blocked folders while the
-    // primary per-slot legendary probability remains 0.1.
+    // Only change rarity if the requested rarity has no card available without
+    // repeating a card already distributed in the CURRENT game.
     if (!card) {
-      card = wantsLegendary
-        ? drawNextRotatedCard("normal", normalCards, blockedKeys)
-        : drawNextRotatedCard("legendary", legendaryCards, blockedKeys);
+      card = drawNextRotatedCard(
+        fallbackFolder,
+        fallbackCards,
+        hardBlockedKeys,
+        softBlockedKeys
+      );
     }
 
     if (!card) {
       throw new Error(
-        "تعذر إكمال اللوحة دون تكرار أو استخدام بطاقات المباراة السابقة."
+        "لا توجد بطاقات فريدة كافية لإكمال لوحتي اللاعبين دون تكرار."
       );
     }
 
     const key = cardIdentity(card);
     board.push(card);
-    blockedKeys.add(key);
+    hardBlockedKeys.add(key);
     usedKeys.add(key);
   }
 
@@ -629,16 +648,15 @@ async function loadAndRender() {
         ...normalCards
       ]);
 
-      const unavailable = new Set([
-        ...Array.from(usedKeys),
-        ...Array.from(previousMatchKeys)
-      ]);
-
+      // Previous-match cards are NOT counted as unavailable here because that
+      // exclusion is intentionally soft. Only cards already distributed in this
+      // current game are a hard restriction.
       const availableUniqueCount = allUnique.filter(
-        card => !unavailable.has(cardIdentity(card))
+        card => !usedKeys.has(cardIdentity(card))
       ).length;
 
-      // Player 1 must leave enough unique cards for player 2's 20 boxes too.
+      // Player 1 must leave 20 other unique cards for player 2. Player 2 only
+      // needs its own remaining 20. This error now means a REAL inventory shortage.
       const requiredUniqueCount =
         currentPlayer === 1 && !otherBoard
           ? BOARD_SIZE * 2
@@ -646,7 +664,7 @@ async function loadAndRender() {
 
       if (availableUniqueCount < requiredUniqueCount) {
         throw new Error(
-          `يلزم ${requiredUniqueCount} بطاقة فريدة بعد استبعاد بطاقات المباراة السابقة، والمتوفر ${availableUniqueCount} فقط.`
+          `عدد الكروت الفريدة غير كافٍ: يلزم ${requiredUniqueCount} والمتوفر ${availableUniqueCount}.`
         );
       }
 
