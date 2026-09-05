@@ -8,7 +8,8 @@ randomSound.volume = 1.0;
 const LEGENDARY_CHANCE = 0.1;
 const BOARD_SIZE = 20;
 const DISTRIBUTION_VERSION = 5;
-const BOARD_STORAGE_VERSION = 5;
+const BOARD_STORAGE_VERSION = 6;
+const PICK_POOL_REVISION = "override-aware-v6";
 
 const roundCount = parseInt(localStorage.getItem("totalRounds") || "3", 10);
 const player1 = localStorage.getItem("player1") || "لاعب 1";
@@ -174,25 +175,101 @@ function shuffleInPlace(arr) {
 }
 
 // Images + video cards
-function isMediaFile(f) {
-  return /\.(png|jpg|jpeg|webp|gif|avif|bmp|svg|apng|webm|mp4|ogg)$/i.test(String(f));
+function entryFilename(entry) {
+  if (typeof entry === "string") return entry.trim();
+  if (!entry || typeof entry !== "object") return "";
+  return String(entry.filename || entry.name || entry.file || "").trim();
+}
+
+function entrySource(entry) {
+  if (!entry || typeof entry !== "object") return "";
+  return String(entry.source || entry.origin || entry.location || "").trim().toLowerCase();
+}
+
+function isMediaFile(entry) {
+  return /\.(png|jpg|jpeg|webp|gif|avif|bmp|svg|apng|webm|mp4|ogg)$/i.test(entryFilename(entry));
 }
 
 async function fetchFolderList(folder) {
-  const res = await fetch(
-    `/list-images/${encodeURIComponent(folder)}?scope=${encodeURIComponent(CARD_SCOPE)}`
-  );
-  if (!res.ok) throw new Error(`Failed to list ${folder}`);
-  return res.json();
+  let lastError = null;
+
+  // A card update may have been installed only moments before opening Pick.
+  // Always bypass HTTP/browser caches and retry transient failures so the pool
+  // is built from the newest server-side merged inventory.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const query = new URLSearchParams({
+        scope: CARD_SCOPE,
+        includeMeta: "1",
+        rev: PICK_POOL_REVISION,
+        _: `${Date.now()}-${attempt}`
+      });
+
+      const res = await fetch(
+        `/list-images/${encodeURIComponent(folder)}?${query.toString()}`,
+        {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, max-age=0",
+            "Pragma": "no-cache"
+          }
+        }
+      );
+
+      if (!res.ok) throw new Error(`Failed to list ${folder}: HTTP ${res.status}`);
+
+      const payload = await res.json();
+      const entries = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.files)
+          ? payload.files
+          : Array.isArray(payload?.items)
+            ? payload.items
+            : [];
+
+      // De-duplicate by filename while preferring an entry explicitly marked as
+      // override/update metadata when the server provides that information.
+      const byName = new Map();
+      for (const entry of entries) {
+        const filename = entryFilename(entry);
+        if (!filename) continue;
+
+        const key = filename.toLowerCase();
+        const existing = byName.get(key);
+        const source = entrySource(entry);
+        const isOverride = /override|update|appdata/.test(source);
+        const existingOverride = /override|update|appdata/.test(entrySource(existing));
+
+        if (!existing || (isOverride && !existingOverride)) {
+          byName.set(key, entry);
+        }
+      }
+
+      return Array.from(byName.values());
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 180 * (attempt + 1)));
+      }
+    }
+  }
+
+  throw lastError || new Error(`Failed to list ${folder}`);
 }
 
-function makeCard(folder, filename) {
+function makeCard(folder, entry) {
+  const filename = entryFilename(entry);
   return {
     folder,
     filename,
     key: `${folder}/${filename}`,
-    fullPath: `${CARD_ASSET_PREFIX}/images/${folder}/${encodeURIComponent(filename)}`
+    fullPath: `${CARD_ASSET_PREFIX}/images/${folder}/${encodeURIComponent(filename)}`,
+    source: entrySource(entry)
   };
+}
+
+function isOverrideCard(card) {
+  return /override|update|appdata/.test(String(card?.source || "").toLowerCase());
 }
 
 function cardIdentity(card) {
@@ -263,7 +340,29 @@ function saveUsedCardKeys(usedKeys) {
   );
 }
 
-function loadSavedBoard(playerNumber) {
+function hashInventoryText(text) {
+  // Small deterministic FNV-1a style hash. We only need change detection, not security.
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+function inventoryFingerprint(legendaryCards, normalCards) {
+  const keys = uniqueCards([
+    ...(Array.isArray(legendaryCards) ? legendaryCards : []),
+    ...(Array.isArray(normalCards) ? normalCards : [])
+  ])
+    .map(cardIdentity)
+    .filter(Boolean)
+    .sort();
+
+  return `${PICK_POOL_REVISION}:${keys.length}:${hashInventoryText(keys.join("\n"))}`;
+}
+
+function loadSavedBoard(playerNumber, currentInventoryFingerprint) {
   try {
     const stored = JSON.parse(
       localStorage.getItem(boardKey(playerNumber)) || "null"
@@ -272,6 +371,7 @@ function loadSavedBoard(playerNumber) {
     if (
       !stored ||
       stored.version !== BOARD_STORAGE_VERSION ||
+      stored.inventoryFingerprint !== currentInventoryFingerprint ||
       !Array.isArray(stored.cards) ||
       stored.cards.length !== BOARD_SIZE
     ) {
@@ -285,11 +385,12 @@ function loadSavedBoard(playerNumber) {
   }
 }
 
-function saveBoard(playerNumber, cards) {
+function saveBoard(playerNumber, cards, currentInventoryFingerprint) {
   localStorage.setItem(
     boardKey(playerNumber),
     JSON.stringify({
       version: BOARD_STORAGE_VERSION,
+      inventoryFingerprint: currentInventoryFingerprint,
       cards
     })
   );
@@ -389,10 +490,12 @@ function finalizePreviousMatchExclusion(currentMatchState) {
 // -----------------------------------------------------
 // Rules:
 // 1) Every existing card in a rarity is consumed once before that rarity cycles.
-// 2) New cards are appended to the still-unconsumed tail, so they join without
-//    resetting progress or pushing already-waiting old cards backwards.
-// 3) Deleted cards disappear from the state automatically.
-// 4) A new cycle starts only after the current cycle is genuinely consumed.
+// 2) A newly discovered card (including an asset-overrides card) is injected at
+//    the FRONT of the unconsumed queue for its rarity. This makes updates enter
+//    distribution promptly without changing the 10% legendary slot roll.
+// 3) Explicit override/update metadata gets first priority when the server exposes it.
+// 4) Deleted cards disappear from the state automatically.
+// 5) A new cycle starts only after the current cycle is genuinely consumed.
 // -----------------------------------------------------
 function normalizeRotationState(folder, cards) {
   const pool = uniqueCards(cards);
@@ -447,18 +550,32 @@ function normalizeRotationState(folder, cards) {
     }
   });
 
-  // New cards join AFTER cards that were already waiting in this cycle.
-  // This deliberately protects old/unseen cards from being buried by additions.
-  const added = shuffleInPlace(
-    validKeys.filter(key => !seen.has(key))
+  // Cards that are present in the live inventory but absent from the persisted
+  // rotation are genuinely new to this client. Put them at the FRONT of the
+  // unconsumed queue. If the server marks an item as coming from asset-overrides,
+  // prioritize it before other newly discovered files.
+  const byKey = new Map(pool.map(card => [cardIdentity(card), card]));
+  const newlyDiscovered = validKeys.filter(key => !seen.has(key));
+  const overrideAdded = shuffleInPlace(
+    newlyDiscovered.filter(key => isOverrideCard(byKey.get(key)))
   );
-  remaining.push(...added);
+  const regularAdded = shuffleInPlace(
+    newlyDiscovered.filter(key => !isOverrideCard(byKey.get(key)))
+  );
+  const added = [...overrideAdded, ...regularAdded];
+
+  if (added.length) {
+    console.info(
+      `[QG14 Pick] ${added.length} new ${folder} card(s) injected at rotation front`,
+      added
+    );
+  }
 
   const state = {
     version: DISTRIBUTION_VERSION,
     scope: scopeToken(),
     folder,
-    order: [...consumed, ...remaining],
+    order: [...consumed, ...added, ...remaining],
     cursor: consumed.length,
     cycles: Math.max(0, Number(raw.cycles) || 0),
     updatedAt: Date.now()
@@ -606,8 +723,14 @@ async function loadAndRender() {
     }
 
     const [legendaryFilesRaw, normalFilesRaw] = await Promise.all([
-      fetchFolderList("legendary").catch(() => []),
-      fetchFolderList("normal").catch(() => [])
+      fetchFolderList("legendary").catch(error => {
+        console.warn("[QG14 Pick] legendary inventory refresh failed:", error);
+        return [];
+      }),
+      fetchFolderList("normal").catch(error => {
+        console.warn("[QG14 Pick] normal inventory refresh failed:", error);
+        return [];
+      })
     ]);
 
     const legendaryCards = uniqueCards(
@@ -622,6 +745,17 @@ async function loadAndRender() {
         .map(file => makeCard("normal", file))
     );
 
+    const currentInventoryFingerprint = inventoryFingerprint(
+      legendaryCards,
+      normalCards
+    );
+
+    const overrideCount = [...legendaryCards, ...normalCards].filter(isOverrideCard).length;
+    console.info(
+      `[QG14 Pick] fresh pool: ${normalCards.length} normal, ${legendaryCards.length} legendary` +
+      (overrideCount ? `, ${overrideCount} override/update` : "")
+    );
+
     if (!legendaryCards.length && !normalCards.length) {
       boxGrid.innerHTML = `<p class="text-red-500">لا توجد ملفات كروت.</p>`;
       return;
@@ -633,10 +767,10 @@ async function loadAndRender() {
     // Reserve the other player's saved board too, preserving the existing
     // guarantee that the same card never appears for both players in a game.
     const otherPlayer = currentPlayer === 1 ? 2 : 1;
-    const otherBoard = loadSavedBoard(otherPlayer);
+    const otherBoard = loadSavedBoard(otherPlayer, currentInventoryFingerprint);
     if (otherBoard) reserveCards(usedKeys, otherBoard);
 
-    const savedBoard = loadSavedBoard(currentPlayer);
+    const savedBoard = loadSavedBoard(currentPlayer, currentInventoryFingerprint);
     let boardCards;
 
     if (savedBoard) {
@@ -675,7 +809,7 @@ async function loadAndRender() {
         previousMatchKeys
       );
 
-      saveBoard(currentPlayer, boardCards);
+      saveBoard(currentPlayer, boardCards, currentInventoryFingerprint);
     }
 
     saveUsedCardKeys(usedKeys);
