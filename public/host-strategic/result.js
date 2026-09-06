@@ -1,3 +1,29 @@
+
+// ===== QG14 robust local media path resolver =====
+function resolveQG14MediaUrl(value) {
+  if (!value) return value;
+  const raw = String(value).trim();
+  if (!raw || /^(?:data:|blob:|https?:\/\/)/i.test(raw)) return raw;
+  let clean = raw.replace(/\\/g, "/");
+  const suffixMatch = clean.match(/([?#].*)$/);
+  const suffix = suffixMatch ? suffixMatch[1] : "";
+  if (suffix) clean = clean.slice(0, -suffix.length);
+  try { clean = decodeURIComponent(clean); } catch {}
+  const lower = clean.toLowerCase();
+  const animeIndex = lower.lastIndexOf("/anime/images/");
+  const normalIndex = lower.lastIndexOf("/images/");
+  if (animeIndex >= 0) clean = clean.slice(animeIndex);
+  else if (normalIndex >= 0) clean = clean.slice(normalIndex);
+  else {
+    clean = clean.replace(/^\.{0,2}\/+/, "").replace(/^public\//i, "");
+    if (/^(?:anime\/)?images\//i.test(clean)) clean = "/" + clean;
+    else return raw;
+  }
+  clean = clean.replace(/\/{2,}/g, "/");
+  if (location.pathname.startsWith("/anime/") && clean.startsWith("/images/")) clean = "/anime" + clean;
+  return clean + suffix;
+}
+
 // --- Game state (safe defaults) ---
 const roundCount = parseInt(localStorage.getItem("roundCount") || localStorage.getItem("totalRounds") || "5", 10);
 const startingHP = parseInt(localStorage.getItem("totalRounds") || "5", 10);
@@ -372,6 +398,604 @@ function getRoundNotesForRecap(roundIndex) {
 const gameID = localStorage.getItem("gameID");
 const socket = typeof io !== "undefined" ? io() : null;
 
+const RESULT_CARD_SCOPE =
+  window.location.pathname.startsWith("/anime/")
+    ? "anime"
+    : "all";
+
+const RESULT_CARD_ASSET_PREFIX =
+  RESULT_CARD_SCOPE === "anime"
+    ? "/anime"
+    : "";
+
+const GOLDEN_LEGENDARY_CHANCE = 0.10;
+const GOLDEN_STATE_KEY =
+  `goldenRoundState:v1:${RESULT_CARD_SCOPE}:${String(gameID || "default")}`;
+
+function loadGoldenState() {
+  try {
+    const data = JSON.parse(
+      localStorage.getItem(GOLDEN_STATE_KEY) || "null"
+    );
+
+    if (
+      !data ||
+      typeof data !== "object" ||
+      data.scope !== RESULT_CARD_SCOPE ||
+      String(data.gameID || "") !== String(gameID || "")
+    ) {
+      return {
+        active: false,
+        number: 0,
+        cards: {},
+        usedKeys: []
+      };
+    }
+
+    return {
+      active: !!data.active,
+      number: Math.max(0, Number(data.number) || 0),
+      cards: data.cards && typeof data.cards === "object"
+        ? data.cards
+        : {},
+      usedKeys: Array.isArray(data.usedKeys)
+        ? data.usedKeys.map(v => String(v || "").toLowerCase()).filter(Boolean)
+        : []
+    };
+  } catch {
+    return {
+      active: false,
+      number: 0,
+      cards: {},
+      usedKeys: []
+    };
+  }
+}
+
+let goldenState = loadGoldenState();
+let goldenRulesMode = "initial";
+
+function saveGoldenState() {
+  localStorage.setItem(
+    GOLDEN_STATE_KEY,
+    JSON.stringify({
+      active: !!goldenState.active,
+      number: Math.max(0, Number(goldenState.number) || 0),
+      cards: goldenState.cards || {},
+      usedKeys: Array.from(
+        new Set(
+          (Array.isArray(goldenState.usedKeys) ? goldenState.usedKeys : [])
+            .map(v => String(v || "").toLowerCase())
+            .filter(Boolean)
+        )
+      ),
+      scope: RESULT_CARD_SCOPE,
+      gameID: String(gameID || ""),
+      updatedAt: Date.now()
+    })
+  );
+}
+
+function clearGoldenState() {
+  goldenState = {
+    active: false,
+    number: 0,
+    cards: {},
+    usedKeys: []
+  };
+  localStorage.removeItem(GOLDEN_STATE_KEY);
+}
+
+function isGoldenRoundActive() {
+  return !!goldenState.active;
+}
+
+function getGoldenRoundIndex() {
+  return roundCount + Math.max(0, Number(goldenState.number || 1) - 1);
+}
+
+function getCurrentCardUrl(name) {
+  if (isGoldenRoundActive()) {
+    return goldenState.cards?.[name] || null;
+  }
+
+  return picks?.[name]?.[round] || null;
+}
+
+if (
+  goldenState.active &&
+  goldenState.number > 0 &&
+  goldenState.cards?.[player1] &&
+  goldenState.cards?.[player2]
+) {
+  round = getGoldenRoundIndex();
+  localStorage.setItem("currentRound", String(round));
+}
+
+function goldenRandomUnit() {
+  try {
+    if (window.crypto?.getRandomValues) {
+      const buf = new Uint32Array(1);
+      window.crypto.getRandomValues(buf);
+      return buf[0] / 4294967296;
+    }
+  } catch {}
+
+  return Math.random();
+}
+
+function goldenRandomIndex(length) {
+  if (!Number.isFinite(length) || length <= 0) return -1;
+  return Math.floor(goldenRandomUnit() * length);
+}
+
+function isGoldenMediaFile(value) {
+  return /\.(png|jpg|jpeg|webp|gif|avif|bmp|svg|apng|webm|mp4|ogg)$/i.test(
+    String(value || "")
+  );
+}
+
+function normalizeGoldenListEntry(folder, entry) {
+  if (typeof entry === "string") {
+    const filename = entry.trim();
+    if (!filename || !isGoldenMediaFile(filename)) return null;
+
+    return {
+      folder,
+      filename,
+      key: `${folder}/${filename}`.toLowerCase(),
+      url: `${RESULT_CARD_ASSET_PREFIX}/images/${folder}/${encodeURIComponent(filename)}`
+    };
+  }
+
+  if (!entry || typeof entry !== "object") return null;
+
+  const filename = String(
+    entry.filename ||
+    entry.name ||
+    entry.file ||
+    ""
+  ).trim();
+
+  const explicitUrl = String(
+    entry.url ||
+    entry.fullPath ||
+    entry.path ||
+    ""
+  ).trim();
+
+  if (filename && isGoldenMediaFile(filename)) {
+    return {
+      folder,
+      filename,
+      key: `${folder}/${filename}`.toLowerCase(),
+      url: explicitUrl
+        ? resolveQG14MediaUrl(explicitUrl)
+        : `${RESULT_CARD_ASSET_PREFIX}/images/${folder}/${encodeURIComponent(filename)}`
+    };
+  }
+
+  if (explicitUrl && isGoldenMediaFile(explicitUrl)) {
+    let clean = explicitUrl;
+    try {
+      clean = decodeURIComponent(
+        new URL(explicitUrl, window.location.href).pathname
+      );
+    } catch {
+      try { clean = decodeURIComponent(explicitUrl); } catch {}
+    }
+
+    const match = clean.match(
+      /\/images\/(normal|legendary)\/([^/?#]+)$/i
+    );
+
+    if (!match) return null;
+
+    return {
+      folder: match[1].toLowerCase(),
+      filename: match[2],
+      key: `${match[1]}/${match[2]}`.toLowerCase(),
+      url: resolveQG14MediaUrl(explicitUrl)
+    };
+  }
+
+  return null;
+}
+
+function uniqueGoldenCards(cards) {
+  const seen = new Set();
+  const out = [];
+
+  for (const card of Array.isArray(cards) ? cards : []) {
+    const key = String(card?.key || "").toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(card);
+  }
+
+  return out;
+}
+
+async function fetchGoldenFolder(folder) {
+  const url =
+    `/list-images/${encodeURIComponent(folder)}` +
+    `?scope=${encodeURIComponent(RESULT_CARD_SCOPE)}` +
+    `&_golden=${Date.now()}`;
+
+  const response = await fetch(url, {
+    cache: "no-store",
+    headers: {
+      "Cache-Control": "no-cache"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`تعذر تحميل كروت ${folder}`);
+  }
+
+  const payload = await response.json();
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.files)
+      ? payload.files
+      : Array.isArray(payload?.items)
+        ? payload.items
+        : [];
+
+  return uniqueGoldenCards(
+    list
+      .map(entry => normalizeGoldenListEntry(folder, entry))
+      .filter(Boolean)
+  );
+}
+
+function goldenIdentityFromUrl(value) {
+  if (!value) return "";
+
+  let clean = String(value);
+  try {
+    clean = decodeURIComponent(
+      new URL(clean, window.location.href).pathname
+    );
+  } catch {
+    try { clean = decodeURIComponent(clean); } catch {}
+    clean = clean.split(/[?#]/, 1)[0];
+  }
+
+  clean = clean.replace(/\\/g, "/");
+  const match = clean.match(
+    /\/images\/(normal|legendary)\/(.+)$/i
+  );
+
+  return match
+    ? `${match[1]}/${match[2]}`.toLowerCase()
+    : clean.toLowerCase();
+}
+
+function getNormalMatchCardKeys() {
+  const keys = new Set();
+
+  [player1, player2].forEach(name => {
+    const list = Array.isArray(picks?.[name])
+      ? picks[name]
+      : [];
+
+    list.forEach(url => {
+      const key = goldenIdentityFromUrl(url);
+      if (key) keys.add(key);
+    });
+  });
+
+  return keys;
+}
+
+function chooseGoldenCard(
+  preferredFolder,
+  pools,
+  sameRoundBlocked,
+  strongBlocked
+) {
+  const fallbackFolder =
+    preferredFolder === "legendary"
+      ? "normal"
+      : "legendary";
+
+  const tryFolder = folder => {
+    const pool = Array.isArray(pools?.[folder])
+      ? pools[folder]
+      : [];
+
+    if (!pool.length) return null;
+
+    // First: preserve rarity and prefer a card that did not appear in the
+    // normal match or an earlier golden round.
+    let candidates = pool.filter(card =>
+      !sameRoundBlocked.has(card.key) &&
+      !strongBlocked.has(card.key)
+    );
+
+    // Second: preserve rarity even if all fresh cards of that rarity were used.
+    if (!candidates.length) {
+      candidates = pool.filter(card =>
+        !sameRoundBlocked.has(card.key)
+      );
+    }
+
+    if (!candidates.length) return null;
+
+    return candidates[goldenRandomIndex(candidates.length)] || null;
+  };
+
+  return (
+    tryFolder(preferredFolder) ||
+    tryFolder(fallbackFolder)
+  );
+}
+
+async function generateGoldenCards() {
+  const [legendary, normal] = await Promise.all([
+    fetchGoldenFolder("legendary"),
+    fetchGoldenFolder("normal")
+  ]);
+
+  if (!legendary.length && !normal.length) {
+    throw new Error("لا توجد كروت متاحة للجولة الذهبية.");
+  }
+
+  const pools = { legendary, normal };
+  const sameRoundBlocked = new Set();
+
+  const strongBlocked = getNormalMatchCardKeys();
+  (goldenState.usedKeys || []).forEach(key =>
+    strongBlocked.add(String(key || "").toLowerCase())
+  );
+
+  const rollFolder = () =>
+    goldenRandomUnit() < GOLDEN_LEGENDARY_CHANCE
+      ? "legendary"
+      : "normal";
+
+  const p2Card = chooseGoldenCard(
+    rollFolder(),
+    pools,
+    sameRoundBlocked,
+    strongBlocked
+  );
+
+  if (!p2Card) {
+    throw new Error("تعذر اختيار كرت عشوائي للاعب الثاني.");
+  }
+
+  sameRoundBlocked.add(p2Card.key);
+
+  const p1Card = chooseGoldenCard(
+    rollFolder(),
+    pools,
+    sameRoundBlocked,
+    strongBlocked
+  );
+
+  if (!p1Card) {
+    throw new Error("تعذر اختيار كرت عشوائي مختلف للاعب الأول.");
+  }
+
+  return {
+    [player1]: p1Card,
+    [player2]: p2Card
+  };
+}
+
+function openGoldenTieDecisionModal() {
+  const modal = document.getElementById("goldenTieDecisionModal");
+  if (!modal) return;
+
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function closeGoldenTieDecisionModal() {
+  const modal = document.getElementById("goldenTieDecisionModal");
+  if (!modal) return;
+
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+}
+
+function openGoldenRulesModal(mode = "initial") {
+  goldenRulesMode = mode === "repeat"
+    ? "repeat"
+    : "initial";
+
+  const modal = document.getElementById("goldenRulesModal");
+  const title = document.getElementById("goldenRulesTitle");
+  const hint = document.getElementById("goldenRulesHint");
+  const continueBtn = document.getElementById("goldenContinueBtn");
+
+  if (title) {
+    title.textContent =
+      goldenRulesMode === "repeat"
+        ? "تعادلت الجولة الذهبية"
+        : "الجولة الذهبية";
+  }
+
+  if (hint) {
+    hint.textContent =
+      goldenRulesMode === "repeat"
+        ? "سيتم لعب جولة ذهبية جديدة بكرتين عشوائيين جديدين حتى يفوز أحد الطرفين."
+        : "";
+  }
+
+  if (continueBtn) {
+    continueBtn.disabled = false;
+    continueBtn.textContent = "متابعة";
+    continueBtn.classList.remove("opacity-60", "cursor-wait");
+  }
+
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+}
+
+function closeGoldenRulesModal() {
+  const modal = document.getElementById("goldenRulesModal");
+  if (!modal) return;
+
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+}
+
+function chooseGoldenRound() {
+  closeGoldenTieDecisionModal();
+  openGoldenRulesModal("initial");
+}
+
+function goldenRulesBack() {
+  closeGoldenRulesModal();
+
+  if (goldenRulesMode === "initial") {
+    openGoldenTieDecisionModal();
+  }
+}
+
+async function continueGoldenRound() {
+  const continueBtn = document.getElementById("goldenContinueBtn");
+
+  try {
+    if (continueBtn) {
+      continueBtn.disabled = true;
+      continueBtn.textContent = "جاري تجهيز الكروت...";
+      continueBtn.classList.add("opacity-60", "cursor-wait");
+    }
+
+    const pair = await generateGoldenCards();
+
+    goldenState.active = true;
+    goldenState.number =
+      Math.max(0, Number(goldenState.number) || 0) + 1;
+
+    goldenState.cards = {
+      [player1]: pair[player1].url,
+      [player2]: pair[player2].url
+    };
+
+    goldenState.usedKeys = Array.from(
+      new Set([
+        ...(goldenState.usedKeys || []),
+        pair[player1].key,
+        pair[player2].key
+      ])
+    );
+
+    round = getGoldenRoundIndex();
+
+    localStorage.setItem(
+      "currentRound",
+      String(round)
+    );
+
+    localStorage.setItem(
+      "scores",
+      JSON.stringify(scores)
+    );
+
+    saveGoldenState();
+
+    try {
+      if (
+        window.WebmSfx &&
+        window.WebmSfx._resetForNewRound
+      ) {
+        window.WebmSfx._resetForNewRound();
+      }
+    } catch {}
+
+    closeGoldenRulesModal();
+    closeGoldenTieDecisionModal();
+
+    try {
+      socket?.emit("startRound", {
+        gameID,
+        round,
+        goldenRound: true,
+        goldenRoundNumber: goldenState.number
+      });
+    } catch {}
+
+    renderRound();
+
+  } catch (error) {
+    console.error("[golden-round]", error);
+
+    if (continueBtn) {
+      continueBtn.disabled = false;
+      continueBtn.textContent = "متابعة";
+      continueBtn.classList.remove("opacity-60", "cursor-wait");
+    }
+
+    showToast(
+      error?.message ||
+      "تعذر تجهيز كروت الجولة الذهبية."
+    );
+  }
+}
+
+function finishResultMatch(winner, isTie = false) {
+  try {
+    if (socket && gameID) {
+      socket.emit(
+        "gameOver",
+        {
+          gameID,
+          scores: {
+            [player1]: scores[player1],
+            [player2]: scores[player2]
+          },
+          winner: winner || null,
+          isTie: !!isTie,
+          roundCount,
+          goldenRounds: Math.max(0, Number(goldenState.number) || 0)
+        }
+      );
+
+      socket.emit(
+        "submitFinalScores",
+        {
+          gameID,
+          scores: {
+            [player1]: scores[player1],
+            [player2]: scores[player2]
+          }
+        }
+      );
+    }
+  } catch {}
+
+  clearGoldenState();
+
+  localStorage.removeItem(
+    NOTES_KEY(player1)
+  );
+
+  localStorage.removeItem(
+    NOTES_KEY(player2)
+  );
+
+  location.href =
+    "score.html";
+}
+
+function endMatchAsTie() {
+  closeGoldenTieDecisionModal();
+  closeGoldenRulesModal();
+  finishResultMatch(null, true);
+}
+
+window.chooseGoldenRound = chooseGoldenRound;
+window.goldenRulesBack = goldenRulesBack;
+window.continueGoldenRound = continueGoldenRound;
+window.endMatchAsTie = endMatchAsTie;
+
 function joinRoomReliably() {
   if (!socket || !gameID) return;
 
@@ -739,39 +1363,19 @@ function syncServerAbilities() {
 // Media
 // ======================================================
 function createMedia(url, className, playSfx = false) {
-  const isWebm =
-    /\.webm(\?|#|$)/i.test(url || "");
-
+  const mediaUrl = resolveQG14MediaUrl(url);
+  const isWebm = /\.webm(\?|#|$)/i.test(mediaUrl || "");
   if (isWebm) {
     const v = document.createElement("video");
-
-    v.src = url;
-    v.autoplay = true;
-    v.loop = true;
-    v.muted = true;
-    v.playsInline = true;
+    v.src = mediaUrl; v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+    v.preload = "auto";
     v.className = className;
-
-    if (
-      playSfx &&
-      window.WebmSfx
-    ) {
-      window.WebmSfx.attachToMedia(
-        v,
-        url
-      );
-    }
-
+    if (playSfx && window.WebmSfx) window.WebmSfx.attachToMedia(v, mediaUrl);
     return v;
+  } else {
+    const img = document.createElement("img");
+    img.src = mediaUrl; img.className = className; img.decoding = "async"; return img;
   }
-
-  const img = document.createElement("img");
-
-  img.src = url;
-  img.className = className;
-
-
-  return img;
 }
 
 // ======================================================
@@ -915,10 +1519,16 @@ function buildSnapshot() {
     },
 
     currentLeftUrl:
-      picks?.[player2]?.[round],
+      getCurrentCardUrl(player2),
 
     currentRightUrl:
-      picks?.[player1]?.[round],
+      getCurrentCardUrl(player1),
+
+    goldenRound: isGoldenRoundActive(),
+    goldenRoundNumber:
+      isGoldenRoundActive()
+        ? Math.max(1, Number(goldenState.number) || 1)
+        : 0,
 
     prevLeft:
       getPreviousUrls(player2),
@@ -2041,7 +2651,7 @@ function renderVsRow() {
           true
         );
 
-      prepareThanosCardForFullscreen(media, mediaUrl, pos);
+      prepareThanosCardForFullscreen(media, resolveQG14MediaUrl(mediaUrl), pos);
 
       card.appendChild(
         media
@@ -2592,14 +3202,14 @@ function renderVsRow() {
   const left =
     side(
       player2,
-      picks?.[player2]?.[round],
+      getCurrentCardUrl(player2),
       "left"
     );
 
   const right =
     side(
       player1,
-      picks?.[player1]?.[round],
+      getCurrentCardUrl(player1),
       "right"
     );
 
@@ -2769,8 +3379,25 @@ function resetOkBadges() {
 // ======================================================
 function renderRound() {
   if (roundTitle) {
-    roundTitle.textContent =
-      `الجولة ${round + 1}`;
+    if (isGoldenRoundActive()) {
+      roundTitle.textContent =
+        goldenState.number > 1
+          ? `الجولة الذهبية ${goldenState.number}`
+          : "الجولة الذهبية";
+    } else {
+      roundTitle.textContent =
+        `الجولة ${round + 1}`;
+    }
+  }
+
+  const confirmResultBtn =
+    document.getElementById("confirmResultBtn");
+
+  if (confirmResultBtn) {
+    confirmResultBtn.textContent =
+      isGoldenRoundActive()
+        ? "تأكيد الجولة"
+        : "تأكيد النتيجة";
   }
 
   renderVsRow();
@@ -2876,13 +3503,49 @@ function goToRound(newIndex) {
 }
 
 function confirmWinner() {
-  saveRoundScoresForRecap(round);
-  saveRoundNotesForRecap(round);
-
   localStorage.setItem(
     "scores",
     JSON.stringify(scores)
   );
+
+  // Golden rounds are sudden-death tie breakers. They are not part of the
+  // normal configured round count and never return to Pick.
+  if (isGoldenRoundActive()) {
+    socket?.emit(
+      "confirmRoundResult",
+      {
+        gameID,
+        round,
+        goldenRound: true,
+        goldenRoundNumber: goldenState.number,
+        snapshot:
+          buildSnapshot()
+      }
+    );
+
+    const p1Score =
+      Number(scores[player1] ?? 0);
+
+    const p2Score =
+      Number(scores[player2] ?? 0);
+
+    if (p1Score > p2Score) {
+      finishResultMatch(player1, false);
+      return;
+    }
+
+    if (p2Score > p1Score) {
+      finishResultMatch(player2, false);
+      return;
+    }
+
+    // Still tied: another golden round is mandatory.
+    openGoldenRulesModal("repeat");
+    return;
+  }
+
+  saveRoundScoresForRecap(round);
+  saveRoundNotesForRecap(round);
 
   const next =
     round + 1;
@@ -2903,102 +3566,46 @@ function confirmWinner() {
   );
 
   if (gameOver) {
+    const p1Score =
+      Number(scores[player1] ?? 0);
 
-    let winner =
-      null;
+    const p2Score =
+      Number(scores[player2] ?? 0);
 
-    let isTie =
-      false;
-
-    if (
-      (scores[player1] ?? 0) >
-      (scores[player2] ?? 0)
-    ) {
-      winner =
-        player1;
-
-    } else if (
-      (scores[player2] ?? 0) >
-      (scores[player1] ?? 0)
-    ) {
-      winner =
-        player2;
-
-    } else {
-      isTie =
-        true;
+    if (p1Score === p2Score) {
+      // Do not finish automatically. The host chooses draw or Golden Round.
+      openGoldenTieDecisionModal();
+      return;
     }
 
-    try {
-      if (
-        socket &&
-        gameID
-      ) {
-        socket.emit(
-          "gameOver",
-          {
-            gameID,
-            scores: {
-              [player1]:
-                scores[player1],
-
-              [player2]:
-                scores[player2]
-            },
-            winner,
-            isTie,
-            roundCount
-          }
-        );
-
-        socket.emit(
-          "submitFinalScores",
-          {
-            gameID,
-            scores: {
-              [player1]:
-                scores[player1],
-
-              [player2]:
-                scores[player2]
-            }
-          }
-        );
-      }
-    } catch {}
-
-    localStorage.removeItem(
-      NOTES_KEY(player1)
+    finishResultMatch(
+      p1Score > p2Score
+        ? player1
+        : player2,
+      false
     );
 
-    localStorage.removeItem(
-      NOTES_KEY(player2)
-    );
-
-    location.href =
-      "score.html";
-
-  } else {
-
-    try {
-      if (
-        socket &&
-        gameID
-      ) {
-        socket.emit(
-          "startRound",
-          {
-            gameID,
-            round: next
-          }
-        );
-      }
-    } catch {}
-
-    goToRound(
-      next
-    );
+    return;
   }
+
+  try {
+    if (
+      socket &&
+      gameID
+    ) {
+      socket.emit(
+        "startRound",
+        {
+          gameID,
+          round: next
+        }
+      );
+    }
+  } catch {}
+
+  goToRound(
+    next
+  );
 }
 
 window.confirmWinner =
