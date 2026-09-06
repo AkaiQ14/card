@@ -5,7 +5,15 @@
   <title>QG14 Card Clash</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
+
+    /* ===== QG14 Result Arabic font fix ===== */
+    html, body, button, input, textarea, select, option {
+      font-family: "Cairo", Tahoma, Arial, sans-serif !important;
+    }
     
     :root{
       --gold:#FFD700;
@@ -711,7 +719,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/webm-sfx.js"></script>
   <script src="/js/legendary-fullscreen.js?v=20260829-thanos-direct-release-v4"></script>
-  <script src="result.js?v=20260906-golden-round-v1"></script>
+  <script src="result.js?v=20260906-golden-round-fontfix-v2"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>
 </body>
