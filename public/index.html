@@ -518,195 +518,6 @@
       window.location.reload();
     }
   </script>
-
-<style id="qg14-result-theme-sync">
-
-/* =========================================================
-   QG14 RESULT THEME SYNC
-   Visual-only override. Layout / IDs / JS behavior unchanged.
-   ========================================================= */
-:root{
-  --qgr-gold:#FFD700;
-  --qgr-gold-soft:#ffe777;
-  --qgr-green:#0b6e3f;
-  --qgr-green-hover:#14824c;
-  --qgr-wine:#4B0E1F;
-  --qgr-wine-panel:#511522;
-  --qgr-wine-soft:#7b2131;
-  --qgr-wine-soft-hover:#8b2a3a;
-  --qgr-deep:#180309;
-  --qgr-line:rgba(255,215,0,.48);
-  --qgr-line-soft:rgba(255,215,0,.24);
-  --qgr-glass:rgba(18,3,9,.72);
-  --qgr-glass-soft:rgba(75,14,31,.56);
-  --qgr-text:#fff;
-  --qgr-text-soft:rgba(255,255,255,.72);
-}
-html,body,button,input,textarea,select,option{
-  font-family:"Cairo",Tahoma,Arial,sans-serif !important;
-}
-button,input,textarea,select{
-  transition:background .15s ease,border-color .15s ease,transform .08s ease,box-shadow .15s ease,filter .15s ease;
-}
-input,textarea,select{
-  color:#fff !important;
-  background:rgba(0,0,0,.22) !important;
-  border-color:rgba(255,215,0,.50) !important;
-}
-input:focus,textarea:focus,select:focus{
-  outline:none !important;
-  border-color:var(--qgr-gold) !important;
-  box-shadow:0 0 0 3px rgba(255,215,0,.10) !important;
-}
-select option{
-  color:#fff !important;
-  background:#3b0c1b !important;
-}
-::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(255,215,0,.58);border-radius:999px}
-
-
-body{
-  color:#fff !important;
-  background:
-    linear-gradient(rgba(75,14,31,.20),rgba(24,3,9,.33)),
-    url('images/QG14Background.png') center center / cover fixed no-repeat,
-    var(--qgr-wine) !important;
-}
-body::before,body::after{opacity:.10 !important}
-.main-card,.quick-panel,.update-section,.setup-panel{
-  color:#fff !important;
-  border-color:rgba(255,215,0,.52) !important;
-  background:rgba(81,21,34,.68) !important;
-  backdrop-filter:blur(16px) saturate(125%) !important;
-  -webkit-backdrop-filter:blur(16px) saturate(125%) !important;
-  box-shadow:0 18px 45px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.06) !important;
-}
-.brand-title span,.section-label{color:var(--qgr-gold) !important}
-.section-copy,.mode-desc{color:var(--qgr-text-soft) !important}
-.mode-option,.scope-option{
-  color:#fff !important;
-  border:1.5px solid rgba(255,215,0,.32) !important;
-  background:rgba(0,0,0,.18) !important;
-}
-.mode-option:hover,.scope-option:hover{
-  border-color:rgba(255,215,0,.65) !important;
-  background:rgba(123,33,49,.68) !important;
-}
-.mode-option.is-selected,.scope-option.is-selected{
-  color:var(--qgr-gold) !important;
-  border-color:var(--qgr-gold) !important;
-  background:rgba(255,215,0,.10) !important;
-  box-shadow:0 0 0 2px rgba(255,215,0,.08) !important;
-}
-.start-btn,.update-check-btn,.update-action-btn{
-  color:var(--qgr-gold) !important;
-  border:2px solid var(--qgr-gold) !important;
-  background:var(--qgr-green) !important;
-}
-.start-btn:hover,.update-check-btn:hover,.update-action-btn:hover{
-  background:var(--qgr-green-hover) !important;
-}
-.quick-btn{
-  color:#fff !important;
-  border:2px solid rgba(255,215,0,.52) !important;
-  background:var(--qgr-wine-soft) !important;
-}
-.quick-btn:hover{
-  color:var(--qgr-gold) !important;
-  background:var(--qgr-wine-soft-hover) !important;
-  border-color:var(--qgr-gold) !important;
-}
-.update-status{
-  color:var(--qgr-text-soft) !important;
-  border-color:rgba(255,215,0,.26) !important;
-  background:rgba(0,0,0,.17) !important;
-}
-
-</style>
-
-<style id="qg14-result-theme-refined-v2">
-
-/* =========================================================
-   QG14 RESULT THEME — REFINED V2
-   Visual corrections only. No JS / IDs / game logic changes.
-   ========================================================= */
-:root{
-  --qg-gold:#FFD700;
-  --qg-gold-2:#ffe777;
-  --qg-green:#0b6e3f;
-  --qg-green-hover:#14824c;
-  --qg-wine:#4B0E1F;
-  --qg-wine-panel:#511522;
-  --qg-wine-button:#7b2131;
-  --qg-wine-button-hover:#8b2a3a;
-  --qg-deep:#180309;
-  --qg-blue:#0369a1;
-  --qg-blue-hover:#0284c7;
-  --qg-purple:#9333ea;
-  --qg-pink:#db2777;
-}
-html,body,button,input,textarea,select,option{
-  font-family:"Cairo",Tahoma,Arial,sans-serif !important;
-}
-button{outline:none}
-button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{
-  box-shadow:0 0 0 3px rgba(255,215,0,.13) !important;
-}
-
-
-/* INDEX — correct button hierarchy while retaining Result identity. */
-.main-card,.setup-panel,.quick-panel,.update-section{
-  background:rgba(81,21,34,.75) !important;
-  border-color:rgba(255,215,0,.50) !important;
-}
-.start-btn{
-  color:var(--qg-gold) !important;
-  background:var(--qg-green) !important;
-  border:2px solid var(--qg-gold) !important;
-}
-.start-btn:hover{background:var(--qg-green-hover) !important}
-.quick-btn{
-  color:#fff !important;
-  background:var(--qg-wine-button) !important;
-  border:1.5px solid rgba(255,215,0,.50) !important;
-}
-.quick-btn:hover{
-  color:var(--qg-gold) !important;
-  background:var(--qg-wine-button-hover) !important;
-  border-color:var(--qg-gold) !important;
-}
-.update-check-btn{
-  color:#fff !important;
-  background:linear-gradient(135deg,#075985,#2563eb) !important;
-  border:1.5px solid var(--qg-gold) !important;
-}
-.update-check-btn:hover:not(:disabled){background:linear-gradient(135deg,#0369a1,#3b82f6) !important}
-.update-action-btn.assets{
-  color:var(--qg-gold) !important;
-  background:var(--qg-green) !important;
-  border:1.5px solid var(--qg-gold) !important;
-}
-.update-action-btn.assets:hover:not(:disabled){background:var(--qg-green-hover) !important}
-.update-action-btn.app{
-  color:#211600 !important;
-  background:linear-gradient(180deg,#ffe97a,#ddb200) !important;
-  border:1.5px solid #fff0a5 !important;
-}
-.update-action-btn.app:hover:not(:disabled){background:linear-gradient(180deg,#fff09b,#e8c22e) !important}
-.mode-option,.scope-option{
-  background:rgba(0,0,0,.16) !important;
-  border-color:rgba(255,215,0,.28) !important;
-}
-.mode-option:hover,.scope-option:hover{background:rgba(255,215,0,.06) !important}
-.mode-option.is-selected,.scope-option.is-selected{
-  color:var(--qg-gold) !important;
-  background:rgba(255,215,0,.10) !important;
-  border-color:var(--qg-gold) !important;
-}
-
-</style>
 </head>
 
 <body>
@@ -887,50 +698,52 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
       latestUpdateResult = data || null;
       hideUpdateActions();
 
-      const lines = [];
       const app = data?.app || {};
       const files = data?.files || data?.assets || {};
-      const isDev = data?.buildKind === "development";
 
-      lines.push(`إصدار البرنامج الحالي: ${app.currentVersion || data?.currentVersion || "غير معروف"}`);
+      const latestVersion =
+        app.latestVersion ||
+        app.currentVersion ||
+        data?.currentVersion ||
+        "غير معروف";
 
-      if (app.available) {
-        lines.push(`يوجد إصدار برنامج أحدث: ${app.latestVersion}`);
-        if (downloadAppUpdateBtn) {
-          downloadAppUpdateBtn.style.display = "block";
-          updateActions?.classList.add("is-visible");
-        }
-      } else {
-        lines.push("البرنامج التنفيذي على آخر إصدار منشور.");
+      const added = Number(files.added || 0);
+      const changed = Number(files.changed || 0);
+      const deleted = Number(files.deleted || 0);
+
+      const lines = [
+        `آخر إصدار: ${latestVersion}`,
+        app.available
+          ? "الحالة: يوجد تحديث جديد."
+          : "الحالة: البرنامج على آخر تحديث.",
+        (added || changed || deleted)
+          ? `التعديلات: جديد ${added}، معدل ${changed}، محذوف ${deleted}.`
+          : "التعديلات: لا توجد تغييرات."
+      ];
+
+      /* Keep updater actions working; hide only technical prose. */
+      if (app.available && downloadAppUpdateBtn) {
+        downloadAppUpdateBtn.style.display = "block";
+        updateActions?.classList.add("is-visible");
       }
 
-      if (!files.baselineReady) {
-        if (!isDev) lines.push("تعذر قراءة بصمة ملفات النسخة الحالية؛ التحديث المباشر غير متاح لهذه النسخة.");
-      } else {
-        if (files.directCount > 0) {
-          lines.push(`ملفات متغيرة في GitHub: ${files.directCount} (واجهة/كروت ${files.publicCount || 0}، خادم ${files.runtimeCount || 0}).`);
-          lines.push(`التغييرات: جديد ${files.added || 0}، معدل ${files.changed || 0}، محذوف ${files.deleted || 0}.`);
-          if (Number(files.runtimeBlockedByInstaller || 0) > 0) {
-            lines.push(`تم تأجيل ${files.runtimeBlockedByInstaller} ملف خادم لأن هناك تغييرًا أساسيًا يحتاج Update Setup.`);
-          }
-          if (files.canApply && updateAssetsBtn) {
-            updateAssetsBtn.style.display = "block";
-            updateAssetsBtn.textContent = `تحديث الملفات من GitHub (${files.applyableCount || files.directCount})`;
-            updateActions?.classList.add("is-visible");
-          } else if (isDev) {
-            lines.push("التطبيق المباشر معطل في نسخة التطوير حتى لا تُستبدل ملفاتك المحلية.");
-          }
-        } else {
-          lines.push("ملفات اللعبة القابلة للتحديث مباشرة مطابقة لآخر نسخة في GitHub.");
-        }
-
-        if (files.installerCount > 0) {
-          lines.push(`توجد ${files.installerCount} تغييرات أساسية (Electron/dependencies/desktop) تحتاج Update Setup ولا تُستبدل مباشرة.`);
-        }
+      if (
+        files.baselineReady &&
+        files.canApply &&
+        Number(files.applyableCount || files.directCount || 0) > 0 &&
+        updateAssetsBtn
+      ) {
+        updateAssetsBtn.style.display = "block";
+        updateAssetsBtn.textContent =
+          `تحديث الملفات من GitHub (${files.applyableCount || files.directCount})`;
+        updateActions?.classList.add("is-visible");
       }
 
-      if (Array.isArray(data?.errors) && data.errors.length) lines.push(`ملاحظة: ${data.errors.join(" | ")}`);
-      const hasUpdate = !!app.available || Number(files.directCount || 0) > 0 || Number(files.installerCount || 0) > 0;
+      const hasUpdate =
+        !!app.available ||
+        Number(files.directCount || 0) > 0 ||
+        Number(files.installerCount || 0) > 0;
+
       setUpdateStatus(lines.join("\n"), hasUpdate ? "warn" : "good");
     }
 
@@ -1054,5 +867,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 
   <script src="copyright.js"></script>
   <script src="security.js"></script>
+
+<script id="qg14-update-box-system-final-v7">
+console.log("[QG14] UPDATE BOX SYSTEM FINAL V7 loaded");
+</script>
 </body>
 </html>
