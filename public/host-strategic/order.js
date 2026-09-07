@@ -6,13 +6,36 @@ const gameID = params.get("game");
 const playerName = params.get("name");
 let currentPlayer = playerParam === "player2" ? 2 : 1;
 
+// ===== QG14 robust local media path resolver =====
+function resolveQG14MediaUrl(value) {
+  if (!value) return value;
+  const raw = String(value).trim();
+  if (!raw || /^(?:data:|blob:|https?:\/\/)/i.test(raw)) return raw;
+  let clean = raw.replace(/\\/g, "/");
+  const suffixMatch = clean.match(/([?#].*)$/);
+  const suffix = suffixMatch ? suffixMatch[1] : "";
+  if (suffix) clean = clean.slice(0, -suffix.length);
+  try { clean = decodeURIComponent(clean); } catch {}
+  const lower = clean.toLowerCase();
+  const animeIndex = lower.lastIndexOf("/anime/images/");
+  const normalIndex = lower.lastIndexOf("/images/");
+  if (animeIndex >= 0) clean = clean.slice(animeIndex);
+  else if (normalIndex >= 0) clean = clean.slice(normalIndex);
+  else {
+    clean = clean.replace(/^\.{0,2}\/+/, "").replace(/^public\//i, "");
+    if (/^(?:anime\/)?images\//i.test(clean)) clean = "/" + clean;
+    else return raw;
+  }
+  clean = clean.replace(/\/{2,}/g, "/");
+  if (location.pathname.startsWith("/anime/") && clean.startsWith("/images/")) clean = "/anime" + clean;
+  return clean + suffix;
+}
+
+
 const instruction = document.getElementById("instruction");
 const grid = document.getElementById("cardGrid");
 const continueBtn = document.getElementById("continueBtn");
 const okBtn = document.getElementById("okBtn");
-const orderCounter = document.getElementById("orderCounter");
-const orderCountEl = document.getElementById("orderCount");
-const orderTotalEl = document.getElementById("orderTotal");
 
 // Abilities (self)
 const abilitiesWrap = document.getElementById("playerAbilities");
@@ -74,9 +97,13 @@ const chatStatus  = document.getElementById("chatStatus");
 function chatAppend({ from, text, ts, self=false }) {
   if (!chatHistory) return;
   const row = document.createElement("div");
-  row.className = `chat-row ${self ? "is-self" : "is-host"}`;
+  row.className = "flex " + (self ? "justify-end" : "justify-start");
   const bubble = document.createElement("div");
-  bubble.className = "chat-bubble";
+  bubble.className =
+    "max-w-[85%] px-3 py-2 rounded-lg border " +
+    (self
+      ? "bg-yellow-500/90 text-black border-yellow-400"
+      : "bg-white/10 text-white border-yellow-700/50");
   const time = ts ? new Date(ts).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" }) : "";
   bubble.textContent = (from ? `${from}: ` : "") + text + (time ? `  •  ${time}` : "");
   row.appendChild(bubble);
@@ -175,14 +202,9 @@ socket.on("timerState", ({ gameID: g, state, durationSec, remainingSec, startedA
 
 // ================== (rest of the file) ==================
 
-// Optional local mirrors, isolated per game so cards from an older
-// match can never appear in the current match.
-const GAME_LOCAL_SUFFIX =
-  `${String(gameID || "default")}:${String(playerParam || "player1")}`;
-const PICKS_LOCAL_KEY =
-  `strategicPicks:${GAME_LOCAL_SUFFIX}`;
-const ORDER_LOCAL_KEY =
-  `strategicOrdered:${GAME_LOCAL_SUFFIX}`;
+// Optional local mirrors
+const PICKS_LOCAL_KEY = `${playerParam}StrategicPicks`;
+const ORDER_LOCAL_KEY = `${playerParam}StrategicOrdered`;
 const OK_ACTIVE_KEY   = `${playerParam}:okActive`;
 
 // Default OK to active if not set yet
@@ -198,17 +220,93 @@ let myAbilities = [];
 const tempUsed = new Set();
 const pendingRequests = new Map();
 
+
+/* ================== QG14 smart media preloader ==================
+ * Preloads only media the player is about to use. Images are warmed
+ * immediately; WEBM/MP4 is limited to two concurrent preloaders so the
+ * host upload is not saturated by eleven videos at once.
+ */
+const QG14SmartPreload = (() => {
+  const primed = new Set();
+  const videoQueue = [];
+  let activeVideos = 0;
+  const MAX_VIDEO_PRELOADS = 2;
+
+  function absUrl(value) {
+    try { return new URL(String(value || ""), window.location.href).href; }
+    catch { return String(value || ""); }
+  }
+
+  function pumpVideos() {
+    while (activeVideos < MAX_VIDEO_PRELOADS && videoQueue.length) {
+      const url = videoQueue.shift();
+      activeVideos += 1;
+
+      const video = document.createElement("video");
+      video.preload = "auto";
+      video.muted = true;
+      video.playsInline = true;
+      video.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px";
+
+      let done = false;
+      const complete = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        video.removeAttribute("src");
+        try { video.load(); } catch {}
+        video.remove();
+        activeVideos = Math.max(0, activeVideos - 1);
+        pumpVideos();
+      };
+
+      video.addEventListener("canplay", complete, { once: true });
+      video.addEventListener("loadeddata", complete, { once: true });
+      video.addEventListener("error", complete, { once: true });
+      const timer = setTimeout(complete, 12000);
+
+      document.body.appendChild(video);
+      video.src = url;
+      try { video.load(); } catch {}
+    }
+  }
+
+  function prime(values) {
+    const urls = Array.from(new Set((Array.isArray(values) ? values : [])
+      .map(absUrl)
+      .filter(Boolean)));
+
+    urls.filter(url => !/\.(?:webm|mp4)(?:[?#]|$)/i.test(url)).forEach(url => {
+      if (primed.has(url)) return;
+      primed.add(url);
+      const img = new Image();
+      img.decoding = "async";
+      img.src = url;
+    });
+
+    urls.filter(url => /\.(?:webm|mp4)(?:[?#]|$)/i.test(url)).forEach(url => {
+      if (primed.has(url)) return;
+      primed.add(url);
+      videoQueue.push(url);
+    });
+    pumpVideos();
+  }
+
+  return { prime };
+})();
+
 /* ================== Helpers ================== */
 function createMedia(url, className, onClick) {
-  const isWebm = /\.webm(\?|#|$)/i.test(url);
+  const mediaUrl = resolveQG14MediaUrl(url);
+  const isWebm = /\.webm(\?|#|$)/i.test(mediaUrl || "");
   if (isWebm) {
     const vid = document.createElement("video");
-    vid.src = url;
+    vid.src = mediaUrl;
     vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
-    vid.controls = false;                              // no controls UI
-    vid.disablePictureInPicture = true;                // no PiP
+    vid.controls = false;
+    vid.disablePictureInPicture = true;
     vid.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
-    vid.setAttribute("preload", "metadata");
+    vid.setAttribute("preload", "auto");
     vid.oncontextmenu = (e) => e.preventDefault();
     vid.draggable = false;
     vid.className = className;
@@ -216,8 +314,9 @@ function createMedia(url, className, onClick) {
     return vid;
   } else {
     const img = document.createElement("img");
-    img.src = url;
+    img.src = mediaUrl;
     img.className = className;
+    img.decoding = "async";
     img.oncontextmenu = (e) => e.preventDefault();
     img.draggable = false;
     if (onClick) img.onclick = onClick;
@@ -235,31 +334,6 @@ function normalizeAbilityList(arr) {
   }).filter(Boolean).filter(a => a.text);
 }
 
-function uniqueCardUrls(list) {
-  const seen = new Set();
-  const result = [];
-
-  for (const value of Array.isArray(list) ? list : []) {
-    const url = String(value || "").trim();
-    if (!url || seen.has(url)) continue;
-    seen.add(url);
-    result.push(url);
-  }
-
-  return result;
-}
-
-function isExactOrderForPicks(ordered, pickList) {
-  const cleanOrder = uniqueCardUrls(ordered);
-  const cleanPicks = uniqueCardUrls(pickList);
-
-  return (
-    cleanPicks.length > 0 &&
-    cleanOrder.length === cleanPicks.length &&
-    cleanOrder.every(url => cleanPicks.includes(url))
-  );
-}
-
 function hideOpponentPanel() {
   if (oppPanel) {
     oppPanel.classList.add("hidden");
@@ -274,11 +348,13 @@ function renderBadges(container, abilities, { clickable = false, onClick } = {})
     const isUsed = !!ab.used;
     const el = document.createElement(clickable ? "button" : "span");
     el.textContent = ab.text;
-    el.className = [
-      "ability-badge",
-      clickable ? "my-ability" : "opponent-ability",
-      isUsed ? "is-used" : ""
-    ].filter(Boolean).join(" ");
+    el.className =
+      "px-3 py-1 rounded-lg font-bold border " +
+      (clickable
+        ? (isUsed
+            ? "bg-gray-500/60 text-black/60 border-gray-600 cursor-not-allowed"
+            : "bg-yellow-400 hover:bg-yellow-300 text-black border-yellow-500")
+        : "bg-gray-400/70 text-black border-gray-500");
     if (clickable) {
       if (isUsed) { el.disabled = true; el.setAttribute("aria-disabled", "true"); }
       else if (onClick) { el.onclick = () => onClick(ab.text); }
@@ -312,28 +388,24 @@ function refreshAllSelects(selects, N) {
   const { chosenSet, values } = snapshotChosen(selects);
   selects.forEach((sel, idx) => buildOptions(sel, N, chosenSet, values[idx]));
   const allChosen = values.filter(Boolean).length === N && chosenSet.size === N;
-  if (orderCountEl) orderCountEl.textContent = String(values.filter(Boolean).length);
-  if (orderTotalEl) orderTotalEl.textContent = String(N);
-  if (orderCounter) orderCounter.classList.toggle("is-complete", allChosen);
   continueBtn.classList.toggle("hidden", !allChosen);
 }
 
 /* ================== Load picks + existing order ================== */
 socket.emit("getOrderData", { gameID, playerName });
 socket.on("orderData", ({ picks: serverPicks = [], ordered = null }) => {
-  const cleanServerPicks = uniqueCardUrls(serverPicks);
-
-  if (cleanServerPicks.length) {
-    picks = cleanServerPicks;
+  if (Array.isArray(serverPicks) && serverPicks.length) {
+    picks = serverPicks.slice();
     try { localStorage.setItem(PICKS_LOCAL_KEY, JSON.stringify(picks)); } catch {}
   } else {
     const localPicks = JSON.parse(localStorage.getItem(PICKS_LOCAL_KEY) || "[]");
-    picks = uniqueCardUrls(localPicks);
+    picks = Array.isArray(localPicks) ? localPicks : [];
   }
 
-  submittedOrder = isExactOrderForPicks(ordered, picks)
-    ? uniqueCardUrls(ordered)
-    : null;
+  // Warm only this player's actual cards before later rounds need them.
+  QG14SmartPreload.prime(picks.map(resolveQG14MediaUrl));
+
+  submittedOrder = Array.isArray(ordered) && ordered.length ? ordered.slice() : null;
   try {
     if (submittedOrder) localStorage.setItem(ORDER_LOCAL_KEY, JSON.stringify(submittedOrder));
     else localStorage.removeItem(ORDER_LOCAL_KEY);
@@ -431,29 +503,21 @@ function renderCards(pickList, lockedOrder = null) {
   grid.innerHTML = "";
   const display = (Array.isArray(lockedOrder) && lockedOrder.length === pickList.length) ? lockedOrder : pickList;
   const selects = [];
-  const isLocked = Array.isArray(lockedOrder) && lockedOrder.length === pickList.length;
-  if (orderTotalEl) orderTotalEl.textContent = String(pickList.length);
-  if (orderCountEl) orderCountEl.textContent = String(isLocked ? pickList.length : 0);
-  if (orderCounter) orderCounter.classList.toggle("is-complete", isLocked);
   display.forEach((url) => {
     const wrapper = document.createElement("div");
-    wrapper.className = `order-card${isLocked ? " is-locked" : ""}`;
+    wrapper.className = "flex flex-col items-center space-y-2";
 
     // Media + shield wrapper (prevents right-click/drag and hides URL affordances)
     const mediaWrap = document.createElement("div");
     mediaWrap.className = "nosave";
-    const media = createMedia(url, "order-card-media");
+    const media = createMedia(url, "w-36 h-48 object-contain rounded shadow");
     const shield = document.createElement("div");
     shield.className = "shield";
     mediaWrap.appendChild(media);
     mediaWrap.appendChild(shield);
 
-    const selectLabel = document.createElement("span");
-    selectLabel.className = "select-label";
-    selectLabel.textContent = isLocked ? "ترتيب البطاقة" : "اختر ترتيب البطاقة";
-
     const select = document.createElement("select");
-    select.className = "order-select orderSelect";
+    select.className = "w-24 p-1 rounded bg-gray-800 text-white text-center text-lg orderSelect";
     const def = document.createElement("option"); def.value = ""; def.textContent = "-- الترتيب --"; select.appendChild(def);
 
     if (Array.isArray(lockedOrder) && lockedOrder.length === pickList.length) {
@@ -469,7 +533,6 @@ function renderCards(pickList, lockedOrder = null) {
     }
 
     wrapper.appendChild(mediaWrap);
-    wrapper.appendChild(selectLabel);
     wrapper.appendChild(select);
     grid.appendChild(wrapper);
     selects.push(select);
@@ -482,7 +545,7 @@ function renderCards(pickList, lockedOrder = null) {
     selects.forEach(sel => sel.addEventListener("change", () => refreshAllSelects(selects, pickList.length)));
     continueBtn.classList.add("hidden");
     continueBtn.disabled = false;
-    continueBtn.textContent = "متابعة وإرسال الترتيب";
+    continueBtn.textContent = "متابعة";
   }
 }
 
@@ -490,11 +553,6 @@ function renderCards(pickList, lockedOrder = null) {
 function submitPicks() {
   if (!picks.length) return;
   if (Array.isArray(submittedOrder) && submittedOrder.length === picks.length) return;
-
-  if (new Set(picks).size !== picks.length) {
-    alert("تعذر المتابعة: توجد بطاقة متكررة ضمن اختيارات اللاعب.");
-    return;
-  }
 
   const dropdowns = document.querySelectorAll(".orderSelect");
   const values = dropdowns.length ? Array.from(dropdowns).map((s) => parseInt(s.value, 10)) : [];
@@ -508,14 +566,6 @@ function submitPicks() {
   for (let i = 0; i < values.length; i++) {
     const orderIndex = values[i] - 1;
     ordered[orderIndex] = picks[i];
-  }
-
-  if (
-    ordered.some(url => !url) ||
-    new Set(ordered).size !== ordered.length
-  ) {
-    alert("تعذر المتابعة: ترتيب البطاقات غير صالح أو يحتوي على تكرار.");
-    return;
   }
 
   socket.emit("submitOrder", { gameID, playerName, ordered });
@@ -551,11 +601,13 @@ function setOkUi(active, emitChange = true) {
   if (active) {
     // ✅ OK is active on host — show "إلغاء تمام" so player can cancel
     okBtn.textContent = "إلغاء تمام";
-    okBtn.classList.add("is-cancel");
+    okBtn.classList.remove("bg-emerald-600", "hover:bg-emerald-700");
+    okBtn.classList.add("bg-gray-600", "hover:bg-gray-700");
   } else {
     // ❌ OK is not active — show "تمام" (green) to allow activating
     okBtn.textContent = "تمام";
-    okBtn.classList.remove("is-cancel");
+    okBtn.classList.add("bg-emerald-600", "hover:bg-emerald-700");
+    okBtn.classList.remove("bg-gray-600", "hover:bg-gray-700");
   }
 
   if (emitChange) {

@@ -4,31 +4,508 @@
   <meta charset="UTF-8" />
   <title>QG14 Card Clash</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="images/qg14-Card-Clash-logo.png" />
 
-   <style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
-  select option {
-  background: linear-gradient(to right, #1e1e1e, #2d2d2d);
-  color: #f1f1f1;
-  padding: 12px;
-  font-size: 1rem;
-  border-bottom: 1px solid #444;
-  transition: background 0.3s, color 0.3s;
-}
+  <style>
+    :root{
+      --wine:#4b0e1f;
+      --wine-2:#310916;
+      --wine-dark:#160308;
+      --gold:#ffd700;
+      --gold-soft:#ffe66e;
+      --panel:rgba(12,2,7,.52);
+      --panel-strong:rgba(18,3,9,.72);
+      --line:rgba(255,215,0,.24);
+      --muted:rgba(255,255,255,.58);
+      --text:#fff;
+    }
 
-  select option:checked {
-  background-color: #3b82f6;
-  font-weight: bold;
-  color: white;
-}
+    *{box-sizing:border-box}
 
-  select option:hover {
-  background-color: #6366f1;
-  color: white;
-}
-</style>
+    html{
+      min-height:100%;
+      color-scheme:dark;
+    }
+
+    body{
+      min-height:100vh;
+      margin:0;
+      overflow-x:hidden;
+      color:var(--text);
+      font-family:"Cairo",system-ui,sans-serif;
+      background:
+        radial-gradient(780px 440px at 10% 5%,rgba(255,215,0,.10),transparent 64%),
+        radial-gradient(650px 420px at 92% 2%,rgba(59,130,246,.10),transparent 68%),
+        linear-gradient(180deg,#591125 0%,var(--wine) 34%,#2b0612 72%,var(--wine-dark) 100%);
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      z-index:-2;
+      pointer-events:none;
+      opacity:.15;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+      background-size:40px 40px;
+      mask-image:linear-gradient(to bottom,black,transparent 86%);
+    }
+
+    body::after{
+      content:"";
+      position:fixed;
+      width:440px;
+      height:440px;
+      left:50%;
+      top:44%;
+      z-index:-1;
+      transform:translate(-50%,-50%);
+      border-radius:50%;
+      pointer-events:none;
+      background:rgba(255,215,0,.035);
+      filter:blur(90px);
+    }
+
+    button{font:inherit}
+
+    .page{
+      width:min(100%,980px);
+      min-height:100vh;
+      margin-inline:auto;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:48px 18px;
+    }
+
+    .app-shell{
+      width:min(100%,760px);
+    }
+
+    .page-head{
+      text-align:center;
+      margin-bottom:18px;
+    }
+
+    .brand-kicker{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      color:rgba(255,232,111,.72);
+      font-size:.62rem;
+      font-weight:900;
+      letter-spacing:.16em;
+    }
+
+    .brand-kicker::before,
+    .brand-kicker::after{
+      content:"";
+      width:22px;
+      height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,215,0,.72));
+    }
+
+    .brand-kicker::after{
+      transform:scaleX(-1);
+    }
+
+    .brand-title{
+      margin:5px 0 0;
+      font-size:clamp(2rem,5vw,3.15rem);
+      line-height:1.08;
+      font-weight:900;
+      letter-spacing:-.035em;
+      text-shadow:0 12px 32px rgba(0,0,0,.32);
+    }
+
+    .brand-title span{color:var(--gold)}
+
+    .main-card{
+      position:relative;
+      overflow:hidden;
+      padding:22px;
+      border:1px solid rgba(255,215,0,.25);
+      border-radius:26px;
+      background:linear-gradient(145deg,rgba(255,255,255,.075),var(--panel));
+      backdrop-filter:blur(18px) saturate(120%);
+      -webkit-backdrop-filter:blur(18px) saturate(120%);
+      box-shadow:0 28px 80px rgba(0,0,0,.33),inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .main-card::before{
+      content:"";
+      position:absolute;
+      inset:0 0 auto 0;
+      height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,215,0,.70),transparent);
+      opacity:.65;
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns:minmax(190px,.9fr) minmax(0,1.1fr);
+      gap:22px;
+      align-items:center;
+    }
+
+    .logo-wrap{
+      position:relative;
+      min-height:260px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:21px;
+      background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(0,0,0,.18));
+    }
+
+    .logo-wrap::after{
+      content:"";
+      position:absolute;
+      width:72%;
+      aspect-ratio:1;
+      border-radius:50%;
+      background:rgba(255,215,0,.055);
+      filter:blur(34px);
+      pointer-events:none;
+    }
+
+    .logo{
+      position:relative;
+      z-index:1;
+      display:block;
+      width:min(100%,300px);
+      height:auto;
+      object-fit:contain;
+      filter:drop-shadow(0 18px 28px rgba(0,0,0,.35));
+    }
+
+    .setup-panel{
+      min-width:0;
+      text-align:right;
+    }
+
+    .section-label{
+      display:block;
+      margin-bottom:4px;
+      color:var(--gold-soft);
+      font-size:.78rem;
+      font-weight:900;
+    }
+
+    .section-copy{
+      margin:0 0 13px;
+      color:var(--muted);
+      font-size:.65rem;
+      line-height:1.7;
+      font-weight:700;
+    }
+
+    .mode-select-native{
+      position:absolute;
+      width:1px;
+      height:1px;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .mode-grid,
+    .scope-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .mode-option,
+    .scope-option{
+      position:relative;
+      min-height:76px;
+      padding:12px 11px;
+      border:1px solid rgba(255,255,255,.095);
+      border-radius:15px;
+      color:#fff;
+      text-align:center;
+      cursor:pointer;
+      outline:none;
+      background:rgba(255,255,255,.038);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.045);
+      transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease;
+    }
+
+    .mode-option:hover,
+    .scope-option:hover{
+      transform:translateY(-1px);
+      border-color:rgba(255,215,0,.30);
+      background:rgba(255,255,255,.065);
+    }
+
+    .mode-option:focus-visible,
+    .scope-option:focus-visible{
+      border-color:var(--gold);
+      box-shadow:0 0 0 3px rgba(255,215,0,.10);
+    }
+
+    .mode-option.is-selected,
+    .scope-option.is-selected{
+      border-color:rgba(255,215,0,.72);
+      background:linear-gradient(145deg,rgba(255,215,0,.13),rgba(255,215,0,.05));
+      box-shadow:0 10px 24px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .mode-option.is-selected::after,
+    .scope-option.is-selected::after{
+      content:"";
+      position:absolute;
+      top:9px;
+      left:9px;
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:var(--gold);
+      box-shadow:0 0 11px rgba(255,215,0,.72);
+    }
+
+    .scope-block{
+      margin-top:14px;
+      padding-top:14px;
+      border-top:1px solid rgba(255,255,255,.075);
+    }
+
+    .mode-name{
+      display:block;
+      font-size:.84rem;
+      font-weight:900;
+    }
+
+    .mode-desc{
+      display:block;
+      margin-top:3px;
+      color:rgba(255,255,255,.48);
+      font-size:.56rem;
+      line-height:1.5;
+      font-weight:700;
+    }
+
+    .start-btn{
+      width:100%;
+      min-height:50px;
+      margin-top:12px;
+      padding:10px 17px;
+      border:1px solid rgba(255,231,119,.62);
+      border-radius:15px;
+      color:#231903;
+      font-size:.82rem;
+      font-weight:900;
+      cursor:pointer;
+      outline:none;
+      background:linear-gradient(135deg,#ffe66e,#f6c900);
+      box-shadow:0 12px 28px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.55);
+      transition:transform .16s ease,filter .16s ease,box-shadow .16s ease;
+    }
+
+    .start-btn:hover{
+      transform:translateY(-2px);
+      filter:brightness(1.035);
+      box-shadow:0 16px 31px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.6);
+    }
+
+    .start-btn:active{transform:translateY(0)}
+
+    .start-btn:focus-visible{
+      box-shadow:0 0 0 3px rgba(255,215,0,.13),0 15px 30px rgba(0,0,0,.26);
+    }
+
+    .start-btn:disabled{
+      cursor:default;
+      opacity:.62;
+      transform:none;
+      filter:none;
+    }
+
+    .quick-panel{
+      margin-top:12px;
+      padding:10px;
+      border:1px solid rgba(255,255,255,.075);
+      border-radius:18px;
+      background:rgba(0,0,0,.15);
+    }
+
+    .quick-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+    }
+
+    .quick-btn{
+      min-width:0;
+      min-height:46px;
+      padding:9px 10px;
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:12px;
+      color:#fff;
+      font-size:.66rem;
+      font-weight:900;
+      cursor:pointer;
+      outline:none;
+      background:rgba(255,255,255,.045);
+      transition:transform .15s ease,border-color .15s ease,background .15s ease,box-shadow .15s ease;
+    }
+
+    .quick-btn:hover{
+      transform:translateY(-1px);
+      background:rgba(255,255,255,.075);
+    }
+
+    .quick-btn:focus-visible{
+      box-shadow:0 0 0 3px rgba(255,255,255,.07);
+    }
+
+    .quick-btn.leaderboard{
+      border-color:rgba(255,215,0,.24);
+      color:#ffe777;
+    }
+
+    .quick-btn.leaderboard:hover{border-color:rgba(255,215,0,.46)}
+
+    .quick-btn.admin{
+      border-color:rgba(167,139,250,.25);
+      color:#d9ccff;
+    }
+
+    .quick-btn.admin:hover{border-color:rgba(167,139,250,.48)}
+
+    .quick-btn.bottom{
+      border-color:rgba(103,232,249,.22);
+      color:#baf6ff;
+    }
+
+    .quick-btn.bottom:hover{border-color:rgba(103,232,249,.46)}
+
+
+    .update-section{
+      margin-top:12px;
+      padding:11px;
+      border:1px solid rgba(255,215,0,.13);
+      border-radius:16px;
+      background:rgba(0,0,0,.13);
+      text-align:center;
+    }
+
+    .update-check-btn{
+      width:100%;
+      min-height:44px;
+      border:1px solid rgba(255,215,0,.28);
+      border-radius:12px;
+      color:#ffe777;
+      font-size:.72rem;
+      font-weight:900;
+      cursor:pointer;
+      background:rgba(255,215,0,.055);
+      transition:transform .15s ease,border-color .15s ease,background .15s ease;
+    }
+
+    .update-check-btn:hover:not(:disabled){
+      transform:translateY(-1px);
+      border-color:rgba(255,215,0,.55);
+      background:rgba(255,215,0,.09);
+    }
+
+    .update-check-btn:disabled{opacity:.58;cursor:default}
+
+    .update-status{
+      display:none;
+      margin-top:9px;
+      padding:10px 11px;
+      border:1px solid rgba(255,255,255,.075);
+      border-radius:11px;
+      color:rgba(255,255,255,.72);
+      font-size:.61rem;
+      font-weight:700;
+      line-height:1.75;
+      text-align:right;
+      background:rgba(0,0,0,.17);
+      white-space:pre-line;
+    }
+
+    .update-status.is-visible{display:block}
+    .update-status.is-good{border-color:rgba(74,222,128,.22);color:#c9f8d9}
+    .update-status.is-warn{border-color:rgba(255,215,0,.24);color:#fff0a8}
+    .update-status.is-error{border-color:rgba(248,113,113,.26);color:#fecaca}
+
+    .update-actions{
+      display:none;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:7px;
+      margin-top:8px;
+    }
+
+    .update-actions.is-visible{display:grid}
+
+    .update-action-btn{
+      min-height:40px;
+      padding:7px 9px;
+      border:1px solid rgba(255,255,255,.11);
+      border-radius:10px;
+      color:#fff;
+      font-size:.61rem;
+      font-weight:900;
+      cursor:pointer;
+      background:rgba(255,255,255,.055);
+    }
+
+    .update-action-btn.assets{border-color:rgba(74,222,128,.30);color:#c7f9d8}
+    .update-action-btn.app{border-color:rgba(255,215,0,.30);color:#ffe777}
+    .update-action-btn:hover:not(:disabled){background:rgba(255,255,255,.09)}
+    .update-action-btn:disabled{opacity:.55;cursor:default}
+
+    .footer-mark{
+      margin-top:12px;
+      text-align:center;
+      color:rgba(255,255,255,.28);
+      font-size:.53rem;
+      font-weight:800;
+      letter-spacing:.10em;
+    }
+
+    @media (max-width:700px){
+      .page{padding:26px 12px}
+      .main-card{padding:14px;border-radius:22px}
+      .hero{grid-template-columns:1fr;gap:12px}
+      .logo-wrap{min-height:180px;padding:10px}
+      .logo{width:min(76%,270px)}
+      .setup-panel{text-align:right}
+      .page-head{margin-bottom:13px}
+    }
+
+    @media (max-width:460px){
+      .page{align-items:flex-start;padding-top:22px;padding-bottom:22px}
+      .brand-title{font-size:2rem}
+      .logo-wrap{min-height:150px}
+      .mode-grid,.scope-grid{gap:6px}
+      .mode-option,.scope-option{min-height:72px;padding:10px 8px}
+      .mode-name{font-size:.76rem}
+      .mode-desc{font-size:.52rem}
+      .quick-grid{grid-template-columns:1fr}
+      .quick-btn{min-height:42px}
+      .update-actions{grid-template-columns:1fr}
+    }
+
+    @media (prefers-reduced-motion:reduce){
+      *,*::before,*::after{
+        animation-duration:.01ms !important;
+        transition-duration:.01ms !important;
+        scroll-behavior:auto !important;
+      }
+    }
+  </style>
+
   <script>
     fetch("/api/check-auth").then((res) => {
       if (!res.ok) {
@@ -41,85 +518,454 @@
       window.location.reload();
     }
   </script>
+
+<style id="qg14-result-theme-sync">
+
+/* =========================================================
+   QG14 RESULT THEME SYNC
+   Visual-only override. Layout / IDs / JS behavior unchanged.
+   ========================================================= */
+:root{
+  --qgr-gold:#FFD700;
+  --qgr-gold-soft:#ffe777;
+  --qgr-green:#0b6e3f;
+  --qgr-green-hover:#14824c;
+  --qgr-wine:#4B0E1F;
+  --qgr-wine-panel:#511522;
+  --qgr-wine-soft:#7b2131;
+  --qgr-wine-soft-hover:#8b2a3a;
+  --qgr-deep:#180309;
+  --qgr-line:rgba(255,215,0,.48);
+  --qgr-line-soft:rgba(255,215,0,.24);
+  --qgr-glass:rgba(18,3,9,.72);
+  --qgr-glass-soft:rgba(75,14,31,.56);
+  --qgr-text:#fff;
+  --qgr-text-soft:rgba(255,255,255,.72);
+}
+html,body,button,input,textarea,select,option{
+  font-family:"Cairo",Tahoma,Arial,sans-serif !important;
+}
+button,input,textarea,select{
+  transition:background .15s ease,border-color .15s ease,transform .08s ease,box-shadow .15s ease,filter .15s ease;
+}
+input,textarea,select{
+  color:#fff !important;
+  background:rgba(0,0,0,.22) !important;
+  border-color:rgba(255,215,0,.50) !important;
+}
+input:focus,textarea:focus,select:focus{
+  outline:none !important;
+  border-color:var(--qgr-gold) !important;
+  box-shadow:0 0 0 3px rgba(255,215,0,.10) !important;
+}
+select option{
+  color:#fff !important;
+  background:#3b0c1b !important;
+}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,215,0,.58);border-radius:999px}
+
+
+body{
+  color:#fff !important;
+  background:
+    linear-gradient(rgba(75,14,31,.20),rgba(24,3,9,.33)),
+    url('images/QG14Background.png') center center / cover fixed no-repeat,
+    var(--qgr-wine) !important;
+}
+body::before,body::after{opacity:.10 !important}
+.main-card,.quick-panel,.update-section,.setup-panel{
+  color:#fff !important;
+  border-color:rgba(255,215,0,.52) !important;
+  background:rgba(81,21,34,.68) !important;
+  backdrop-filter:blur(16px) saturate(125%) !important;
+  -webkit-backdrop-filter:blur(16px) saturate(125%) !important;
+  box-shadow:0 18px 45px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+.brand-title span,.section-label{color:var(--qgr-gold) !important}
+.section-copy,.mode-desc{color:var(--qgr-text-soft) !important}
+.mode-option,.scope-option{
+  color:#fff !important;
+  border:1.5px solid rgba(255,215,0,.32) !important;
+  background:rgba(0,0,0,.18) !important;
+}
+.mode-option:hover,.scope-option:hover{
+  border-color:rgba(255,215,0,.65) !important;
+  background:rgba(123,33,49,.68) !important;
+}
+.mode-option.is-selected,.scope-option.is-selected{
+  color:var(--qgr-gold) !important;
+  border-color:var(--qgr-gold) !important;
+  background:rgba(255,215,0,.10) !important;
+  box-shadow:0 0 0 2px rgba(255,215,0,.08) !important;
+}
+.start-btn,.update-check-btn,.update-action-btn{
+  color:var(--qgr-gold) !important;
+  border:2px solid var(--qgr-gold) !important;
+  background:var(--qgr-green) !important;
+}
+.start-btn:hover,.update-check-btn:hover,.update-action-btn:hover{
+  background:var(--qgr-green-hover) !important;
+}
+.quick-btn{
+  color:#fff !important;
+  border:2px solid rgba(255,215,0,.52) !important;
+  background:var(--qgr-wine-soft) !important;
+}
+.quick-btn:hover{
+  color:var(--qgr-gold) !important;
+  background:var(--qgr-wine-soft-hover) !important;
+  border-color:var(--qgr-gold) !important;
+}
+.update-status{
+  color:var(--qgr-text-soft) !important;
+  border-color:rgba(255,215,0,.26) !important;
+  background:rgba(0,0,0,.17) !important;
+}
+
+</style>
 </head>
 
-<body class="text-white flex items-center justify-center min-h-screen px-4 py-10">
-  <div class="w-full max-w-md text-center space-y-8 animate-fadeIn">
+<body>
+  <main class="page">
+    <div class="app-shell">
+      <header class="page-head">
+        <span class="brand-kicker">CARD BATTLE SYSTEM</span>
+        <h1 class="brand-title">QG14 <span>Card Clash</span></h1>
+      </header>
 
-    <!-- Title -->
-    <h1 class="text-5xl font-bold tracking-wide shine-title">QG14 Card Clash</h1>
+      <section class="main-card">
+        <div class="hero">
+          <div class="logo-wrap">
+            <img
+              src="images/qg14-Card-Clash-logo.png"
+              alt="QG14 Card Clash Logo"
+              class="logo"
+            />
+          </div>
 
-    <!-- Logo -->
-    <img src="images/qg14-Card-Clash-logo.png" alt="QG14 Card Clash Logo" style="max-width: 300px; width: 100%;" class="mx-auto rounded-xl object-contain" />
+          <div class="setup-panel">
+            <span class="section-label">اختر نمط اللعبة</span>
+            <p class="section-copy">حدد النمط الذي تريد تشغيل المباراة به، ثم ابدأ اللعبة.</p>
 
-    <!-- Mode Selection -->
-<div class="space-y-3 text-right">
-  <label for="mode" class="block text-xl font-semibold pr-1 text-yellow-300">:اختر نمط اللعبة</label>
-  <div class="relative">
-    <select
-      id="mode"
-      class="w-full p-3 pr-10 rounded-lg bg-gradient-to-br from-[#2c2c2c] via-[#1e1e1e] to-[#131313] text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 shadow-lg transition-all duration-300 hover:border-yellow-400 hover:shadow-yellow-500/20 appearance-none"
-    >
-      <option value="strategic" class="bg-white text-black py-2">⚔️ من الأقوى</option>
-      <option value="winner" class="bg-white text-black py-2">🧠 التحدي</option>
-</select>
-    <div class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-white">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-      </svg>
+            <select id="mode" class="mode-select-native" aria-label="نمط اللعبة">
+              <option value="strategic">من الأقوى</option>
+              <option value="winner">التحدي</option>
+            </select>
+
+            <div class="mode-grid" role="group" aria-label="اختيار نمط اللعبة">
+              <button class="mode-option is-selected" type="button" data-mode="strategic" aria-pressed="true">
+                <span class="mode-name">من الأقوى</span>
+                <span class="mode-desc">نمط المواجهة الاستراتيجية</span>
+              </button>
+
+              <button class="mode-option" type="button" data-mode="winner" aria-pressed="false">
+                <span class="mode-name">التحدي</span>
+                <span class="mode-desc">نمط المنافسة والتحديات</span>
+              </button>
+            </div>
+
+            <div class="scope-block">
+              <span class="section-label">اختر طور البطاقات</span>
+              <p class="section-copy">حدد مجموعة البطاقات التي ستُستخدم في المباراة.</p>
+
+              <select id="cardScope" class="mode-select-native" aria-label="طور البطاقات">
+                <option value="all">الكل</option>
+                <option value="anime">طور الأنمي</option>
+              </select>
+
+              <div class="scope-grid" role="group" aria-label="اختيار طور البطاقات">
+                <button class="scope-option is-selected" type="button" data-scope="all" aria-pressed="true">
+                  <span class="mode-name">الكل</span>
+                  <span class="mode-desc">استخدام جميع البطاقات</span>
+                </button>
+
+                <button class="scope-option" type="button" data-scope="anime" aria-pressed="false">
+                  <span class="mode-name">طور الأنمي</span>
+                  <span class="mode-desc">استخدام بطاقات الأنمي فقط</span>
+                </button>
+              </div>
+            </div>
+
+            <button id="startGameBtn" class="start-btn" type="button" onclick="logoutAndStart()">
+              ابدأ اللعبة
+            </button>
+
+            <div class="quick-panel">
+              <div class="quick-grid">
+                <button
+                  type="button"
+                  class="quick-btn leaderboard"
+                  onclick="location.href='/leaderboard.html'"
+                >المتصدرين</button>
+
+                <button
+                  type="button"
+                  class="quick-btn admin"
+                  onclick="location.href='/leaderboard-admin'"
+                >لوحة التحكم</button>
+
+                <button
+                  type="button"
+                  class="quick-btn bottom"
+                  onclick="location.href='/leaderboard-bottom.html'"
+                >قاع الهامور</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="update-section" aria-label="تحديثات QG14">
+        <button id="checkUpdatesBtn" class="update-check-btn" type="button">التحقق من التحديثات</button>
+        <div id="updateStatus" class="update-status" aria-live="polite"></div>
+        <div id="updateActions" class="update-actions">
+          <button id="updateAssetsBtn" class="update-action-btn assets" type="button">تحديث الملفات من GitHub</button>
+          <button id="downloadAppUpdateBtn" class="update-action-btn app" type="button">تحميل تحديث البرنامج</button>
+          <button id="restartAfterUpdateBtn" class="update-action-btn assets" type="button">إعادة تشغيل QG14</button>
+        </div>
+      </section>
+
+      <div class="footer-mark">QG14 CARD CLASH</div>
     </div>
-  </div>
-</div>
+  </main>
 
-    <!-- Start Button -->
-    <a
-  href="#"
-  onclick="logoutAndStart()"
-  class="block w-full py-3 text-xl font-bold text-white rounded-lg bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 hover:from-green-500 hover:via-indigo-500 hover:to-pink-500 transition-all duration-300 shadow-lg ring-1 ring-white/10 hover:scale-105"
->
-  🚀 إبدأ اللعبة
-</a>
-
-    <!-- Leaderboard Buttons All in One Row -->
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
-  <button
-    onclick="location.href='/leaderboard.html'"
-    class="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black py-3 rounded-lg text-lg font-bold transition duration-300 shadow-lg hover:scale-105"
-  >المتصدرين</button>
-
-  <button
-    onclick="location.href='/leaderboard-admin'"
-    class="w-full bg-gradient-to-r from-purple-500 to-indigo-700 hover:from-purple-600 hover:to-indigo-800 text-white py-3 px-6 rounded-lg text-lg font-bold transition duration-300 shadow-lg hover:scale-105"
-  >لوحة تحكم</button>
-
-  <button
-    onclick="location.href='/leaderboard-bottom.html'"
-    class="w-full bg-gradient-to-r from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700 text-black py-3 rounded-lg text-lg font-bold transition duration-300 shadow-lg hover:scale-105"
-  >قاع الهامور</button>
-</div>
-  </div>
-
-  <!-- JS logic -->
   <script>
+    const modeSelect = document.getElementById("mode");
+    const modeButtons = Array.from(document.querySelectorAll(".mode-option"));
+    const cardScopeSelect = document.getElementById("cardScope");
+    const scopeButtons = Array.from(document.querySelectorAll(".scope-option"));
+    const startGameBtn = document.getElementById("startGameBtn");
+    const checkUpdatesBtn = document.getElementById("checkUpdatesBtn");
+    const updateStatus = document.getElementById("updateStatus");
+    const updateActions = document.getElementById("updateActions");
+    const updateAssetsBtn = document.getElementById("updateAssetsBtn");
+    const downloadAppUpdateBtn = document.getElementById("downloadAppUpdateBtn");
+    const restartAfterUpdateBtn = document.getElementById("restartAfterUpdateBtn");
+    let latestUpdateResult = null;
+
+    function setMode(mode) {
+      if (!modeSelect) return;
+
+      const validMode = mode === "winner" ? "winner" : "strategic";
+      modeSelect.value = validMode;
+
+      modeButtons.forEach((button) => {
+        const isSelected = button.dataset.mode === validMode;
+        button.classList.toggle("is-selected", isSelected);
+        button.setAttribute("aria-pressed", String(isSelected));
+      });
+    }
+
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setMode(button.dataset.mode);
+      });
+    });
+
+    function setCardScope(scope) {
+      if (!cardScopeSelect) return;
+
+      const validScope = scope === "anime" ? "anime" : "all";
+      cardScopeSelect.value = validScope;
+
+      scopeButtons.forEach((button) => {
+        const isSelected = button.dataset.scope === validScope;
+        button.classList.toggle("is-selected", isSelected);
+        button.setAttribute("aria-pressed", String(isSelected));
+      });
+    }
+
+    scopeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setCardScope(button.dataset.scope);
+      });
+    });
+
+    setMode(modeSelect?.value || "strategic");
+    setCardScope(cardScopeSelect?.value || "all");
+
+
+    function setUpdateStatus(text, type = "") {
+      if (!updateStatus) return;
+      updateStatus.textContent = String(text || "");
+      updateStatus.className = "update-status is-visible" + (type ? ` is-${type}` : "");
+    }
+
+    function hideUpdateActions() {
+      if (updateActions) updateActions.classList.remove("is-visible");
+      if (updateAssetsBtn) updateAssetsBtn.style.display = "none";
+      if (downloadAppUpdateBtn) downloadAppUpdateBtn.style.display = "none";
+      if (restartAfterUpdateBtn) restartAfterUpdateBtn.style.display = "none";
+    }
+
+    function renderUpdateResult(data) {
+      latestUpdateResult = data || null;
+      hideUpdateActions();
+
+      const lines = [];
+      const app = data?.app || {};
+      const files = data?.files || data?.assets || {};
+      const isDev = data?.buildKind === "development";
+
+      lines.push(`إصدار البرنامج الحالي: ${app.currentVersion || data?.currentVersion || "غير معروف"}`);
+
+      if (app.available) {
+        lines.push(`يوجد إصدار برنامج أحدث: ${app.latestVersion}`);
+        if (downloadAppUpdateBtn) {
+          downloadAppUpdateBtn.style.display = "block";
+          updateActions?.classList.add("is-visible");
+        }
+      } else {
+        lines.push("البرنامج التنفيذي على آخر إصدار منشور.");
+      }
+
+      if (!files.baselineReady) {
+        if (!isDev) lines.push("تعذر قراءة بصمة ملفات النسخة الحالية؛ التحديث المباشر غير متاح لهذه النسخة.");
+      } else {
+        if (files.directCount > 0) {
+          lines.push(`ملفات متغيرة في GitHub: ${files.directCount} (واجهة/كروت ${files.publicCount || 0}، خادم ${files.runtimeCount || 0}).`);
+          lines.push(`التغييرات: جديد ${files.added || 0}، معدل ${files.changed || 0}، محذوف ${files.deleted || 0}.`);
+          if (Number(files.runtimeBlockedByInstaller || 0) > 0) {
+            lines.push(`تم تأجيل ${files.runtimeBlockedByInstaller} ملف خادم لأن هناك تغييرًا أساسيًا يحتاج Update Setup.`);
+          }
+          if (files.canApply && updateAssetsBtn) {
+            updateAssetsBtn.style.display = "block";
+            updateAssetsBtn.textContent = `تحديث الملفات من GitHub (${files.applyableCount || files.directCount})`;
+            updateActions?.classList.add("is-visible");
+          } else if (isDev) {
+            lines.push("التطبيق المباشر معطل في نسخة التطوير حتى لا تُستبدل ملفاتك المحلية.");
+          }
+        } else {
+          lines.push("ملفات اللعبة القابلة للتحديث مباشرة مطابقة لآخر نسخة في GitHub.");
+        }
+
+        if (files.installerCount > 0) {
+          lines.push(`توجد ${files.installerCount} تغييرات أساسية (Electron/dependencies/desktop) تحتاج Update Setup ولا تُستبدل مباشرة.`);
+        }
+      }
+
+      if (Array.isArray(data?.errors) && data.errors.length) lines.push(`ملاحظة: ${data.errors.join(" | ")}`);
+      const hasUpdate = !!app.available || Number(files.directCount || 0) > 0 || Number(files.installerCount || 0) > 0;
+      setUpdateStatus(lines.join("\n"), hasUpdate ? "warn" : "good");
+    }
+
+    async function checkForUpdates() {
+      if (!checkUpdatesBtn) return;
+      const oldText = checkUpdatesBtn.textContent;
+      checkUpdatesBtn.disabled = true;
+      checkUpdatesBtn.textContent = "جاري التحقق...";
+      hideUpdateActions();
+      setUpdateStatus("جاري الاتصال بمصدر التحديثات...", "");
+
+      try {
+        const response = await fetch(`/api/updates/check?t=${Date.now()}`, { cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+        renderUpdateResult(data);
+      } catch (err) {
+        setUpdateStatus(`تعذر التحقق من التحديثات: ${err?.message || err}`, "error");
+      } finally {
+        checkUpdatesBtn.disabled = false;
+        checkUpdatesBtn.textContent = oldText;
+      }
+    }
+
+    async function applyAssetUpdates() {
+      if (!updateAssetsBtn) return;
+      const oldText = updateAssetsBtn.textContent;
+      updateAssetsBtn.disabled = true;
+      updateAssetsBtn.textContent = "جاري تنزيل الملفات...";
+      setUpdateStatus("جاري تنزيل الملفات الجديدة أو المعدلة من GitHub والتحقق من سلامتها. لا تغلق البرنامج.", "warn");
+
+      try {
+        const response = await fetch("/api/updates/files/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+
+        const failed = Array.isArray(data.failed) ? data.failed.length : 0;
+        const summary = `تم تحديث ${data.updated || 0} ملف وحذف ${data.deleted || 0} ملف`;
+        if (failed) {
+          setUpdateStatus(`${summary}، وتعذر تحديث ${failed} ملف. اضغط التحقق من التحديثات للمحاولة مجددًا.`, "warn");
+        } else if (data.restartRequired) {
+          setUpdateStatus(`${summary} بنجاح. تم تحديث ملفات الخادم ويجب إعادة تشغيل QG14 لتفعيلها.`, "good");
+          if (restartAfterUpdateBtn) {
+            restartAfterUpdateBtn.style.display = "block";
+            updateActions?.classList.add("is-visible");
+          }
+        } else {
+          setUpdateStatus(`${summary} بنجاح. أعد تحميل الصفحة المفتوحة لرؤية تعديلات الواجهة فورًا.`, "good");
+          setTimeout(checkForUpdates, 900);
+        }
+      } catch (err) {
+        setUpdateStatus(`تعذر تحديث ملفات GitHub: ${err?.message || err}`, "error");
+      } finally {
+        updateAssetsBtn.disabled = false;
+        updateAssetsBtn.textContent = oldText;
+      }
+    }
+
+    if (checkUpdatesBtn) checkUpdatesBtn.addEventListener("click", checkForUpdates);
+    if (updateAssetsBtn) updateAssetsBtn.addEventListener("click", applyAssetUpdates);
+    if (restartAfterUpdateBtn) {
+      restartAfterUpdateBtn.addEventListener("click", async () => {
+        restartAfterUpdateBtn.disabled = true;
+        setUpdateStatus("جاري إعادة تشغيل QG14 لتفعيل ملفات الخادم الجديدة...", "warn");
+        try {
+          await fetch("/api/updates/restart", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        } catch {
+          restartAfterUpdateBtn.disabled = false;
+        }
+      });
+    }
+    if (downloadAppUpdateBtn) {
+      downloadAppUpdateBtn.addEventListener("click", () => {
+        const url = latestUpdateResult?.app?.installerUrl || latestUpdateResult?.app?.releaseUrl;
+        if (url) window.open(url, "_blank", "noopener");
+      });
+    }
+
     function logoutAndStart() {
       if (!localStorage.getItem("homepageRefreshed")) return;
 
       localStorage.removeItem("homepageRefreshed");
+
       const selectedMode = document.getElementById("mode").value;
-      let targetPath = "/";
+      const selectedScope = document.getElementById("cardScope").value === "anime"
+        ? "anime"
+        : "all";
+      let modeFolder = "host-strategic";
+
       switch (selectedMode) {
-        case "manual": targetPath = "/host-manual"; break;
-        case "strategic": targetPath = "/host-strategic"; break;
-        case "winner": targetPath = "/host-winner"; break;
-        default: targetPath = "/host-strategic";
+        case "manual": modeFolder = "host-manual"; break;
+        case "strategic": modeFolder = "host-strategic"; break;
+        case "winner": modeFolder = "host-winner"; break;
+        default: modeFolder = "host-strategic";
       }
 
+      const scopePrefix = selectedScope === "anime" ? "/anime" : "";
+      const targetPath = `${scopePrefix}/${modeFolder}`;
+
       localStorage.setItem("gameMode", selectedMode);
+      localStorage.setItem("cardScope", selectedScope);
+
+      if (startGameBtn) {
+        startGameBtn.disabled = true;
+        startGameBtn.textContent = "جاري بدء اللعبة...";
+      }
 
       fetch("/api/exit-home", { method: "POST" })
         .then(() => fetch("/api/logout", { method: "POST" }))
         .then(() => {
           window.location.href = `${targetPath}/start.html`;
+        })
+        .catch(() => {
+          if (startGameBtn) {
+            startGameBtn.disabled = false;
+            startGameBtn.textContent = "ابدأ اللعبة";
+          }
         });
     }
   </script>

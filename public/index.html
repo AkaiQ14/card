@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>QG14 Card Clash</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="images/qg14-Card-Clash-logo.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -387,6 +388,83 @@
 
     .quick-btn.bottom:hover{border-color:rgba(103,232,249,.46)}
 
+
+    .update-section{
+      margin-top:12px;
+      padding:11px;
+      border:1px solid rgba(255,215,0,.13);
+      border-radius:16px;
+      background:rgba(0,0,0,.13);
+      text-align:center;
+    }
+
+    .update-check-btn{
+      width:100%;
+      min-height:44px;
+      border:1px solid rgba(255,215,0,.28);
+      border-radius:12px;
+      color:#ffe777;
+      font-size:.72rem;
+      font-weight:900;
+      cursor:pointer;
+      background:rgba(255,215,0,.055);
+      transition:transform .15s ease,border-color .15s ease,background .15s ease;
+    }
+
+    .update-check-btn:hover:not(:disabled){
+      transform:translateY(-1px);
+      border-color:rgba(255,215,0,.55);
+      background:rgba(255,215,0,.09);
+    }
+
+    .update-check-btn:disabled{opacity:.58;cursor:default}
+
+    .update-status{
+      display:none;
+      margin-top:9px;
+      padding:10px 11px;
+      border:1px solid rgba(255,255,255,.075);
+      border-radius:11px;
+      color:rgba(255,255,255,.72);
+      font-size:.61rem;
+      font-weight:700;
+      line-height:1.75;
+      text-align:right;
+      background:rgba(0,0,0,.17);
+      white-space:pre-line;
+    }
+
+    .update-status.is-visible{display:block}
+    .update-status.is-good{border-color:rgba(74,222,128,.22);color:#c9f8d9}
+    .update-status.is-warn{border-color:rgba(255,215,0,.24);color:#fff0a8}
+    .update-status.is-error{border-color:rgba(248,113,113,.26);color:#fecaca}
+
+    .update-actions{
+      display:none;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:7px;
+      margin-top:8px;
+    }
+
+    .update-actions.is-visible{display:grid}
+
+    .update-action-btn{
+      min-height:40px;
+      padding:7px 9px;
+      border:1px solid rgba(255,255,255,.11);
+      border-radius:10px;
+      color:#fff;
+      font-size:.61rem;
+      font-weight:900;
+      cursor:pointer;
+      background:rgba(255,255,255,.055);
+    }
+
+    .update-action-btn.assets{border-color:rgba(74,222,128,.30);color:#c7f9d8}
+    .update-action-btn.app{border-color:rgba(255,215,0,.30);color:#ffe777}
+    .update-action-btn:hover:not(:disabled){background:rgba(255,255,255,.09)}
+    .update-action-btn:disabled{opacity:.55;cursor:default}
+
     .footer-mark{
       margin-top:12px;
       text-align:center;
@@ -416,6 +494,7 @@
       .mode-desc{font-size:.52rem}
       .quick-grid{grid-template-columns:1fr}
       .quick-btn{min-height:42px}
+      .update-actions{grid-template-columns:1fr}
     }
 
     @media (prefers-reduced-motion:reduce){
@@ -439,6 +518,113 @@
       window.location.reload();
     }
   </script>
+
+<style id="qg14-result-theme-sync">
+
+/* =========================================================
+   QG14 RESULT THEME SYNC
+   Visual-only override. Layout / IDs / JS behavior unchanged.
+   ========================================================= */
+:root{
+  --qgr-gold:#FFD700;
+  --qgr-gold-soft:#ffe777;
+  --qgr-green:#0b6e3f;
+  --qgr-green-hover:#14824c;
+  --qgr-wine:#4B0E1F;
+  --qgr-wine-panel:#511522;
+  --qgr-wine-soft:#7b2131;
+  --qgr-wine-soft-hover:#8b2a3a;
+  --qgr-deep:#180309;
+  --qgr-line:rgba(255,215,0,.48);
+  --qgr-line-soft:rgba(255,215,0,.24);
+  --qgr-glass:rgba(18,3,9,.72);
+  --qgr-glass-soft:rgba(75,14,31,.56);
+  --qgr-text:#fff;
+  --qgr-text-soft:rgba(255,255,255,.72);
+}
+html,body,button,input,textarea,select,option{
+  font-family:"Cairo",Tahoma,Arial,sans-serif !important;
+}
+button,input,textarea,select{
+  transition:background .15s ease,border-color .15s ease,transform .08s ease,box-shadow .15s ease,filter .15s ease;
+}
+input,textarea,select{
+  color:#fff !important;
+  background:rgba(0,0,0,.22) !important;
+  border-color:rgba(255,215,0,.50) !important;
+}
+input:focus,textarea:focus,select:focus{
+  outline:none !important;
+  border-color:var(--qgr-gold) !important;
+  box-shadow:0 0 0 3px rgba(255,215,0,.10) !important;
+}
+select option{
+  color:#fff !important;
+  background:#3b0c1b !important;
+}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,215,0,.58);border-radius:999px}
+
+
+body{
+  color:#fff !important;
+  background:
+    linear-gradient(rgba(75,14,31,.20),rgba(24,3,9,.33)),
+    url('images/QG14Background.png') center center / cover fixed no-repeat,
+    var(--qgr-wine) !important;
+}
+body::before,body::after{opacity:.10 !important}
+.main-card,.quick-panel,.update-section,.setup-panel{
+  color:#fff !important;
+  border-color:rgba(255,215,0,.52) !important;
+  background:rgba(81,21,34,.68) !important;
+  backdrop-filter:blur(16px) saturate(125%) !important;
+  -webkit-backdrop-filter:blur(16px) saturate(125%) !important;
+  box-shadow:0 18px 45px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+.brand-title span,.section-label{color:var(--qgr-gold) !important}
+.section-copy,.mode-desc{color:var(--qgr-text-soft) !important}
+.mode-option,.scope-option{
+  color:#fff !important;
+  border:1.5px solid rgba(255,215,0,.32) !important;
+  background:rgba(0,0,0,.18) !important;
+}
+.mode-option:hover,.scope-option:hover{
+  border-color:rgba(255,215,0,.65) !important;
+  background:rgba(123,33,49,.68) !important;
+}
+.mode-option.is-selected,.scope-option.is-selected{
+  color:var(--qgr-gold) !important;
+  border-color:var(--qgr-gold) !important;
+  background:rgba(255,215,0,.10) !important;
+  box-shadow:0 0 0 2px rgba(255,215,0,.08) !important;
+}
+.start-btn,.update-check-btn,.update-action-btn{
+  color:var(--qgr-gold) !important;
+  border:2px solid var(--qgr-gold) !important;
+  background:var(--qgr-green) !important;
+}
+.start-btn:hover,.update-check-btn:hover,.update-action-btn:hover{
+  background:var(--qgr-green-hover) !important;
+}
+.quick-btn{
+  color:#fff !important;
+  border:2px solid rgba(255,215,0,.52) !important;
+  background:var(--qgr-wine-soft) !important;
+}
+.quick-btn:hover{
+  color:var(--qgr-gold) !important;
+  background:var(--qgr-wine-soft-hover) !important;
+  border-color:var(--qgr-gold) !important;
+}
+.update-status{
+  color:var(--qgr-text-soft) !important;
+  border-color:rgba(255,215,0,.26) !important;
+  background:rgba(0,0,0,.17) !important;
+}
+
+</style>
 </head>
 
 <body>
@@ -531,6 +717,17 @@
         </div>
       </section>
 
+
+      <section class="update-section" aria-label="تحديثات QG14">
+        <button id="checkUpdatesBtn" class="update-check-btn" type="button">التحقق من التحديثات</button>
+        <div id="updateStatus" class="update-status" aria-live="polite"></div>
+        <div id="updateActions" class="update-actions">
+          <button id="updateAssetsBtn" class="update-action-btn assets" type="button">تحديث الملفات من GitHub</button>
+          <button id="downloadAppUpdateBtn" class="update-action-btn app" type="button">تحميل تحديث البرنامج</button>
+          <button id="restartAfterUpdateBtn" class="update-action-btn assets" type="button">إعادة تشغيل QG14</button>
+        </div>
+      </section>
+
       <div class="footer-mark">QG14 CARD CLASH</div>
     </div>
   </main>
@@ -541,6 +738,13 @@
     const cardScopeSelect = document.getElementById("cardScope");
     const scopeButtons = Array.from(document.querySelectorAll(".scope-option"));
     const startGameBtn = document.getElementById("startGameBtn");
+    const checkUpdatesBtn = document.getElementById("checkUpdatesBtn");
+    const updateStatus = document.getElementById("updateStatus");
+    const updateActions = document.getElementById("updateActions");
+    const updateAssetsBtn = document.getElementById("updateAssetsBtn");
+    const downloadAppUpdateBtn = document.getElementById("downloadAppUpdateBtn");
+    const restartAfterUpdateBtn = document.getElementById("restartAfterUpdateBtn");
+    let latestUpdateResult = null;
 
     function setMode(mode) {
       if (!modeSelect) return;
@@ -582,6 +786,146 @@
 
     setMode(modeSelect?.value || "strategic");
     setCardScope(cardScopeSelect?.value || "all");
+
+
+    function setUpdateStatus(text, type = "") {
+      if (!updateStatus) return;
+      updateStatus.textContent = String(text || "");
+      updateStatus.className = "update-status is-visible" + (type ? ` is-${type}` : "");
+    }
+
+    function hideUpdateActions() {
+      if (updateActions) updateActions.classList.remove("is-visible");
+      if (updateAssetsBtn) updateAssetsBtn.style.display = "none";
+      if (downloadAppUpdateBtn) downloadAppUpdateBtn.style.display = "none";
+      if (restartAfterUpdateBtn) restartAfterUpdateBtn.style.display = "none";
+    }
+
+    function renderUpdateResult(data) {
+      latestUpdateResult = data || null;
+      hideUpdateActions();
+
+      const lines = [];
+      const app = data?.app || {};
+      const files = data?.files || data?.assets || {};
+      const isDev = data?.buildKind === "development";
+
+      lines.push(`إصدار البرنامج الحالي: ${app.currentVersion || data?.currentVersion || "غير معروف"}`);
+
+      if (app.available) {
+        lines.push(`يوجد إصدار برنامج أحدث: ${app.latestVersion}`);
+        if (downloadAppUpdateBtn) {
+          downloadAppUpdateBtn.style.display = "block";
+          updateActions?.classList.add("is-visible");
+        }
+      } else {
+        lines.push("البرنامج التنفيذي على آخر إصدار منشور.");
+      }
+
+      if (!files.baselineReady) {
+        if (!isDev) lines.push("تعذر قراءة بصمة ملفات النسخة الحالية؛ التحديث المباشر غير متاح لهذه النسخة.");
+      } else {
+        if (files.directCount > 0) {
+          lines.push(`ملفات متغيرة في GitHub: ${files.directCount} (واجهة/كروت ${files.publicCount || 0}، خادم ${files.runtimeCount || 0}).`);
+          lines.push(`التغييرات: جديد ${files.added || 0}، معدل ${files.changed || 0}، محذوف ${files.deleted || 0}.`);
+          if (Number(files.runtimeBlockedByInstaller || 0) > 0) {
+            lines.push(`تم تأجيل ${files.runtimeBlockedByInstaller} ملف خادم لأن هناك تغييرًا أساسيًا يحتاج Update Setup.`);
+          }
+          if (files.canApply && updateAssetsBtn) {
+            updateAssetsBtn.style.display = "block";
+            updateAssetsBtn.textContent = `تحديث الملفات من GitHub (${files.applyableCount || files.directCount})`;
+            updateActions?.classList.add("is-visible");
+          } else if (isDev) {
+            lines.push("التطبيق المباشر معطل في نسخة التطوير حتى لا تُستبدل ملفاتك المحلية.");
+          }
+        } else {
+          lines.push("ملفات اللعبة القابلة للتحديث مباشرة مطابقة لآخر نسخة في GitHub.");
+        }
+
+        if (files.installerCount > 0) {
+          lines.push(`توجد ${files.installerCount} تغييرات أساسية (Electron/dependencies/desktop) تحتاج Update Setup ولا تُستبدل مباشرة.`);
+        }
+      }
+
+      if (Array.isArray(data?.errors) && data.errors.length) lines.push(`ملاحظة: ${data.errors.join(" | ")}`);
+      const hasUpdate = !!app.available || Number(files.directCount || 0) > 0 || Number(files.installerCount || 0) > 0;
+      setUpdateStatus(lines.join("\n"), hasUpdate ? "warn" : "good");
+    }
+
+    async function checkForUpdates() {
+      if (!checkUpdatesBtn) return;
+      const oldText = checkUpdatesBtn.textContent;
+      checkUpdatesBtn.disabled = true;
+      checkUpdatesBtn.textContent = "جاري التحقق...";
+      hideUpdateActions();
+      setUpdateStatus("جاري الاتصال بمصدر التحديثات...", "");
+
+      try {
+        const response = await fetch(`/api/updates/check?t=${Date.now()}`, { cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+        renderUpdateResult(data);
+      } catch (err) {
+        setUpdateStatus(`تعذر التحقق من التحديثات: ${err?.message || err}`, "error");
+      } finally {
+        checkUpdatesBtn.disabled = false;
+        checkUpdatesBtn.textContent = oldText;
+      }
+    }
+
+    async function applyAssetUpdates() {
+      if (!updateAssetsBtn) return;
+      const oldText = updateAssetsBtn.textContent;
+      updateAssetsBtn.disabled = true;
+      updateAssetsBtn.textContent = "جاري تنزيل الملفات...";
+      setUpdateStatus("جاري تنزيل الملفات الجديدة أو المعدلة من GitHub والتحقق من سلامتها. لا تغلق البرنامج.", "warn");
+
+      try {
+        const response = await fetch("/api/updates/files/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+
+        const failed = Array.isArray(data.failed) ? data.failed.length : 0;
+        const summary = `تم تحديث ${data.updated || 0} ملف وحذف ${data.deleted || 0} ملف`;
+        if (failed) {
+          setUpdateStatus(`${summary}، وتعذر تحديث ${failed} ملف. اضغط التحقق من التحديثات للمحاولة مجددًا.`, "warn");
+        } else if (data.restartRequired) {
+          setUpdateStatus(`${summary} بنجاح. تم تحديث ملفات الخادم ويجب إعادة تشغيل QG14 لتفعيلها.`, "good");
+          if (restartAfterUpdateBtn) {
+            restartAfterUpdateBtn.style.display = "block";
+            updateActions?.classList.add("is-visible");
+          }
+        } else {
+          setUpdateStatus(`${summary} بنجاح. أعد تحميل الصفحة المفتوحة لرؤية تعديلات الواجهة فورًا.`, "good");
+          setTimeout(checkForUpdates, 900);
+        }
+      } catch (err) {
+        setUpdateStatus(`تعذر تحديث ملفات GitHub: ${err?.message || err}`, "error");
+      } finally {
+        updateAssetsBtn.disabled = false;
+        updateAssetsBtn.textContent = oldText;
+      }
+    }
+
+    if (checkUpdatesBtn) checkUpdatesBtn.addEventListener("click", checkForUpdates);
+    if (updateAssetsBtn) updateAssetsBtn.addEventListener("click", applyAssetUpdates);
+    if (restartAfterUpdateBtn) {
+      restartAfterUpdateBtn.addEventListener("click", async () => {
+        restartAfterUpdateBtn.disabled = true;
+        setUpdateStatus("جاري إعادة تشغيل QG14 لتفعيل ملفات الخادم الجديدة...", "warn");
+        try {
+          await fetch("/api/updates/restart", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        } catch {
+          restartAfterUpdateBtn.disabled = false;
+        }
+      });
+    }
+    if (downloadAppUpdateBtn) {
+      downloadAppUpdateBtn.addEventListener("click", () => {
+        const url = latestUpdateResult?.app?.installerUrl || latestUpdateResult?.app?.releaseUrl;
+        if (url) window.open(url, "_blank", "noopener");
+      });
+    }
 
     function logoutAndStart() {
       if (!localStorage.getItem("homepageRefreshed")) return;

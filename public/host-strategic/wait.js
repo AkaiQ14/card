@@ -12,7 +12,35 @@ if (!gameID) {
 const p1 = localStorage.getItem("player1") || "player1";
 const p2 = localStorage.getItem("player2") || "player2";
 const CARD_ROUTE_PREFIX = window.location.pathname.startsWith("/anime/") ? "/anime" : "";
-const baseUrl = `${window.location.origin}${CARD_ROUTE_PREFIX}/host-strategic/order.html`;
+
+async function getQG14ShareOrigin() {
+  try {
+    const r = await fetch(`/api/desktop-info?t=${Date.now()}`, { cache: "no-store" });
+    const info = r.ok ? await r.json() : null;
+    const value = String(info?.shareOrigin || "").trim().replace(/\/$/, "");
+    if (value && /^https:\/\//i.test(value)) return value;
+
+    // In the installed desktop app, never silently fall back to localhost.
+    if (info?.desktop) return "";
+    return window.location.origin;
+  } catch {
+    return "";
+  }
+}
+
+function isQG14LocalOrigin(value) {
+  try {
+    const u = new URL(String(value || ""));
+    return /^(?:localhost|127\.0\.0\.1|::1)$/i.test(u.hostname);
+  } catch {
+    return true;
+  }
+}
+
+function showTunnelNotReady() {
+  alert("رابط اللاعبين العالمي غير جاهز بعد. تأكد من اتصال Cloudflare Tunnel ثم حاول النسخ مرة أخرى.");
+}
+
 
 document.getElementById("p1NameBox").textContent = `قدرات ${p1}`;
 document.getElementById("p2NameBox").textContent = `قدرات ${p2}`;
@@ -33,7 +61,7 @@ function getAbilityTexts(key) {
   return getAbilityObjects(key).map(a => a?.text).filter(Boolean);
 }
 
-function buildOrderLink({ who }) {
+function buildOrderLink({ who, shareOrigin = "" }) {
   const abilityTexts =
     who === "player1" ? getAbilityTexts(P1_ABILITIES_KEY) : getAbilityTexts(P2_ABILITIES_KEY);
 
@@ -42,7 +70,7 @@ function buildOrderLink({ who }) {
 
   const name = who === "player1" ? p1 : p2;
   const url =
-    `${baseUrl}?game=${encodeURIComponent(gameID || "")}` +
+    `${shareOrigin}${CARD_ROUTE_PREFIX}/host-strategic/order.html?game=${encodeURIComponent(gameID || "")}` +
     `&player=${encodeURIComponent(who)}` +
     `&name=${encodeURIComponent(name)}` +
     `&abs=${absParam}`;
@@ -100,7 +128,34 @@ function animateCopyButton(btn) {
 }
 
 async function copyLinkFor(who, btn) {
-  const url = buildOrderLink({ who });
+  const name = who === "player1" ? p1 : p2;
+  const abilityTexts = who === "player1" ? getAbilityTexts(P1_ABILITIES_KEY) : getAbilityTexts(P2_ABILITIES_KEY);
+  let url = "";
+  try {
+    const remote = await fetch("/api/remote-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        route: `${CARD_ROUTE_PREFIX}/host-strategic/order.html`,
+        gameID,
+        playerKey: who,
+        playerName: name,
+        query: { abs: abilityTexts.join("|") },
+      }),
+    });
+    if (remote.ok) {
+      const data = await remote.json();
+      url = String(data?.url || "");
+    }
+  } catch {}
+  if (!url) {
+    const shareOrigin = await getQG14ShareOrigin();
+    if (!shareOrigin || isQG14LocalOrigin(shareOrigin)) {
+      showTunnelNotReady();
+      return;
+    }
+    url = buildOrderLink({ who, shareOrigin });
+  }
   try {
     await navigator.clipboard.writeText(url);
   } catch {

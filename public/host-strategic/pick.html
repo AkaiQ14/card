@@ -440,6 +440,121 @@
       *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
     }
   </style>
+
+<style id="qg14-result-theme-sync">
+
+/* =========================================================
+   QG14 RESULT THEME SYNC
+   Visual-only override. Layout / IDs / JS behavior unchanged.
+   ========================================================= */
+:root{
+  --qgr-gold:#FFD700;
+  --qgr-gold-soft:#ffe777;
+  --qgr-green:#0b6e3f;
+  --qgr-green-hover:#14824c;
+  --qgr-wine:#4B0E1F;
+  --qgr-wine-panel:#511522;
+  --qgr-wine-soft:#7b2131;
+  --qgr-wine-soft-hover:#8b2a3a;
+  --qgr-deep:#180309;
+  --qgr-line:rgba(255,215,0,.48);
+  --qgr-line-soft:rgba(255,215,0,.24);
+  --qgr-glass:rgba(18,3,9,.72);
+  --qgr-glass-soft:rgba(75,14,31,.56);
+  --qgr-text:#fff;
+  --qgr-text-soft:rgba(255,255,255,.72);
+}
+html,body,button,input,textarea,select,option{
+  font-family:"Cairo",Tahoma,Arial,sans-serif !important;
+}
+button,input,textarea,select{
+  transition:background .15s ease,border-color .15s ease,transform .08s ease,box-shadow .15s ease,filter .15s ease;
+}
+input,textarea,select{
+  color:#fff !important;
+  background:rgba(0,0,0,.22) !important;
+  border-color:rgba(255,215,0,.50) !important;
+}
+input:focus,textarea:focus,select:focus{
+  outline:none !important;
+  border-color:var(--qgr-gold) !important;
+  box-shadow:0 0 0 3px rgba(255,215,0,.10) !important;
+}
+select option{
+  color:#fff !important;
+  background:#3b0c1b !important;
+}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,215,0,.58);border-radius:999px}
+
+
+body{
+  color:#fff !important;
+  background:
+    linear-gradient(rgba(75,14,31,.20),rgba(24,3,9,.33)),
+    url('../images/QG14Background.png') center center / cover fixed no-repeat,
+    var(--qgr-wine) !important;
+}
+body::before{opacity:.08 !important}
+.board-shell,.modal-card{
+  border:2px solid rgba(255,215,0,.58) !important;
+  background:rgba(81,21,34,.72) !important;
+  backdrop-filter:blur(18px) saturate(125%) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(125%) !important;
+  box-shadow:0 24px 60px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.07) !important;
+}
+.board-title,.modal-title,.brand-title span,.field-label{color:var(--qgr-gold) !important}
+.board-copy,.modal-subtitle,.modal-note{color:var(--qgr-text-soft) !important}
+.home-btn,.cancel-btn,.tactic-btn,.random-btn{
+  color:#fff !important;
+  border:2px solid rgba(255,215,0,.55) !important;
+  background:var(--qgr-wine-soft) !important;
+}
+.home-btn:hover,.cancel-btn:hover,.tactic-btn:hover,.random-btn:hover{
+  background:var(--qgr-wine-soft-hover) !important;
+  border-color:var(--qgr-gold) !important;
+}
+.confirm-btn,.apply-btn{
+  color:var(--qgr-gold) !important;
+  border:2px solid var(--qgr-gold) !important;
+  background:var(--qgr-green) !important;
+}
+.confirm-btn:hover,.apply-btn:hover{background:var(--qgr-green-hover) !important}
+.action-btn,.modal-btn{
+  border-radius:14px !important;
+  box-shadow:0 2px 0 rgba(0,0,0,.30) !important;
+}
+.selection-counter{
+  color:var(--qgr-gold-soft) !important;
+  border:1.5px solid rgba(255,215,0,.62) !important;
+  background:rgba(81,21,34,.78) !important;
+}
+.result-category-trigger{
+  color:#fff !important;
+  border:1.5px solid rgba(255,215,0,.70) !important;
+  background:rgba(81,21,34,.78) !important;
+}
+.result-category-trigger:hover,.result-category-trigger.is-open{
+  border-color:var(--qgr-gold) !important;
+  background:rgba(123,33,49,.92) !important;
+}
+.result-category-menu{
+  border:1px solid rgba(255,215,0,.60) !important;
+  background:rgba(48,10,24,.95) !important;
+}
+.result-category-item:hover,.result-category-item:focus,.result-category-item.is-selected{
+  color:var(--qgr-gold) !important;
+  border-color:rgba(255,215,0,.38) !important;
+  background:rgba(255,215,0,.12) !important;
+}
+.pick-box.is-selected{
+  border-color:var(--qgr-gold) !important;
+  background:rgba(255,215,0,.11) !important;
+  filter:drop-shadow(0 0 7px rgba(255,215,0,.62)) drop-shadow(0 0 14px rgba(255,165,0,.28)) !important;
+}
+
+</style>
 </head>
 
 <body>

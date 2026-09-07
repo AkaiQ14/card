@@ -5,15 +5,7 @@
   <title>QG14 Card Clash</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-
-    /* ===== QG14 Result Arabic font fix ===== */
-    html, body, button, input, textarea, select, option {
-      font-family: "Cairo", Tahoma, Arial, sans-serif !important;
-    }
     
     :root{
       --gold:#FFD700;
@@ -495,7 +487,7 @@
             </span>
           </button>
 
-          <button id="confirmResultBtn" onclick="confirmWinner()" class="btn-gold px-10 py-3 text-xl">تأكيد النتيجة</button>
+          <button onclick="confirmWinner()" class="btn-gold px-10 py-3 text-xl">تأكيد النتيجة</button>
         </div>
 
         <!-- RIGHT health (player 1) -->
@@ -623,71 +615,6 @@
 </div>
 
 
-
-  <!-- Golden Round: tie decision -->
-  <div id="goldenTieDecisionModal"
-       class="fixed inset-0 hidden items-center justify-center bg-black/75 z-[5000] p-4">
-    <div class="w-[94%] max-w-[520px] rounded-2xl border-2 border-yellow-500 bg-[#511522]/95 p-5 shadow-2xl backdrop-blur-xl">
-      <h3 class="text-2xl font-black text-yellow-300 text-center mb-2">تعادل في نهاية المباراة</h3>
-      <p class="text-center text-yellow-50/90 leading-7 mb-5">
-        انتهت الجولات والنتيجة متعادلة. اختر إنهاء المباراة بالتعادل أو الانتقال إلى الجولة الذهبية.
-      </p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <button type="button"
-                class="btn-gold py-3 px-4 bg-[#7b2131] hover:bg-[#8b2a3a]"
-                onclick="endMatchAsTie()">
-          إنهاء المباراة
-        </button>
-        <button type="button"
-                class="btn-gold py-3 px-4"
-                onclick="chooseGoldenRound()">
-          الجولة الذهبية
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Golden Round: rules -->
-  <div id="goldenRulesModal"
-       class="fixed inset-0 hidden items-center justify-center bg-black/80 z-[5100] p-4">
-    <div class="w-[94%] max-w-[590px] rounded-2xl border-2 border-yellow-400 bg-[#4a1020]/95 p-5 shadow-2xl backdrop-blur-xl">
-      <div class="text-center mb-4">
-        <div class="inline-flex items-center justify-center rounded-full border border-yellow-400/60 bg-yellow-400/10 px-4 py-1 text-xs font-black text-yellow-200 mb-2">
-          GOLDEN ROUND
-        </div>
-        <h3 id="goldenRulesTitle" class="text-2xl font-black text-yellow-300">الجولة الذهبية</h3>
-      </div>
-
-      <div class="space-y-3 text-right">
-        <div class="rounded-xl border border-yellow-500/35 bg-black/20 px-4 py-3 text-yellow-50">
-          جولة إضافية لتحديد المنتصر بشكل سريع وبكروت عشوائية.
-        </div>
-        <div class="rounded-xl border border-yellow-500/35 bg-black/20 px-4 py-3 text-yellow-50">
-          تلعب الجولة فقط بطاقات الكروت دون الخواص أو القدرات.
-        </div>
-        <div class="rounded-xl border border-yellow-500/35 bg-black/20 px-4 py-3 text-yellow-50">
-          سيتم الإكمال على نفس النتيجة، والمنتصر بالجولة هو الفائز بالمباراة.
-        </div>
-      </div>
-
-      <p id="goldenRulesHint" class="mt-4 text-center text-sm font-bold text-yellow-200/90"></p>
-
-      <div class="mt-5 grid grid-cols-2 gap-3">
-        <button type="button"
-                class="btn-gold py-3 px-4 bg-[#7b2131] hover:bg-[#8b2a3a]"
-                onclick="goldenRulesBack()">
-          رجوع
-        </button>
-        <button id="goldenContinueBtn"
-                type="button"
-                class="btn-gold py-3 px-4"
-                onclick="continueGoldenRound()">
-          متابعة
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Host Chat Inbox -->
   <div id="hostChatPanel" class="fixed bottom-4 right-4 z-[2100] w-[92vw] max-w-[420px] hidden">
     <div class="bg-black/60 backdrop-blur border-2 border-yellow-500 rounded-2xl shadow-2xl overflow-hidden">
@@ -719,7 +646,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/webm-sfx.js"></script>
   <script src="/js/legendary-fullscreen.js?v=20260829-thanos-direct-release-v4"></script>
-  <script src="result.js?v=20260906-golden-round-fontfix-v2"></script>
+  <script src="result.js?v=20260829-thanos-direct-release-v4"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>
 </body>

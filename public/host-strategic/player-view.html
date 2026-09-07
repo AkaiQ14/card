@@ -126,7 +126,86 @@
       /* VS column sized by JS for perfect vertical centering */
       .vs-col{display:flex;align-items:center;justify-content:center}
     </style>
-  </head>
+  
+<style id="qg14-result-theme-sync">
+
+/* =========================================================
+   QG14 RESULT THEME SYNC
+   Visual-only override. Layout / IDs / JS behavior unchanged.
+   ========================================================= */
+:root{
+  --qgr-gold:#FFD700;
+  --qgr-gold-soft:#ffe777;
+  --qgr-green:#0b6e3f;
+  --qgr-green-hover:#14824c;
+  --qgr-wine:#4B0E1F;
+  --qgr-wine-panel:#511522;
+  --qgr-wine-soft:#7b2131;
+  --qgr-wine-soft-hover:#8b2a3a;
+  --qgr-deep:#180309;
+  --qgr-line:rgba(255,215,0,.48);
+  --qgr-line-soft:rgba(255,215,0,.24);
+  --qgr-glass:rgba(18,3,9,.72);
+  --qgr-glass-soft:rgba(75,14,31,.56);
+  --qgr-text:#fff;
+  --qgr-text-soft:rgba(255,255,255,.72);
+}
+html,body,button,input,textarea,select,option{
+  font-family:"Cairo",Tahoma,Arial,sans-serif !important;
+}
+button,input,textarea,select{
+  transition:background .15s ease,border-color .15s ease,transform .08s ease,box-shadow .15s ease,filter .15s ease;
+}
+input,textarea,select{
+  color:#fff !important;
+  background:rgba(0,0,0,.22) !important;
+  border-color:rgba(255,215,0,.50) !important;
+}
+input:focus,textarea:focus,select:focus{
+  outline:none !important;
+  border-color:var(--qgr-gold) !important;
+  box-shadow:0 0 0 3px rgba(255,215,0,.10) !important;
+}
+select option{
+  color:#fff !important;
+  background:#3b0c1b !important;
+}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,215,0,.58);border-radius:999px}
+
+
+body{
+  color:#fff !important;
+  background:
+    linear-gradient(rgba(75,14,31,.20),rgba(24,3,9,.33)),
+    url('../images/QG14Background.png') center center / cover fixed no-repeat,
+    var(--qgr-wine) !important;
+}
+#arena{
+  background:rgba(75,14,31,.08) !important;
+  border-color:var(--qgr-gold) !important;
+}
+.abilities-card,.prev-box,.notes-box,.media-card{
+  border-color:rgba(255,215,0,.52) !important;
+  background:rgba(81,21,34,.66) !important;
+  box-shadow:0 13px 32px rgba(0,0,0,.23),inset 0 1px 0 rgba(255,255,255,.05) !important;
+}
+.btn-gold{
+  color:var(--qgr-gold) !important;
+  border-color:var(--qgr-gold) !important;
+  background:var(--qgr-green) !important;
+}
+.btn-gold:hover{background:var(--qgr-green-hover) !important}
+.chip-gold{
+  color:var(--qgr-gold) !important;
+  border-color:var(--qgr-gold) !important;
+  background:#6d1a2e !important;
+}
+.round-title,.text-yellow-300,.text-yellow-400{color:var(--qgr-gold) !important}
+
+</style>
+</head>
   <body class="bg-[#4B0E1F] text-white min-h-screen no-scrollbar">
     <div id="arena" class="w-full min-h-screen border-8 border-yellow-500 box-border flex flex-col items-center">
       <!-- Vertically center entire content block -->
@@ -217,6 +296,7 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+  <script src="/player-media-cdn.js?v=github-player-media-v2"></script>
     <script src="player-view.js?v=13"></script>
     <script src="../copyright.js"></script>
   </body>
