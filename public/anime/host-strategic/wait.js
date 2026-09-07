@@ -250,14 +250,14 @@ window.addEventListener("focus", () => {
   renderReadonlyAbilities("p2AbilitiesView", P2_ABILITIES_KEY);
 });
 
-/* ========= Countdown Timer (click to toggle 2:00 / 0:30) + SYNC BROADCAST ========= */
+/* ========= Countdown Timer (click to toggle 2:20 / 0:30) + SYNC BROADCAST ========= */
 const countdownEl = document.getElementById("countdown");
 const countdownBox = document.getElementById("countdownBox");
 const startTimerBtn = document.getElementById("startTimerBtn");
 const pauseTimerBtn = document.getElementById("pauseTimerBtn");
 
 // durations (seconds)
-const DUR_TWO_MIN = 120;
+const DUR_TWO_MIN = 140;
 const DUR_THIRTY = 30;
 
 let durationSec = DUR_TWO_MIN; // current chosen duration (idle)

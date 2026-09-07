@@ -50,7 +50,7 @@ const playerCountdownEl = document.getElementById("playerCountdown");
 const timerWrap = document.getElementById("timerWrap");
 function hideTimer() { if (timerWrap) timerWrap.classList.add("hidden"); }
 
-const DUR_TWO_MIN = 120;
+const DUR_TWO_MIN = 140;
 const DUR_THIRTY = 30;
 
 let t_durationSec = DUR_TWO_MIN;
