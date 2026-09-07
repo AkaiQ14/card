@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    
+
     :root{
       --gold:#FFD700;
       --green:#0b6e3f;
@@ -364,7 +364,7 @@
       background: #5a1626;
     }
 
-  
+
     /* ===== QG14 original background ===== */
     html,body{min-height:100%}
     body{
@@ -376,92 +376,6 @@
     }
     #arena{background:rgba(75,14,31,.08);}
   </style>
-
-<style id="qg14-result-cairo-v6">
-/* =========================================================
-   QG14 RESULT — CAIRO DEFINITIVE V6
-   Direct @font-face + hard global override.
-   ========================================================= */
-
-@font-face{
-  font-family:"QG14 Cairo";
-  font-style:normal;
-  font-weight:200 1000;
-  font-display:swap;
-  src:url("https://fonts.gstatic.com/s/cairo/v30/SLXVc1nY6HkvangtZmpQdkhzfH5lkSscRiyS8pg_RWH1.woff2") format("woff2");
-  unicode-range:
-    U+0600-06FF,
-    U+0750-077F,
-    U+0870-088E,
-    U+0890-0891,
-    U+0897-08E1,
-    U+08E3-08FF,
-    U+200C-200E,
-    U+204F,
-    U+2E41,
-    U+FB50-FDFF,
-    U+FE70-FEFC;
-}
-
-@font-face{
-  font-family:"QG14 Cairo";
-  font-style:normal;
-  font-weight:200 1000;
-  font-display:swap;
-  src:url("https://fonts.gstatic.com/s/cairo/v30/SLXVc1nY6HkvangtZmpQdkhzfH5lkSscQyyS8pg_RWH1vCk.woff2") format("woff2");
-  unicode-range:
-    U+0000-00FF,
-    U+0131,
-    U+0152-0153,
-    U+02BB-02BC,
-    U+02C6,
-    U+02DA,
-    U+02DC,
-    U+0304,
-    U+0308,
-    U+0329,
-    U+2000-206F,
-    U+20AC,
-    U+2122,
-    U+2191,
-    U+2193,
-    U+2212,
-    U+2215,
-    U+FEFF,
-    U+FFFD;
-}
-
-:root{
-  --qg14-result-font:"QG14 Cairo","Cairo","Segoe UI",Tahoma,Arial,sans-serif;
-}
-
-/* Last CSS rule in the page: wins over Tailwind and page classes. */
-html,
-body,
-body *,
-body *::before,
-body *::after{
-  font-family:var(--qg14-result-font) !important;
-}
-
-button,
-input,
-textarea,
-select,
-option{
-  font:inherit !important;
-  font-family:var(--qg14-result-font) !important;
-}
-
-/* Avoid Chromium synthesizing a different family for controls. */
-button,
-input,
-textarea,
-select{
-  font-variant:normal !important;
-}
-</style>
-
 </head>
 <body class="bg-[#4B0E1F] text-white min-h-screen no-scrollbar">
 <div id="arena"
@@ -612,7 +526,7 @@ select{
   <div id="recapModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2000]">
     <div class="bg-[#511522] border-2 border-yellow-500 rounded-xl p-4 w-[90%] max-w-[480px] max-h-[85vh] overflow-y-auto no-scrollbar">
       <h3 class="text-lg font-bold text-yellow-300 mb-2 text-center">ريكاب الجولات السابقة</h3>
-      
+
       <div id="recapList" class="space-y-2"></div>
       <div class="mt-4 text-center">
         <button class="btn-gold px-5 py-2" onclick="closeRecapModal()">إغلاق</button>
@@ -683,7 +597,7 @@ select{
         <button class="btn-gold px-5 py-2" onclick="closeSwapAbilityModal()">إغلاق</button>
       </div>
     </div>
-  
+
   <!-- Swap Pick New Ability Modal -->
   <div id="swapPickModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2100]">
     <div class="bg-[#511522] border-2 border-yellow-500 rounded-xl p-4 w-[90%] max-w-[520px]">
@@ -797,76 +711,8 @@ select{
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/webm-sfx.js"></script>
   <script src="/js/legendary-fullscreen.js?v=20260829-thanos-direct-release-v4"></script>
-  <script src="result.js?v=20260907-golden-cairo-v6"></script>
+  <script src="result.js?v=20260906-golden-round-v1"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>
-
-<script id="qg14-result-cairo-runtime-v6">
-(function(){
-  "use strict";
-
-  const FAMILY = '"QG14 Cairo","Cairo","Segoe UI",Tahoma,Arial,sans-serif';
-  const root = document.documentElement;
-
-  function forceFont(el){
-    if (!(el instanceof HTMLElement)) return;
-    el.style.setProperty("font-family", FAMILY, "important");
-  }
-
-  function forceTree(node){
-    if (!(node instanceof Element)) return;
-    forceFont(node);
-    node.querySelectorAll("*").forEach(forceFont);
-  }
-
-  function applyAll(){
-    root.style.setProperty("--qg14-result-font", FAMILY);
-    if (document.body) forceTree(document.body);
-  }
-
-  // Apply immediately.
-  applyAll();
-
-  // Apply again after styles/fonts settle.
-  document.addEventListener("DOMContentLoaded", applyAll, { once:true });
-  window.addEventListener("load", applyAll, { once:true });
-
-  // Any modal/button/card created later by result.js also receives Cairo.
-  const observer = new MutationObserver((mutations)=>{
-    for (const mutation of mutations){
-      for (const node of mutation.addedNodes){
-        if (node instanceof Element) forceTree(node);
-      }
-    }
-  });
-
-  if (document.documentElement){
-    observer.observe(document.documentElement,{
-      childList:true,
-      subtree:true
-    });
-  }
-
-  // Verify the real webfont and re-apply once it has loaded.
-  if (document.fonts && document.fonts.load){
-    Promise.all([
-      document.fonts.load('400 18px "QG14 Cairo"'),
-      document.fonts.load('700 18px "QG14 Cairo"'),
-      document.fonts.load('900 18px "QG14 Cairo"')
-    ]).then(()=>{
-      applyAll();
-      root.setAttribute("data-qg14-cairo","loaded");
-      console.log("[QG14] Cairo V6 loaded and forced across Result.");
-    }).catch((err)=>{
-      root.setAttribute("data-qg14-cairo","fallback");
-      console.warn("[QG14] Cairo V6 font load failed; fallback active.", err);
-      applyAll();
-    });
-  } else {
-    root.setAttribute("data-qg14-cairo","forced");
-  }
-})();
-</script>
-
 </body>
 </html>
