@@ -376,12 +376,6 @@
     }
     #arena{background:rgba(75,14,31,.08);}
   </style>
-
-<style id="qg14-result-system-font-v8">
-:root{--qg14-system-font:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";}
-html,body,#arena,#arena *,body *,body *::before,body *::after,button,input,textarea,select,option,optgroup,label,summary,table,thead,tbody,tfoot,tr,th,td,dialog,[style*="font-family" i],[class*="font-"]{font-family:var(--qg14-system-font)!important;}
-</style>
-
 </head>
 <body class="bg-[#4B0E1F] text-white min-h-screen no-scrollbar">
 <div id="arena"
@@ -717,24 +711,8 @@ html,body,#arena,#arena *,body *,body *::before,body *::after,button,input,texta
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/webm-sfx.js"></script>
   <script src="/js/legendary-fullscreen.js?v=20260829-thanos-direct-release-v4"></script>
-  <script src="result.js?v=20260907-system-font-root-v8"></script>
+  <script src="result.js?v=20260906-golden-round-v1"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>
-
-<script id="qg14-result-system-font-runtime-v8">
-(function(){
-"use strict";
-const FAMILY='ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
-function force(el){if(!(el instanceof HTMLElement)&&!(el instanceof SVGElement))return;try{el.style.setProperty("font-family",FAMILY,"important");}catch{}}
-function forceTree(root){if(!(root instanceof Element))return;force(root);try{root.querySelectorAll("*").forEach(force);}catch{}}
-function applyAll(){force(document.documentElement);if(document.body)forceTree(document.body);document.documentElement.setAttribute("data-qg14-system-font","applied");}
-applyAll();document.addEventListener("DOMContentLoaded",applyAll,{once:true});window.addEventListener("load",applyAll,{once:true});requestAnimationFrame(applyAll);setTimeout(applyAll,100);setTimeout(applyAll,500);setTimeout(applyAll,1500);
-const observer=new MutationObserver(ms=>{for(const m of ms){if(m.type==="childList"){for(const n of m.addedNodes)if(n instanceof Element)forceTree(n);}else if(m.type==="attributes"&&m.target instanceof Element)force(m.target);}});
-observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:["class","style"]});
-window.QG14_RESULT_FONT={family:FAMILY,apply:applyAll,computed:()=>getComputedStyle(document.body).fontFamily};
-console.log("[QG14] Result system font V8:",getComputedStyle(document.body).fontFamily);
-})();
-</script>
-
 </body>
 </html>
