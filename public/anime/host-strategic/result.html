@@ -381,28 +381,28 @@
     #arena{background:rgba(75,14,31,.08);}
   </style>
 
-<style id="qg14-result-font-fix-v4">
-/* ===== RESULT V4: force the same Arabic font across every UI element ===== */
+<style id="qg14-result-font-definitive-v5">
+:root{
+  --qg14-result-font:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;
+}
+
+/* This is intentionally global and last in the HEAD. */
 html,
 body,
+body *,
+body *::before,
+body *::after{
+  font-family:var(--qg14-result-font) !important;
+}
+
 button,
 input,
 textarea,
 select,
-option,
-label,
-p,
-span,
-div,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6{
-  font-family:"Cairo",Tahoma,Arial,sans-serif !important;
+option{
+  font:inherit !important;
+  font-family:var(--qg14-result-font) !important;
 }
-button,input,textarea,select{font:inherit !important}
 </style>
 
 </head>
@@ -678,5 +678,38 @@ button,input,textarea,select{font:inherit !important}
   <script src="result.js?v=20260907-fontfix-v4"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>
+
+<script id="qg14-result-font-runtime-v5">
+(function(){
+  const root = document.documentElement;
+
+  function forceFamily(family){
+    root.style.setProperty("--qg14-result-font", family);
+    root.setAttribute("data-qg14-result-font-v5", family.includes("Cairo") ? "cairo" : "windows-fallback");
+  }
+
+  const cairoFamily = '"Cairo","Segoe UI",Tahoma,Arial,sans-serif';
+  const fallbackFamily = '"Segoe UI",Tahoma,Arial,sans-serif';
+
+  // Apply immediately; CSS remains global for dynamically-created modals too.
+  forceFamily(cairoFamily);
+
+  if (document.fonts && document.fonts.load) {
+    Promise.race([
+      document.fonts.load('700 16px "Cairo"'),
+      new Promise(resolve => setTimeout(() => resolve([]), 2500))
+    ]).then(function(){
+      const ok = document.fonts.check('700 16px "Cairo"');
+      forceFamily(ok ? cairoFamily : fallbackFamily);
+      console.log("[QG14] Result font V5:", ok ? "Cairo" : "Segoe UI fallback");
+    }).catch(function(){
+      forceFamily(fallbackFamily);
+    });
+  } else {
+    forceFamily(fallbackFamily);
+  }
+})();
+</script>
+
 </body>
 </html>
