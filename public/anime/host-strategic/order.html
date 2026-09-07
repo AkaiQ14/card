@@ -169,6 +169,94 @@ body.bg-game,.bg-game{
 h1,h2,h3,.text-yellow-300{color:var(--qgr-gold-soft) !important}
 
 </style>
+
+<style id="qg14-result-theme-refined-v2">
+
+/* =========================================================
+   QG14 RESULT THEME — REFINED V2
+   Visual corrections only. No JS / IDs / game logic changes.
+   ========================================================= */
+:root{
+  --qg-gold:#FFD700;
+  --qg-gold-2:#ffe777;
+  --qg-green:#0b6e3f;
+  --qg-green-hover:#14824c;
+  --qg-wine:#4B0E1F;
+  --qg-wine-panel:#511522;
+  --qg-wine-button:#7b2131;
+  --qg-wine-button-hover:#8b2a3a;
+  --qg-deep:#180309;
+  --qg-blue:#0369a1;
+  --qg-blue-hover:#0284c7;
+  --qg-purple:#9333ea;
+  --qg-pink:#db2777;
+}
+html,body,button,input,textarea,select,option{
+  font-family:"Cairo",Tahoma,Arial,sans-serif !important;
+}
+button{outline:none}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{
+  box-shadow:0 0 0 3px rgba(255,215,0,.13) !important;
+}
+
+
+/* ORDER — Result theme with semantic button colors. */
+body.bg-game,.bg-game{
+  background:
+    linear-gradient(rgba(75,14,31,.20),rgba(24,3,9,.33)),
+    url('../images/QG14Background.png') center center / cover fixed no-repeat,
+    var(--qg-wine) !important;
+}
+.glass{
+  background:rgba(81,21,34,.76) !important;
+  border:2px solid rgba(255,215,0,.52) !important;
+}
+.btn{
+  color:#fff !important;
+  border:1.5px solid rgba(255,215,0,.55) !important;
+  background:var(--qg-wine-button) !important;
+  border-radius:14px !important;
+}
+.btn:hover{background:var(--qg-wine-button-hover) !important}
+#continueBtn{
+  color:var(--qg-gold) !important;
+  border:2px solid var(--qg-gold) !important;
+  background:var(--qg-green) !important;
+}
+#continueBtn:hover{background:var(--qg-green-hover) !important}
+#okBtn{
+  color:var(--qg-gold) !important;
+  border:2px solid var(--qg-gold) !important;
+  background:var(--qg-green) !important;
+}
+#okBtn:hover{background:var(--qg-green-hover) !important}
+#okBtn.bg-gray-600,#okBtn[class*="bg-gray"]{
+  color:#fff !important;
+  background:var(--qg-wine-button) !important;
+}
+#okBtn.bg-gray-600:hover,#okBtn[class*="bg-gray"]:hover{background:var(--qg-wine-button-hover) !important}
+#openPlayerViewBtn{
+  color:#fff !important;
+  background:linear-gradient(135deg,#075985,#2563eb) !important;
+  border:2px solid var(--qg-gold) !important;
+}
+#openPlayerViewBtn:hover{background:linear-gradient(135deg,#0369a1,#3b82f6) !important}
+#chatSendBtn{
+  color:#211600 !important;
+  background:linear-gradient(180deg,#ffe97a,#ddb200) !important;
+  border:2px solid #fff0a5 !important;
+}
+#chatSendBtn:hover{background:linear-gradient(180deg,#fff09b,#e8c22e) !important}
+#cardGrid select{
+  color:#fff !important;
+  background:#511522 !important;
+  border:1.5px solid rgba(255,215,0,.66) !important;
+}
+#playerAbilities > button:not(:disabled),#opponentAbilities > div{
+  border-radius:11px !important;
+}
+
+</style>
 </head>
 
 <body class="bg-game text-white min-h-screen p-6 flex flex-col items-center space-y-6">

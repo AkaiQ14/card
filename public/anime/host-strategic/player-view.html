@@ -205,6 +205,58 @@ body{
 .round-title,.text-yellow-300,.text-yellow-400{color:var(--qgr-gold) !important}
 
 </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<style id="qg14-result-theme-refined-v2">
+
+/* =========================================================
+   QG14 RESULT THEME — REFINED V2
+   Visual corrections only. No JS / IDs / game logic changes.
+   ========================================================= */
+:root{
+  --qg-gold:#FFD700;
+  --qg-gold-2:#ffe777;
+  --qg-green:#0b6e3f;
+  --qg-green-hover:#14824c;
+  --qg-wine:#4B0E1F;
+  --qg-wine-panel:#511522;
+  --qg-wine-button:#7b2131;
+  --qg-wine-button-hover:#8b2a3a;
+  --qg-deep:#180309;
+  --qg-blue:#0369a1;
+  --qg-blue-hover:#0284c7;
+  --qg-purple:#9333ea;
+  --qg-pink:#db2777;
+}
+html,body,button,input,textarea,select,option{
+  font-family:"Cairo",Tahoma,Arial,sans-serif !important;
+}
+button{outline:none}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{
+  box-shadow:0 0 0 3px rgba(255,215,0,.13) !important;
+}
+
+
+/* PLAYER VIEW — closer to Result without flattening functional colors. */
+#arena{background:rgba(75,14,31,.07) !important;border-color:var(--qg-gold) !important}
+.prev-box,.media-card,.notes-box{
+  background:rgba(81,21,34,.68) !important;
+  border-color:rgba(255,215,0,.52) !important;
+}
+#p1Abilities > div,#p2Abilities > div{
+  border-radius:10px !important;
+}
+.btn-gold{
+  color:var(--qg-gold) !important;
+  background:var(--qg-green) !important;
+  border-color:var(--qg-gold) !important;
+}
+.btn-gold:hover{background:var(--qg-green-hover) !important}
+.chip-gold{background:#6d1a2e !important;color:var(--qg-gold) !important;border-color:var(--qg-gold) !important}
+
+</style>
 </head>
   <body class="bg-[#4B0E1F] text-white min-h-screen no-scrollbar">
     <div id="arena" class="w-full min-h-screen border-8 border-yellow-500 box-border flex flex-col items-center">

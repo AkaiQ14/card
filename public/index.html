@@ -625,6 +625,88 @@ body::before,body::after{opacity:.10 !important}
 }
 
 </style>
+
+<style id="qg14-result-theme-refined-v2">
+
+/* =========================================================
+   QG14 RESULT THEME — REFINED V2
+   Visual corrections only. No JS / IDs / game logic changes.
+   ========================================================= */
+:root{
+  --qg-gold:#FFD700;
+  --qg-gold-2:#ffe777;
+  --qg-green:#0b6e3f;
+  --qg-green-hover:#14824c;
+  --qg-wine:#4B0E1F;
+  --qg-wine-panel:#511522;
+  --qg-wine-button:#7b2131;
+  --qg-wine-button-hover:#8b2a3a;
+  --qg-deep:#180309;
+  --qg-blue:#0369a1;
+  --qg-blue-hover:#0284c7;
+  --qg-purple:#9333ea;
+  --qg-pink:#db2777;
+}
+html,body,button,input,textarea,select,option{
+  font-family:"Cairo",Tahoma,Arial,sans-serif !important;
+}
+button{outline:none}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{
+  box-shadow:0 0 0 3px rgba(255,215,0,.13) !important;
+}
+
+
+/* INDEX — correct button hierarchy while retaining Result identity. */
+.main-card,.setup-panel,.quick-panel,.update-section{
+  background:rgba(81,21,34,.75) !important;
+  border-color:rgba(255,215,0,.50) !important;
+}
+.start-btn{
+  color:var(--qg-gold) !important;
+  background:var(--qg-green) !important;
+  border:2px solid var(--qg-gold) !important;
+}
+.start-btn:hover{background:var(--qg-green-hover) !important}
+.quick-btn{
+  color:#fff !important;
+  background:var(--qg-wine-button) !important;
+  border:1.5px solid rgba(255,215,0,.50) !important;
+}
+.quick-btn:hover{
+  color:var(--qg-gold) !important;
+  background:var(--qg-wine-button-hover) !important;
+  border-color:var(--qg-gold) !important;
+}
+.update-check-btn{
+  color:#fff !important;
+  background:linear-gradient(135deg,#075985,#2563eb) !important;
+  border:1.5px solid var(--qg-gold) !important;
+}
+.update-check-btn:hover:not(:disabled){background:linear-gradient(135deg,#0369a1,#3b82f6) !important}
+.update-action-btn.assets{
+  color:var(--qg-gold) !important;
+  background:var(--qg-green) !important;
+  border:1.5px solid var(--qg-gold) !important;
+}
+.update-action-btn.assets:hover:not(:disabled){background:var(--qg-green-hover) !important}
+.update-action-btn.app{
+  color:#211600 !important;
+  background:linear-gradient(180deg,#ffe97a,#ddb200) !important;
+  border:1.5px solid #fff0a5 !important;
+}
+.update-action-btn.app:hover:not(:disabled){background:linear-gradient(180deg,#fff09b,#e8c22e) !important}
+.mode-option,.scope-option{
+  background:rgba(0,0,0,.16) !important;
+  border-color:rgba(255,215,0,.28) !important;
+}
+.mode-option:hover,.scope-option:hover{background:rgba(255,215,0,.06) !important}
+.mode-option.is-selected,.scope-option.is-selected{
+  color:var(--qg-gold) !important;
+  background:rgba(255,215,0,.10) !important;
+  border-color:var(--qg-gold) !important;
+}
+
+</style>
 </head>
 
 <body>
