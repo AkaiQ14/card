@@ -742,6 +742,157 @@ body{
 }
 
 </style>
+
+<style id="qg14-wait-clean-fix-v3">
+/* =========================================================
+   WAIT CLEAN FIX V3
+   - restore original ability-box size
+   - keep the larger ability text
+   - remove yellow neon/glow
+   - remove rectangular shadows behind sections/buttons
+   ========================================================= */
+
+/* Remove the artificial big rectangle behind the two ability cards. */
+.abilities-section{
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+
+/* Return the two cards to the original compact dimensions. */
+.abilities-grid{
+  gap:18px !important;
+}
+
+.ability-card{
+  min-height:0 !important;
+  border:1px solid rgba(255,215,0,.30) !important;
+  border-radius:18px !important;
+  background:rgba(0,0,0,.22) !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+
+.ability-card-head{
+  padding:14px 16px !important;
+  border-bottom:1px solid rgba(255,215,0,.16) !important;
+  background:rgba(255,255,255,.035) !important;
+  box-shadow:none !important;
+}
+
+/* Keep heading readable but remove all glow/neon. */
+.owner-name{
+  color:#fff !important;
+  font-size:.70rem !important;
+  font-weight:900 !important;
+  text-shadow:none !important;
+}
+
+.player-one .player-dot{
+  background:#d946ef !important;
+  box-shadow:none !important;
+}
+.player-two .player-dot{
+  background:#38bdf8 !important;
+  box-shadow:none !important;
+}
+
+.readonly-badge{
+  color:rgba(255,255,255,.52) !important;
+  border:1px solid rgba(255,255,255,.10) !important;
+  background:rgba(255,255,255,.035) !important;
+  box-shadow:none !important;
+}
+
+.abilities-view{
+  min-height:102px !important;
+  max-height:215px !important;
+  gap:7px !important;
+  padding:12px !important;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+
+/* Keep the larger font requested previously, but make the pill clean. */
+.ability-pill{
+  min-height:40px !important;
+  padding:7px 10px !important;
+  color:#211600 !important;
+  border:1px solid rgba(224,183,0,.58) !important;
+  border-radius:10px !important;
+  background:linear-gradient(180deg,#f6d94d 0%,#ddb700 100%) !important;
+  box-shadow:none !important;
+  text-shadow:none !important;
+  filter:none !important;
+  font-size:.98rem !important;
+  font-weight:900 !important;
+  line-height:1.55 !important;
+}
+
+.ability-pill.is-used{
+  color:rgba(255,255,255,.38) !important;
+  border-color:rgba(255,255,255,.07) !important;
+  background:rgba(255,255,255,.045) !important;
+  box-shadow:none !important;
+  text-shadow:none !important;
+  filter:none !important;
+}
+
+/* Keep old player-specific colors, remove neon frame/glow/shadow. */
+.player-one .copy-btn{
+  color:#fff !important;
+  background:linear-gradient(135deg,#9333ea 0%,#db2777 100%) !important;
+  border:1px solid rgba(255,255,255,.20) !important;
+  border-radius:14px !important;
+  box-shadow:none !important;
+  text-shadow:none !important;
+  filter:none !important;
+}
+
+.player-two .copy-btn{
+  color:#fff !important;
+  background:linear-gradient(135deg,#4f46e5 0%,#0284c7 100%) !important;
+  border:1px solid rgba(255,255,255,.20) !important;
+  border-radius:14px !important;
+  box-shadow:none !important;
+  text-shadow:none !important;
+  filter:none !important;
+}
+
+.player-one .copy-btn:hover:not(:disabled),
+.player-two .copy-btn:hover:not(:disabled){
+  transform:translateY(-1px) !important;
+  filter:brightness(1.06) !important;
+  box-shadow:none !important;
+}
+
+/* Remove the extra rectangular shadow around link rows too. */
+.player-row{
+  box-shadow:none !important;
+}
+
+.access-panel{
+  box-shadow:none !important;
+}
+
+/* Avoid any gold glow from focus/hover around the requested areas. */
+.copy-btn:focus-visible,
+.ability-card:focus-within{
+  box-shadow:none !important;
+  outline:none !important;
+}
+
+@media (max-width:700px){
+  .ability-card{min-height:0 !important}
+  .abilities-view{min-height:90px !important;max-height:185px !important}
+  .ability-pill{font-size:.98rem !important}
+}
+</style>
+
 </head>
 
 <body>

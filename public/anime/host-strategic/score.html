@@ -641,6 +641,178 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .feedback-text{color:rgba(255,255,255,.82) !important}
 
 </style>
+
+<style id="qg14-score-layout-fix-v3">
+/* =========================================================
+   SCORE LAYOUT FIX V3
+   Keep scoreboard image untouched and clean the lower result area.
+   ========================================================= */
+
+.score-page{
+  padding:26px 18px 34px !important;
+  align-items:center !important;
+}
+
+.score-shell{
+  width:min(1160px,100%) !important;
+  margin:0 auto !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  text-align:center !important;
+}
+
+.score-heading{
+  margin:0 0 12px !important;
+  min-width:166px !important;
+  min-height:40px !important;
+  padding:7px 24px !important;
+  border:1.5px solid rgba(255,215,0,.88) !important;
+  border-radius:999px !important;
+  color:#FFD700 !important;
+  background:rgba(81,21,34,.88) !important;
+  box-shadow:none !important;
+}
+
+#scoreBox{
+  width:100% !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+}
+
+/* Keep the scoreboard centered and isolated from the lower controls. */
+.scoreboard-wrap{
+  width:min(1035px,95vw) !important;
+  margin:0 auto !important;
+}
+
+/* This was the unwanted large rectangle in the screenshot. */
+.result-panel{
+  width:auto !important;
+  min-width:0 !important;
+  max-width:min(92vw,620px) !important;
+  min-height:0 !important;
+  margin:14px auto 0 !important;
+  padding:0 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:10px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  overflow:visible !important;
+}
+
+.result-panel::before,
+.result-panel::after{
+  display:none !important;
+  content:none !important;
+}
+
+/* Compact result/tie label directly below the scoreboard. */
+.winner-label{
+  width:auto !important;
+  min-width:168px !important;
+  max-width:min(90vw,520px) !important;
+  min-height:38px !important;
+  margin:0 !important;
+  padding:7px 22px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  color:#FFD700 !important;
+  border:1.5px solid rgba(255,215,0,.90) !important;
+  border-radius:999px !important;
+  background:rgba(81,21,34,.90) !important;
+  box-shadow:none !important;
+  line-height:1.35 !important;
+}
+
+/* Put actions cleanly below the label; no extra container. */
+.score-actions{
+  width:auto !important;
+  max-width:100% !important;
+  margin:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:10px !important;
+  flex-wrap:wrap !important;
+}
+
+.score-btn{
+  min-width:214px !important;
+  min-height:50px !important;
+  padding:10px 24px !important;
+  border-radius:14px !important;
+  box-shadow:none !important;
+}
+
+.score-btn::before,
+.score-btn::after{
+  display:none !important;
+  content:none !important;
+}
+
+.score-btn-primary{
+  color:#fff !important;
+  border:1.5px solid rgba(255,215,0,.55) !important;
+  background:#7b2131 !important;
+  box-shadow:none !important;
+}
+
+.score-btn-primary:hover:not(:disabled){
+  background:#8b2a3a !important;
+  box-shadow:none !important;
+  transform:translateY(-1px) !important;
+}
+
+.score-btn-gold{
+  color:#FFD700 !important;
+  border:1.5px solid #FFD700 !important;
+  background:#0b6e3f !important;
+  box-shadow:none !important;
+}
+
+.score-btn-gold:hover:not(:disabled){
+  background:#14824c !important;
+  box-shadow:none !important;
+  transform:translateY(-1px) !important;
+}
+
+@media(max-width:800px){
+  .score-page{padding:22px 10px 28px !important}
+  .result-panel{
+    width:auto !important;
+    max-width:94vw !important;
+    margin-top:10px !important;
+    padding:0 !important;
+  }
+  .score-actions{gap:8px !important}
+}
+
+@media(max-width:560px){
+  .winner-label{
+    min-width:150px !important;
+    padding:6px 18px !important;
+  }
+  .score-actions{
+    width:min(94vw,520px) !important;
+  }
+  .score-actions .score-btn{
+    flex:1 1 210px !important;
+    min-width:0 !important;
+  }
+}
+</style>
+
 </head>
 
 <body>
