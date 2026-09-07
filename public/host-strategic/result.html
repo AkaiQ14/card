@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-
+    
     :root{
       --gold:#FFD700;
       --green:#0b6e3f;
@@ -364,7 +364,7 @@
       background: #5a1626;
     }
 
-
+  
     /* ===== QG14 original background ===== */
     html,body{min-height:100%}
     body{
@@ -376,6 +376,73 @@
     }
     #arena{background:rgba(75,14,31,.08);}
   </style>
+
+<style id="qg14-result-cairo-local-v7">
+/* =========================================================
+   QG14 RESULT — CAIRO LOCAL FINAL V7
+   Local game font first, web fallbacks second.
+   ========================================================= */
+
+@font-face{
+  font-family:"QG14 Cairo Local";
+  font-style:normal;
+  font-weight:200 1000;
+  font-display:block;
+  src:
+    local("Cairo"),
+    local("Cairo Regular"),
+    url("/fonts/Cairo-Variable.ttf") format("truetype-variations"),
+    url("../fonts/Cairo-Variable.ttf") format("truetype-variations"),
+    url("../../fonts/Cairo-Variable.ttf") format("truetype-variations"),
+    url("https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf") format("truetype-variations"),
+    url("https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf") format("truetype-variations");
+}
+
+:root{
+  --qg14-result-font:"QG14 Cairo Local","Cairo","Segoe UI",Tahoma,Arial,sans-serif;
+}
+
+html,
+body{
+  font-family:var(--qg14-result-font) !important;
+  font-synthesis:none;
+}
+
+html *,
+body *,
+html *::before,
+html *::after,
+body *::before,
+body *::after,
+button,
+input,
+textarea,
+select,
+option,
+label,
+summary,
+table,
+th,
+td,
+svg text{
+  font-family:var(--qg14-result-font) !important;
+}
+
+button,
+input,
+textarea,
+select,
+option{
+  font-family:var(--qg14-result-font) !important;
+}
+
+/* Defeat any inline/class family that may be added later. */
+[style*="font-family"],
+[style*="fontFamily"]{
+  font-family:var(--qg14-result-font) !important;
+}
+</style>
+
 </head>
 <body class="bg-[#4B0E1F] text-white min-h-screen no-scrollbar">
 <div id="arena"
@@ -526,7 +593,7 @@
   <div id="recapModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2000]">
     <div class="bg-[#511522] border-2 border-yellow-500 rounded-xl p-4 w-[90%] max-w-[480px] max-h-[85vh] overflow-y-auto no-scrollbar">
       <h3 class="text-lg font-bold text-yellow-300 mb-2 text-center">ريكاب الجولات السابقة</h3>
-
+      
       <div id="recapList" class="space-y-2"></div>
       <div class="mt-4 text-center">
         <button class="btn-gold px-5 py-2" onclick="closeRecapModal()">إغلاق</button>
@@ -597,7 +664,7 @@
         <button class="btn-gold px-5 py-2" onclick="closeSwapAbilityModal()">إغلاق</button>
       </div>
     </div>
-
+  
   <!-- Swap Pick New Ability Modal -->
   <div id="swapPickModal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-[2100]">
     <div class="bg-[#511522] border-2 border-yellow-500 rounded-xl p-4 w-[90%] max-w-[520px]">
@@ -711,8 +778,103 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/webm-sfx.js"></script>
   <script src="/js/legendary-fullscreen.js?v=20260829-thanos-direct-release-v4"></script>
-  <script src="result.js?v=20260906-golden-round-v1"></script>
+  <script src="result.js?v=20260907-cairo-local-final-v7"></script>
   <script src="../copyright.js"></script>
   <script src="../security.js"></script>
+
+<script id="qg14-result-cairo-runtime-v7">
+(function(){
+  "use strict";
+
+  const FAMILY = '"QG14 Cairo Local","Cairo","Segoe UI",Tahoma,Arial,sans-serif';
+  const root = document.documentElement;
+
+  function forceFont(el){
+    if (!(el instanceof HTMLElement) && !(el instanceof SVGElement)) return;
+    try { el.style.setProperty("font-family", FAMILY, "important"); } catch {}
+  }
+
+  function forceTree(node){
+    if (!(node instanceof Element)) return;
+    forceFont(node);
+    try {
+      node.querySelectorAll("*").forEach(forceFont);
+    } catch {}
+  }
+
+  function applyAll(){
+    forceFont(root);
+    if (document.body) forceTree(document.body);
+  }
+
+  function setStatus(value){
+    root.setAttribute("data-qg14-cairo", value);
+  }
+
+  // Force immediately and again at each browser lifecycle stage.
+  applyAll();
+  document.addEventListener("DOMContentLoaded", applyAll, { once:true });
+  window.addEventListener("load", applyAll, { once:true });
+  requestAnimationFrame(applyAll);
+  setTimeout(applyAll, 100);
+  setTimeout(applyAll, 500);
+  setTimeout(applyAll, 1500);
+
+  // Every element dynamically created by result.js receives Cairo.
+  const observer = new MutationObserver((mutations)=>{
+    for (const mutation of mutations){
+      for (const node of mutation.addedNodes){
+        if (node instanceof Element) forceTree(node);
+      }
+      if (mutation.type === "attributes" && mutation.target instanceof Element){
+        forceFont(mutation.target);
+      }
+    }
+  });
+
+  const startObserver = ()=>{
+    if (!document.documentElement) return;
+    observer.observe(document.documentElement, {
+      childList:true,
+      subtree:true,
+      attributes:true,
+      attributeFilter:["class","style"]
+    });
+  };
+  startObserver();
+
+  // Confirm that the REAL Cairo face is available, then force once more.
+  async function verifyCairo(){
+    if (!document.fonts || !document.fonts.load){
+      setStatus("forced");
+      return;
+    }
+
+    try{
+      await Promise.all([
+        document.fonts.load('400 20px "QG14 Cairo Local"', 'القاهرة QG14'),
+        document.fonts.load('700 20px "QG14 Cairo Local"', 'الجولة الذهبية'),
+        document.fonts.load('900 20px "QG14 Cairo Local"', 'تأكيد النتيجة')
+      ]);
+      await document.fonts.ready;
+      applyAll();
+
+      const loaded = document.fonts.check('700 20px "QG14 Cairo Local"', 'الجولة الذهبية');
+      setStatus(loaded ? "loaded" : "fallback");
+      console.log(loaded
+        ? "[QG14] Cairo LOCAL V7 loaded across the entire Result page."
+        : "[QG14] Cairo LOCAL V7 fallback is active; check /fonts/Cairo-Variable.ttf."
+      );
+    }catch(err){
+      setStatus("fallback");
+      applyAll();
+      console.warn("[QG14] Cairo LOCAL V7 load failed.", err);
+    }
+  }
+
+  verifyCairo();
+})();
+</script>
+
 </body>
 </html>

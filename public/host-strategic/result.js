@@ -3396,7 +3396,7 @@ function renderRound() {
   if (confirmResultBtn) {
     confirmResultBtn.textContent =
       isGoldenRoundActive()
-        ? "تأكيد الجولة"
+        ? "تأكيد الجولة الذهبية"
         : "تأكيد النتيجة";
   }
 
