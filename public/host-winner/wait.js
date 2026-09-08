@@ -9,7 +9,34 @@ const socket = io();
 socket.emit("joinGame", { gameID, role: "host" }); // join room for timer sync
 
 const CARD_ROUTE_PREFIX = window.location.pathname.startsWith("/anime/") ? "/anime" : "";
-const baseURL = `${window.location.origin}${CARD_ROUTE_PREFIX}/host-winner/pick.html`;
+
+async function getQG14ShareOrigin() {
+  try {
+    const r = await fetch(`/api/desktop-info?t=${Date.now()}`, { cache: "no-store" });
+    const info = r.ok ? await r.json() : null;
+    const value = String(info?.shareOrigin || "").trim().replace(/\/$/, "");
+    if (value && /^https:\/\//i.test(value)) return value;
+
+    if (info?.desktop) return "";
+    return window.location.origin;
+  } catch {
+    return "";
+  }
+}
+
+function isQG14LocalOrigin(value) {
+  try {
+    const u = new URL(String(value || ""));
+    return /^(?:localhost|127\.0\.0\.1|::1)$/i.test(u.hostname);
+  } catch {
+    return true;
+  }
+}
+
+function showTunnelNotReady() {
+  alert("رابط اللاعبين العالمي غير جاهز بعد. تأكد من اتصال Cloudflare Tunnel ثم حاول النسخ مرة أخرى.");
+}
+
 
 const copyP1 = document.getElementById("copyP1");
 const copyP2 = document.getElementById("copyP2");
@@ -80,28 +107,57 @@ function imageKeyFromUrl(url) {
   }
 }
 
-// === Copy links include opponent name + opponent abilities fallback ===
-copyP1.onclick = () => {
-  const oppAbs = getAbilityTextsLS("player2Abilities").join("|");
-  const url =
-    `${baseURL}?game=${gameID}` +
-    `&player=player1&name=${encodeURIComponent(p1)}` +
-    `&rounds=${totalRounds}` +
-    `&opp=${encodeURIComponent(p2)}` +
-    `&oppabs=${encodeURIComponent(oppAbs)}`;
-  navigator.clipboard.writeText(url);
-};
+// === Copy global Cloudflare Tunnel links (with per-player token) ===
+async function buildWinnerRemoteLink(who) {
+  const isP1 = who === "player1";
+  const playerName = isP1 ? p1 : p2;
+  const opponentName = isP1 ? p2 : p1;
+  const oppAbs = getAbilityTextsLS(isP1 ? "player2Abilities" : "player1Abilities").join("|");
 
-copyP2.onclick = () => {
-  const oppAbs = getAbilityTextsLS("player1Abilities").join("|");
-  const url =
-    `${baseURL}?game=${gameID}` +
-    `&player=player2&name=${encodeURIComponent(p2)}` +
-    `&rounds=${totalRounds}` +
-    `&opp=${encodeURIComponent(p1)}` +
+  try {
+    const remote = await fetch("/api/remote-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        route: `${CARD_ROUTE_PREFIX}/host-winner/pick.html`,
+        gameID,
+        playerKey: who,
+        playerName,
+        query: { rounds: totalRounds, opp: opponentName, oppabs: oppAbs },
+      }),
+    });
+    if (remote.ok) {
+      const data = await remote.json();
+      if (data?.url) return String(data.url);
+    }
+  } catch {}
+
+  const shareOrigin = await getQG14ShareOrigin();
+  if (!shareOrigin || isQG14LocalOrigin(shareOrigin)) {
+    throw new Error("player_tunnel_not_ready");
+  }
+  const baseURL = `${shareOrigin}${CARD_ROUTE_PREFIX}/host-winner/pick.html`;
+  return `${baseURL}?game=${encodeURIComponent(gameID || "")}` +
+    `&player=${encodeURIComponent(who)}&name=${encodeURIComponent(playerName)}` +
+    `&rounds=${encodeURIComponent(totalRounds)}&opp=${encodeURIComponent(opponentName)}` +
     `&oppabs=${encodeURIComponent(oppAbs)}`;
-  navigator.clipboard.writeText(url);
-};
+}
+
+async function copyWinnerLink(who) {
+  try {
+    const url = await buildWinnerRemoteLink(who);
+    if (!url || isQG14LocalOrigin(url)) {
+      showTunnelNotReady();
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+  } catch {
+    showTunnelNotReady();
+  }
+}
+
+copyP1.onclick = () => copyWinnerLink("player1");
+copyP2.onclick = () => copyWinnerLink("player2");
 
 // === Abilities (pull from server for both players) ===
 socket.emit("requestAbilities", { gameID, playerName: p1 });

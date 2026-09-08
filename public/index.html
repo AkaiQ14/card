@@ -507,12 +507,6 @@
   </style>
 
   <script>
-    fetch("/api/check-auth").then((res) => {
-      if (!res.ok) {
-        window.location.href = "/login";
-      }
-    });
-
     if (!localStorage.getItem("homepageRefreshed")) {
       localStorage.setItem("homepageRefreshed", "true");
       window.location.reload();
@@ -581,7 +575,7 @@
               </div>
             </div>
 
-            <button id="startGameBtn" class="start-btn" type="button" onclick="logoutAndStart()">
+            <button id="startGameBtn" class="start-btn" type="button" onclick="startGame()">
               ابدأ اللعبة
             </button>
 
@@ -822,7 +816,7 @@
       });
     }
 
-    function logoutAndStart() {
+    function startGame() {
       if (!localStorage.getItem("homepageRefreshed")) return;
 
       localStorage.removeItem("homepageRefreshed");
@@ -851,17 +845,7 @@
         startGameBtn.textContent = "جاري بدء اللعبة...";
       }
 
-      fetch("/api/exit-home", { method: "POST" })
-        .then(() => fetch("/api/logout", { method: "POST" }))
-        .then(() => {
-          window.location.href = `${targetPath}/start.html`;
-        })
-        .catch(() => {
-          if (startGameBtn) {
-            startGameBtn.disabled = false;
-            startGameBtn.textContent = "ابدأ اللعبة";
-          }
-        });
+      window.location.href = `${targetPath}/start.html`;
     }
   </script>
 

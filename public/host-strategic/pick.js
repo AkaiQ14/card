@@ -1,6 +1,8 @@
 const CARD_SCOPE = window.location.pathname.startsWith("/anime/") ? "anime" : "all";
 const CARD_ASSET_PREFIX = CARD_SCOPE === "anime" ? "/anime" : "";
-const randomSound = new Audio(`${CARD_ASSET_PREFIX}/sounds/random.mp3`);
+const randomSound = new Audio(window.QG14PlayerMedia?.url
+  ? window.QG14PlayerMedia.url(`${CARD_ASSET_PREFIX}/sounds/random.mp3`)
+  : `${CARD_ASSET_PREFIX}/sounds/random.mp3`);
 randomSound.volume = 1.0;
 
 // Each of the 20 boxes independently keeps the original 10% chance
@@ -191,11 +193,24 @@ function isMediaFile(entry) {
 }
 
 async function fetchFolderList(folder) {
-  let lastError = null;
+  const manifestUrl = window.QG14PlayerMedia?.manifestUrl
+    ? window.QG14PlayerMedia.manifestUrl(CARD_SCOPE)
+    : null;
+  if (manifestUrl) {
+    try {
+      const res = await fetch(manifestUrl, { cache: "force-cache" });
+      if (res.ok) {
+        const data = await res.json();
+        const names = Array.isArray(data?.folders?.[folder]) ? data.folders[folder] : [];
+        if (names.length) return names.map(filename => ({ filename, source: "cdn" }));
+      }
+    } catch (error) {
+      console.warn("[QG14 Media] manifest unavailable; using host catalogue", error);
+    }
+  }
 
-  // A card update may have been installed only moments before opening Pick.
-  // Always bypass HTTP/browser caches and retry transient failures so the pool
-  // is built from the newest server-side merged inventory.
+  // Local development / unpublished update fallback.
+  let lastError = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const query = new URLSearchParams({
@@ -204,7 +219,6 @@ async function fetchFolderList(folder) {
         rev: PICK_POOL_REVISION,
         _: `${Date.now()}-${attempt}`
       });
-
       const res = await fetch(
         `/list-images/${encodeURIComponent(folder)}?${query.toString()}`,
         {
@@ -215,55 +229,40 @@ async function fetchFolderList(folder) {
           }
         }
       );
-
       if (!res.ok) throw new Error(`Failed to list ${folder}: HTTP ${res.status}`);
-
       const payload = await res.json();
       const entries = Array.isArray(payload)
         ? payload
-        : Array.isArray(payload?.files)
-          ? payload.files
-          : Array.isArray(payload?.items)
-            ? payload.items
-            : [];
-
-      // De-duplicate by filename while preferring an entry explicitly marked as
-      // override/update metadata when the server provides that information.
+        : Array.isArray(payload?.files) ? payload.files
+        : Array.isArray(payload?.items) ? payload.items : [];
       const byName = new Map();
       for (const entry of entries) {
         const filename = entryFilename(entry);
         if (!filename) continue;
-
         const key = filename.toLowerCase();
         const existing = byName.get(key);
         const source = entrySource(entry);
         const isOverride = /override|update|appdata/.test(source);
         const existingOverride = /override|update|appdata/.test(entrySource(existing));
-
-        if (!existing || (isOverride && !existingOverride)) {
-          byName.set(key, entry);
-        }
+        if (!existing || (isOverride && !existingOverride)) byName.set(key, entry);
       }
-
       return Array.from(byName.values());
     } catch (error) {
       lastError = error;
-      if (attempt < 2) {
-        await new Promise(resolve => setTimeout(resolve, 180 * (attempt + 1)));
-      }
+      if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 180 * (attempt + 1)));
     }
   }
-
   throw lastError || new Error(`Failed to list ${folder}`);
 }
-
 function makeCard(folder, entry) {
   const filename = entryFilename(entry);
   return {
     folder,
     filename,
     key: `${folder}/${filename}`,
-    fullPath: `${CARD_ASSET_PREFIX}/images/${folder}/${encodeURIComponent(filename)}`,
+    fullPath: window.QG14PlayerMedia?.url
+      ? window.QG14PlayerMedia.url(`${CARD_ASSET_PREFIX}/images/${folder}/${encodeURIComponent(filename)}`)
+      : `${CARD_ASSET_PREFIX}/images/${folder}/${encodeURIComponent(filename)}`,
     source: entrySource(entry)
   };
 }

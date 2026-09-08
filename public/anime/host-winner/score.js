@@ -159,7 +159,7 @@ async function addPoint(playerName) {
     });
 
     if (res.status === 401) {
-      showErrorModal("تحتاج لتسجيل الدخول لإضافة النقاط (افتح /login ثم عُد).");
+      showErrorModal("تعذر حفظ النقاط. حاول مرة أخرى.");
       btn && (btn.disabled = false, btn.textContent = "➕ أضف نقطة للفائز");
       return;
     }

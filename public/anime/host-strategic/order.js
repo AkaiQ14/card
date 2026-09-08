@@ -28,7 +28,8 @@ function resolveQG14MediaUrl(value) {
   }
   clean = clean.replace(/\/{2,}/g, "/");
   if (location.pathname.startsWith("/anime/") && clean.startsWith("/images/")) clean = "/anime" + clean;
-  return clean + suffix;
+  const normalized = clean + suffix;
+  return window.QG14PlayerMedia?.url ? window.QG14PlayerMedia.url(normalized) : normalized;
 }
 
 
@@ -296,6 +297,20 @@ const QG14SmartPreload = (() => {
 })();
 
 /* ================== Helpers ================== */
+// If the CDN redirect (jsDelivr) can't serve a card (e.g. a brand-new card
+// not pushed to GitHub yet, or the CDN is briefly unreachable), retry the
+// exact same path against this server's own bundled/local copy once by
+// appending ?local=1, which index.js treats as an explicit bypass.
+function withLocalFallbackParam(url) {
+  try {
+    const u = new URL(url, location.origin);
+    u.searchParams.set("local", "1");
+    return u.pathname + u.search + u.hash;
+  } catch {
+    return url + (url.includes("?") ? "&" : "?") + "local=1";
+  }
+}
+
 function createMedia(url, className, onClick) {
   const mediaUrl = resolveQG14MediaUrl(url);
   const isWebm = /\.webm(\?|#|$)/i.test(mediaUrl || "");
@@ -306,11 +321,17 @@ function createMedia(url, className, onClick) {
     vid.controls = false;
     vid.disablePictureInPicture = true;
     vid.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
-    vid.setAttribute("preload", "auto");
+    vid.setAttribute("preload", "metadata");
     vid.oncontextmenu = (e) => e.preventDefault();
     vid.draggable = false;
     vid.className = className;
     if (onClick) vid.onclick = onClick;
+    vid.addEventListener("error", function onErr() {
+      vid.removeEventListener("error", onErr);
+      if (vid.dataset.qg14FallbackTried) return;
+      vid.dataset.qg14FallbackTried = "1";
+      vid.src = withLocalFallbackParam(mediaUrl);
+    }, { once: true });
     return vid;
   } else {
     const img = document.createElement("img");
@@ -320,6 +341,12 @@ function createMedia(url, className, onClick) {
     img.oncontextmenu = (e) => e.preventDefault();
     img.draggable = false;
     if (onClick) img.onclick = onClick;
+    img.addEventListener("error", function onErr() {
+      img.removeEventListener("error", onErr);
+      if (img.dataset.qg14FallbackTried) return;
+      img.dataset.qg14FallbackTried = "1";
+      img.src = withLocalFallbackParam(mediaUrl);
+    }, { once: true });
     return img;
   }
 }

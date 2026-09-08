@@ -304,24 +304,6 @@ function waitForExclusionsThenLoad() {
 }
 
 async function fetchFolderList(folder) {
-  // Static manifest = no player request to the host PC for card catalogues.
-  const manifestUrl = window.QG14PlayerMedia?.manifestUrl
-    ? window.QG14PlayerMedia.manifestUrl(CARD_SCOPE)
-    : null;
-  if (manifestUrl) {
-    try {
-      const res = await fetch(manifestUrl, { cache: "force-cache" });
-      if (res.ok) {
-        const data = await res.json();
-        const list = Array.isArray(data?.folders?.[folder]) ? data.folders[folder] : [];
-        if (list.length) return list;
-      }
-    } catch (err) {
-      console.warn("[QG14 Media] manifest unavailable; using host catalogue", err);
-    }
-  }
-
-  // Local development / brand-new unpublished cards fallback.
   const res = await fetch(
     `/list-images/${encodeURIComponent(folder)}?gameID=${encodeURIComponent(gameID || "")}&scope=${encodeURIComponent(CARD_SCOPE)}`
   );
@@ -346,9 +328,7 @@ async function loadAndRender() {
       legendaryFiles.forEach((file) => {
         const key = `legendary/${file}`;
         if (excludedKeys.has(key)) return;
-        const fullPath = window.QG14PlayerMedia?.url
-          ? window.QG14PlayerMedia.url(`${CARD_ASSET_PREFIX}/images/legendary/${encodeURIComponent(file)}`)
-          : `${CARD_ASSET_PREFIX}/images/legendary/${encodeURIComponent(file)}`;
+        const fullPath = `${CARD_ASSET_PREFIX}/images/legendary/${encodeURIComponent(file)}`;
         if (!map.has(fullPath)) {
           const obj = { folder: "legendary", filename: file, key, fullPath };
           map.set(fullPath, obj);
@@ -358,9 +338,7 @@ async function loadAndRender() {
       normalFiles.forEach((file) => {
         const key = `normal/${file}`;
         if (excludedKeys.has(key)) return;
-        const fullPath = window.QG14PlayerMedia?.url
-          ? window.QG14PlayerMedia.url(`${CARD_ASSET_PREFIX}/images/normal/${encodeURIComponent(file)}`)
-          : `${CARD_ASSET_PREFIX}/images/normal/${encodeURIComponent(file)}`;
+        const fullPath = `${CARD_ASSET_PREFIX}/images/normal/${encodeURIComponent(file)}`;
         if (!map.has(fullPath)) {
           const obj = { folder: "normal", filename: file, key, fullPath };
           map.set(fullPath, obj);
@@ -373,9 +351,7 @@ async function loadAndRender() {
         files.forEach((file) => {
           const key = `${slug}/${file}`;
           if (excludedKeys.has(key)) return;
-          const fullPath = window.QG14PlayerMedia?.url
-            ? window.QG14PlayerMedia.url(`${CARD_ASSET_PREFIX}/images/${slug}/${encodeURIComponent(file)}`)
-            : `${CARD_ASSET_PREFIX}/images/${slug}/${encodeURIComponent(file)}`;
+          const fullPath = `${CARD_ASSET_PREFIX}/images/${slug}/${encodeURIComponent(file)}`;
           if (!map.has(fullPath)) {
             const obj = { folder: slug, filename: file, key, fullPath };
             map.set(fullPath, obj);

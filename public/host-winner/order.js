@@ -6,6 +6,33 @@ const gameID = params.get("game");
 const playerName = params.get("name");
 let currentPlayer = playerParam === "player2" ? 2 : 1;
 
+// ===== QG14 robust local media path resolver =====
+function resolveQG14MediaUrl(value) {
+  if (!value) return value;
+  const raw = String(value).trim();
+  if (!raw || /^(?:data:|blob:|https?:\/\/)/i.test(raw)) return raw;
+  let clean = raw.replace(/\\/g, "/");
+  const suffixMatch = clean.match(/([?#].*)$/);
+  const suffix = suffixMatch ? suffixMatch[1] : "";
+  if (suffix) clean = clean.slice(0, -suffix.length);
+  try { clean = decodeURIComponent(clean); } catch {}
+  const lower = clean.toLowerCase();
+  const animeIndex = lower.lastIndexOf("/anime/images/");
+  const normalIndex = lower.lastIndexOf("/images/");
+  if (animeIndex >= 0) clean = clean.slice(animeIndex);
+  else if (normalIndex >= 0) clean = clean.slice(normalIndex);
+  else {
+    clean = clean.replace(/^\.{0,2}\/+/, "").replace(/^public\//i, "");
+    if (/^(?:anime\/)?images\//i.test(clean)) clean = "/" + clean;
+    else return raw;
+  }
+  clean = clean.replace(/\/{2,}/g, "/");
+  if (location.pathname.startsWith("/anime/") && clean.startsWith("/images/")) clean = "/anime" + clean;
+  const normalized = clean + suffix;
+  return window.QG14PlayerMedia?.url ? window.QG14PlayerMedia.url(normalized) : normalized;
+}
+
+
 const instruction = document.getElementById("instruction");
 const grid = document.getElementById("cardGrid");
 const continueBtn = document.getElementById("continueBtn");
@@ -194,15 +221,91 @@ let myAbilities = [];
 const tempUsed = new Set();
 const pendingRequests = new Map();
 
+
+/* ================== QG14 smart media preloader ==================
+ * Preloads only media the player is about to use. Images are warmed
+ * immediately; WEBM/MP4 is limited to two concurrent preloaders so the
+ * host upload is not saturated by eleven videos at once.
+ */
+const QG14SmartPreload = (() => {
+  const primed = new Set();
+  const videoQueue = [];
+  let activeVideos = 0;
+  const MAX_VIDEO_PRELOADS = 2;
+
+  function absUrl(value) {
+    try { return new URL(String(value || ""), window.location.href).href; }
+    catch { return String(value || ""); }
+  }
+
+  function pumpVideos() {
+    while (activeVideos < MAX_VIDEO_PRELOADS && videoQueue.length) {
+      const url = videoQueue.shift();
+      activeVideos += 1;
+
+      const video = document.createElement("video");
+      video.preload = "auto";
+      video.muted = true;
+      video.playsInline = true;
+      video.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px";
+
+      let done = false;
+      const complete = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        video.removeAttribute("src");
+        try { video.load(); } catch {}
+        video.remove();
+        activeVideos = Math.max(0, activeVideos - 1);
+        pumpVideos();
+      };
+
+      video.addEventListener("canplay", complete, { once: true });
+      video.addEventListener("loadeddata", complete, { once: true });
+      video.addEventListener("error", complete, { once: true });
+      const timer = setTimeout(complete, 12000);
+
+      document.body.appendChild(video);
+      video.src = url;
+      try { video.load(); } catch {}
+    }
+  }
+
+  function prime(values) {
+    const urls = Array.from(new Set((Array.isArray(values) ? values : [])
+      .map(absUrl)
+      .filter(Boolean)));
+
+    urls.filter(url => !/\.(?:webm|mp4)(?:[?#]|$)/i.test(url)).forEach(url => {
+      if (primed.has(url)) return;
+      primed.add(url);
+      const img = new Image();
+      img.decoding = "async";
+      img.src = url;
+    });
+
+    urls.filter(url => /\.(?:webm|mp4)(?:[?#]|$)/i.test(url)).forEach(url => {
+      if (primed.has(url)) return;
+      primed.add(url);
+      videoQueue.push(url);
+    });
+    pumpVideos();
+  }
+
+  return { prime };
+})();
+
 /* ================== Helpers ================== */
 function createMedia(url, className, onClick) {
-  const isWebm = /\.webm(\?|#|$)/i.test(url);
+  const mediaUrl = resolveQG14MediaUrl(url);
+  const isWebm = /\.webm(\?|#|$)/i.test(mediaUrl || "");
   if (isWebm) {
     const vid = document.createElement("video");
-    vid.src = url;
+    vid.src = mediaUrl;
     vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
-    vid.controls = false;                              // no controls UI
-    vid.disablePictureInPicture = true;                // no PiP
+    vid.controls = false;
+    vid.disablePictureInPicture = true;
     vid.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
     vid.setAttribute("preload", "metadata");
     vid.oncontextmenu = (e) => e.preventDefault();
@@ -212,8 +315,9 @@ function createMedia(url, className, onClick) {
     return vid;
   } else {
     const img = document.createElement("img");
-    img.src = url;
+    img.src = mediaUrl;
     img.className = className;
+    img.decoding = "async";
     img.oncontextmenu = (e) => e.preventDefault();
     img.draggable = false;
     if (onClick) img.onclick = onClick;
@@ -298,6 +402,9 @@ socket.on("orderData", ({ picks: serverPicks = [], ordered = null }) => {
     const localPicks = JSON.parse(localStorage.getItem(PICKS_LOCAL_KEY) || "[]");
     picks = Array.isArray(localPicks) ? localPicks : [];
   }
+
+  // Warm only this player's actual cards before later rounds need them.
+  QG14SmartPreload.prime(picks.map(resolveQG14MediaUrl));
 
   submittedOrder = Array.isArray(ordered) && ordered.length ? ordered.slice() : null;
   try {

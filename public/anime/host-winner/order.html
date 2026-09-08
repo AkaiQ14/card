@@ -25,9 +25,11 @@
 
     .bg-game{
       background:
-        radial-gradient(900px 500px at 15% 10%, rgba(255,215,0,.10), transparent 60%),
-        radial-gradient(900px 500px at 85% 0%, rgba(16,185,129,.12), transparent 60%),
-        linear-gradient(180deg, var(--bg1), #2a0612 55%, var(--bg2));
+        radial-gradient(900px 500px at 15% 10%, rgba(255,215,0,.08), transparent 60%),
+        radial-gradient(900px 500px at 85% 0%, rgba(16,185,129,.08), transparent 60%),
+        linear-gradient(rgba(75,14,31,.22), rgba(18,4,10,.35)),
+        url('../images/QG14Background.png') center center / cover fixed no-repeat,
+        var(--bg2);
       min-height:100vh;
     }
 
@@ -195,8 +197,9 @@
 
   <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/player-media-cdn.js?v=direct-jsdelivr-v3"></script>
   <script src="order.js?v=nosave-hardened"></script>
-  <script src="/copyright.js"></script>
+  <script src="../copyright.js"></script>
 
 </body>
 </html>

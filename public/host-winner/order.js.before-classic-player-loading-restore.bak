@@ -28,8 +28,7 @@ function resolveQG14MediaUrl(value) {
   }
   clean = clean.replace(/\/{2,}/g, "/");
   if (location.pathname.startsWith("/anime/") && clean.startsWith("/images/")) clean = "/anime" + clean;
-  const normalized = clean + suffix;
-  return window.QG14PlayerMedia?.url ? window.QG14PlayerMedia.url(normalized) : normalized;
+  return clean + suffix;
 }
 
 
@@ -51,7 +50,7 @@ const playerCountdownEl = document.getElementById("playerCountdown");
 const timerWrap = document.getElementById("timerWrap");
 function hideTimer() { if (timerWrap) timerWrap.classList.add("hidden"); }
 
-const DUR_TWO_MIN = 140;
+const DUR_TWO_MIN = 120;
 const DUR_THIRTY = 30;
 
 let t_durationSec = DUR_TWO_MIN;
@@ -231,7 +230,7 @@ const QG14SmartPreload = (() => {
   const primed = new Set();
   const videoQueue = [];
   let activeVideos = 0;
-  const MAX_VIDEO_PRELOADS = 2;
+  const MAX_VIDEO_PRELOADS = window.QG14PlayerMedia?.enabled ? 4 : 2;
 
   function absUrl(value) {
     try { return new URL(String(value || ""), window.location.href).href; }
@@ -307,7 +306,7 @@ function createMedia(url, className, onClick) {
     vid.controls = false;
     vid.disablePictureInPicture = true;
     vid.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
-    vid.setAttribute("preload", "metadata");
+    vid.setAttribute("preload", "auto");
     vid.oncontextmenu = (e) => e.preventDefault();
     vid.draggable = false;
     vid.className = className;
