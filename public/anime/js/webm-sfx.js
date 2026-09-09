@@ -40,14 +40,12 @@
     const mapped = SFX.map[key];
     if (mapped) {
       const mappedPath = mapped.startsWith("/") ? mapped : `/sounds/${mapped}`;
-      const localPath = CARD_ASSET_PREFIX && mappedPath.startsWith("/sounds/")
+      return CARD_ASSET_PREFIX && mappedPath.startsWith("/sounds/")
         ? `${CARD_ASSET_PREFIX}${mappedPath}`
         : mappedPath;
-      return window.QG14PlayerMedia?.url ? window.QG14PlayerMedia.url(localPath) : localPath;
     }
     const base = key.replace(/\.webm$/i, "");
-    const localPath = `${CARD_ASSET_PREFIX}/sounds/${base}.mp3`;
-    return window.QG14PlayerMedia?.url ? window.QG14PlayerMedia.url(localPath) : localPath;
+    return `${CARD_ASSET_PREFIX}/sounds/${base}.mp3`;
   }
 
   function ensureResumeHook() {

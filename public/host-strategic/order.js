@@ -28,8 +28,7 @@ function resolveQG14MediaUrl(value) {
   }
   clean = clean.replace(/\/{2,}/g, "/");
   if (location.pathname.startsWith("/anime/") && clean.startsWith("/images/")) clean = "/anime" + clean;
-  const normalized = clean + suffix;
-  return window.QG14PlayerMedia?.url ? window.QG14PlayerMedia.url(normalized) : normalized;
+  return clean + suffix;
 }
 
 
@@ -307,7 +306,7 @@ function createMedia(url, className, onClick) {
     vid.controls = false;
     vid.disablePictureInPicture = true;
     vid.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
-    vid.setAttribute("preload", "metadata");
+    vid.setAttribute("preload", "auto");
     vid.oncontextmenu = (e) => e.preventDefault();
     vid.draggable = false;
     vid.className = className;

@@ -130,81 +130,6 @@ if (!oppAbilitiesWrap.dataset.filled && oppAbsParam) {
   oppAbilitiesWrap.dataset.filled = "1";
 }
 
-
-/* ================== QG14 smart media preloader ==================
- * Preloads only media the player is about to use. Images are warmed
- * immediately; WEBM/MP4 is limited to two concurrent preloaders so the
- * host upload is not saturated by eleven videos at once.
- */
-const QG14SmartPreload = (() => {
-  const primed = new Set();
-  const videoQueue = [];
-  let activeVideos = 0;
-  const MAX_VIDEO_PRELOADS = 2;
-
-  function absUrl(value) {
-    try { return new URL(String(value || ""), window.location.href).href; }
-    catch { return String(value || ""); }
-  }
-
-  function pumpVideos() {
-    while (activeVideos < MAX_VIDEO_PRELOADS && videoQueue.length) {
-      const url = videoQueue.shift();
-      activeVideos += 1;
-
-      const video = document.createElement("video");
-      video.preload = "auto";
-      video.muted = true;
-      video.playsInline = true;
-      video.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px";
-
-      let done = false;
-      const complete = () => {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        video.removeAttribute("src");
-        try { video.load(); } catch {}
-        video.remove();
-        activeVideos = Math.max(0, activeVideos - 1);
-        pumpVideos();
-      };
-
-      video.addEventListener("canplay", complete, { once: true });
-      video.addEventListener("loadeddata", complete, { once: true });
-      video.addEventListener("error", complete, { once: true });
-      const timer = setTimeout(complete, 12000);
-
-      document.body.appendChild(video);
-      video.src = url;
-      try { video.load(); } catch {}
-    }
-  }
-
-  function prime(values) {
-    const urls = Array.from(new Set((Array.isArray(values) ? values : [])
-      .map(absUrl)
-      .filter(Boolean)));
-
-    urls.filter(url => !/\.(?:webm|mp4)(?:[?#]|$)/i.test(url)).forEach(url => {
-      if (primed.has(url)) return;
-      primed.add(url);
-      const img = new Image();
-      img.decoding = "async";
-      img.src = url;
-    });
-
-    urls.filter(url => /\.(?:webm|mp4)(?:[?#]|$)/i.test(url)).forEach(url => {
-      if (primed.has(url)) return;
-      primed.add(url);
-      videoQueue.push(url);
-    });
-    pumpVideos();
-  }
-
-  return { prime };
-})();
-
 /* ===== Utility helpers for picks UI ===== */
 function sampleK(arr, k) {
   const a = arr.slice(); const n = a.length;
@@ -218,12 +143,12 @@ function createPreviewMedia(url, className) {
   const isWebm = /\.webm(\?|#|$)/i.test(url);
   if (isWebm) {
     const v = document.createElement("video");
-    v.preload = "metadata"; v.src = url; v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+    v.src = url; v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
     v.className = className; v.setAttribute("aria-hidden", "true"); v.style.pointerEvents = "none";
     return v;
   } else {
     const img = document.createElement("img");
-    img.decoding = "async"; img.src = url; img.className = className; img.alt = "اختيارك"; img.draggable = false;
+    img.src = url; img.className = className; img.alt = "اختيارك"; img.draggable = false;
     return img;
   }
 }
@@ -304,24 +229,6 @@ function waitForExclusionsThenLoad() {
 }
 
 async function fetchFolderList(folder) {
-  // Static manifest = no player request to the host PC for card catalogues.
-  const manifestUrl = window.QG14PlayerMedia?.manifestUrl
-    ? window.QG14PlayerMedia.manifestUrl(CARD_SCOPE)
-    : null;
-  if (manifestUrl) {
-    try {
-      const res = await fetch(manifestUrl, { cache: "force-cache" });
-      if (res.ok) {
-        const data = await res.json();
-        const list = Array.isArray(data?.folders?.[folder]) ? data.folders[folder] : [];
-        if (list.length) return list;
-      }
-    } catch (err) {
-      console.warn("[QG14 Media] manifest unavailable; using host catalogue", err);
-    }
-  }
-
-  // Local development / brand-new unpublished cards fallback.
   const res = await fetch(
     `/list-images/${encodeURIComponent(folder)}?gameID=${encodeURIComponent(gameID || "")}&scope=${encodeURIComponent(CARD_SCOPE)}`
   );
@@ -346,9 +253,7 @@ async function loadAndRender() {
       legendaryFiles.forEach((file) => {
         const key = `legendary/${file}`;
         if (excludedKeys.has(key)) return;
-        const fullPath = window.QG14PlayerMedia?.url
-          ? window.QG14PlayerMedia.url(`${CARD_ASSET_PREFIX}/images/legendary/${encodeURIComponent(file)}`)
-          : `${CARD_ASSET_PREFIX}/images/legendary/${encodeURIComponent(file)}`;
+        const fullPath = `${CARD_ASSET_PREFIX}/images/legendary/${encodeURIComponent(file)}`;
         if (!map.has(fullPath)) {
           const obj = { folder: "legendary", filename: file, key, fullPath };
           map.set(fullPath, obj);
@@ -358,9 +263,7 @@ async function loadAndRender() {
       normalFiles.forEach((file) => {
         const key = `normal/${file}`;
         if (excludedKeys.has(key)) return;
-        const fullPath = window.QG14PlayerMedia?.url
-          ? window.QG14PlayerMedia.url(`${CARD_ASSET_PREFIX}/images/normal/${encodeURIComponent(file)}`)
-          : `${CARD_ASSET_PREFIX}/images/normal/${encodeURIComponent(file)}`;
+        const fullPath = `${CARD_ASSET_PREFIX}/images/normal/${encodeURIComponent(file)}`;
         if (!map.has(fullPath)) {
           const obj = { folder: "normal", filename: file, key, fullPath };
           map.set(fullPath, obj);
@@ -373,9 +276,7 @@ async function loadAndRender() {
         files.forEach((file) => {
           const key = `${slug}/${file}`;
           if (excludedKeys.has(key)) return;
-          const fullPath = window.QG14PlayerMedia?.url
-            ? window.QG14PlayerMedia.url(`${CARD_ASSET_PREFIX}/images/${slug}/${encodeURIComponent(file)}`)
-            : `${CARD_ASSET_PREFIX}/images/${slug}/${encodeURIComponent(file)}`;
+          const fullPath = `${CARD_ASSET_PREFIX}/images/${slug}/${encodeURIComponent(file)}`;
           if (!map.has(fullPath)) {
             const obj = { folder: slug, filename: file, key, fullPath };
             map.set(fullPath, obj);
@@ -419,12 +320,12 @@ function createPickableMedia(url, className, onPick) {
   const isWebm = /\.webm(\?|#|$)/i.test(url);
   if (isWebm) {
     const vid = document.createElement("video");
-    vid.preload = "metadata"; vid.src = url; vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
+    vid.src = url; vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
     vid.className = className; vid.onclick = () => onPick(url);
     return vid;
   } else {
     const img = document.createElement("img");
-    img.decoding = "async"; img.src = url; img.className = className; img.onclick = () => onPick(url);
+    img.src = url; img.className = className; img.onclick = () => onPick(url);
     return img;
   }
 }
@@ -506,9 +407,6 @@ function openImageSelection(boxIndex) {
   boxOptions[boxIndex] = options;
 
   options.forEach(obj => reservedFullPaths.add(decodeURIComponent(obj.fullPath)));
-
-  // Prime only the three options for this opened box; never the full library.
-  QG14SmartPreload.prime(options.map(obj => obj.fullPath));
 
   modalOptions.innerHTML = "";
   modal.classList.remove("hidden");

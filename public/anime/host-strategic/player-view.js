@@ -14,18 +14,6 @@
     return Number.isFinite(n) ? n : 1;
   }
 
-  // If the CDN redirect (jsDelivr) can't serve a card, retry once against
-  // this server's own bundled/local copy via ?local=1 (see index.js).
-  function withLocalFallbackParam(url) {
-    try {
-      const u = new URL(url, location.origin);
-      u.searchParams.set("local", "1");
-      return u.pathname + u.search + u.hash;
-    } catch {
-      return url + (url.includes("?") ? "&" : "?") + "local=1";
-    }
-  }
-
   function createMedia(url, className) {
     const isWebm = /\.webm(\?|#|$)/i.test(url || "");
     if (isWebm) {
@@ -40,12 +28,6 @@
       v.oncontextmenu = (e) => e.preventDefault();
       v.draggable = false;
       v.className = className;
-      v.addEventListener("error", function onErr() {
-        v.removeEventListener("error", onErr);
-        if (v.dataset.qg14FallbackTried) return;
-        v.dataset.qg14FallbackTried = "1";
-        v.src = withLocalFallbackParam(url);
-      }, { once: true });
       return v;
     }
     const img = document.createElement("img");
@@ -53,12 +35,6 @@
     img.className = className;
     img.oncontextmenu = (e) => e.preventDefault();
     img.draggable = false;
-    img.addEventListener("error", function onErr() {
-      img.removeEventListener("error", onErr);
-      if (img.dataset.qg14FallbackTried) return;
-      img.dataset.qg14FallbackTried = "1";
-      img.src = withLocalFallbackParam(url);
-    }, { once: true });
     return img;
   }
 

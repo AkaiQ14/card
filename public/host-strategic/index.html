@@ -507,349 +507,17 @@
   </style>
 
   <script>
+    fetch("/api/check-auth").then((res) => {
+      if (!res.ok) {
+        window.location.href = "/login";
+      }
+    });
+
     if (!localStorage.getItem("homepageRefreshed")) {
       localStorage.setItem("homepageRefreshed", "true");
       window.location.reload();
     }
   </script>
-
-<style id="qg14-index-result-v5">
-/* =========================================================
-   QG14 INDEX — RESULT THEME V5
-   Strong visual redesign; existing IDs/logic/markup untouched.
-   ========================================================= */
-:root{
-  --q5-gold:#FFD700;
-  --q5-gold-soft:#ffe777;
-  --q5-green:#0b6e3f;
-  --q5-green-hover:#14824c;
-  --q5-wine:#4B0E1F;
-  --q5-wine2:#65152b;
-  --q5-wine-btn:#7b2131;
-  --q5-wine-btn-hover:#8b2a3a;
-  --q5-deep:#180309;
-  --q5-panel:rgba(81,21,34,.78);
-  --q5-line:rgba(255,215,0,.58);
-  --q5-soft:rgba(255,255,255,.68);
-}
-
-html,body,button,input,select,textarea,option{
-  font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif !important;
-}
-
-body{
-  min-height:100vh !important;
-  color:#fff !important;
-  background:
-    linear-gradient(rgba(75,14,31,.20),rgba(24,3,9,.33)),
-    url('images/QG14Background.png') center center / cover fixed no-repeat,
-    var(--q5-wine) !important;
-}
-
-body::before{
-  opacity:.07 !important;
-}
-body::after{
-  display:none !important;
-}
-
-.page{
-  width:min(100%,1000px) !important;
-  padding:52px 18px 44px !important;
-}
-
-.app-shell{
-  width:min(100%,820px) !important;
-}
-
-.page-head{
-  margin-bottom:18px !important;
-}
-
-.brand-kicker{
-  color:rgba(255,215,0,.76) !important;
-  font-size:.64rem !important;
-}
-
-.brand-title{
-  color:#fff !important;
-  font-size:clamp(2rem,5vw,3.15rem) !important;
-  text-shadow:none !important;
-}
-
-.brand-title span{
-  color:var(--q5-gold) !important;
-}
-
-/* Main shell: same clean bordered language as Result. */
-.main-card{
-  padding:20px !important;
-  overflow:visible !important;
-  border:2px solid rgba(255,215,0,.68) !important;
-  border-radius:22px !important;
-  background:rgba(75,14,31,.70) !important;
-  backdrop-filter:blur(12px) saturate(115%) !important;
-  -webkit-backdrop-filter:blur(12px) saturate(115%) !important;
-  box-shadow:none !important;
-}
-
-.main-card::before,
-.main-card::after{
-  display:none !important;
-}
-
-/* Remove the old decorative glowing logo card. */
-.hero{
-  gap:18px !important;
-  align-items:stretch !important;
-}
-
-.logo-wrap{
-  min-height:290px !important;
-  padding:18px !important;
-  border:1px solid rgba(255,215,0,.22) !important;
-  border-radius:18px !important;
-  background:rgba(0,0,0,.13) !important;
-  box-shadow:none !important;
-}
-
-.logo-wrap::after{
-  display:none !important;
-}
-
-.logo{
-  width:min(100%,300px) !important;
-  filter:none !important;
-}
-
-/* Actual setup box */
-.setup-panel{
-  min-width:0 !important;
-  padding:18px !important;
-  border:1px solid rgba(255,215,0,.30) !important;
-  border-radius:18px !important;
-  background:rgba(0,0,0,.13) !important;
-  box-shadow:none !important;
-}
-
-.section-label{
-  color:var(--q5-gold) !important;
-  font-size:.82rem !important;
-  font-weight:900 !important;
-}
-
-.section-copy{
-  color:var(--q5-soft) !important;
-  font-size:.66rem !important;
-}
-
-/* Mode / scope cards */
-.mode-grid,
-.scope-grid{
-  gap:9px !important;
-}
-
-.mode-option,
-.scope-option{
-  min-height:70px !important;
-  padding:11px 10px !important;
-  color:#fff !important;
-  border:1.5px solid rgba(255,215,0,.26) !important;
-  border-radius:14px !important;
-  background:rgba(123,33,49,.66) !important;
-  box-shadow:none !important;
-  transform:none !important;
-}
-
-.mode-option:hover,
-.scope-option:hover{
-  border-color:rgba(255,215,0,.62) !important;
-  background:rgba(139,42,58,.82) !important;
-  transform:none !important;
-  box-shadow:none !important;
-}
-
-.mode-option.is-selected,
-.scope-option.is-selected{
-  color:var(--q5-gold) !important;
-  border:2px solid var(--q5-gold) !important;
-  background:var(--q5-green) !important;
-  box-shadow:none !important;
-}
-
-.mode-option.is-selected::before,
-.scope-option.is-selected::before{
-  box-shadow:none !important;
-}
-
-.option-title{
-  color:inherit !important;
-  font-size:.78rem !important;
-  font-weight:900 !important;
-}
-
-.option-copy{
-  color:rgba(255,255,255,.60) !important;
-}
-
-.mode-option.is-selected .option-copy,
-.scope-option.is-selected .option-copy{
-  color:rgba(255,255,255,.82) !important;
-}
-
-/* Primary Result button */
-.start-btn{
-  min-height:52px !important;
-  margin-top:13px !important;
-  color:var(--q5-gold) !important;
-  font-size:.88rem !important;
-  font-weight:900 !important;
-  border:2px solid var(--q5-gold) !important;
-  border-radius:14px !important;
-  background:var(--q5-green) !important;
-  box-shadow:0 2px 0 rgba(0,0,0,.30) !important;
-  text-shadow:none !important;
-  filter:none !important;
-}
-
-.start-btn:hover:not(:disabled){
-  background:var(--q5-green-hover) !important;
-  transform:none !important;
-  filter:none !important;
-  box-shadow:0 2px 0 rgba(0,0,0,.30) !important;
-}
-
-.start-btn:active:not(:disabled){
-  transform:translateY(1px) !important;
-}
-
-/* Bottom shortcuts: remove old container shadow and match Result secondary buttons. */
-.quick-panel{
-  margin-top:12px !important;
-  padding:0 !important;
-  border:0 !important;
-  border-radius:0 !important;
-  background:transparent !important;
-  box-shadow:none !important;
-}
-
-.quick-grid{
-  gap:8px !important;
-}
-
-.quick-btn,
-.quick-btn.leaderboard,
-.quick-btn.admin,
-.quick-btn.losers{
-  min-height:44px !important;
-  color:#fff !important;
-  font-size:.69rem !important;
-  font-weight:900 !important;
-  border:1.5px solid rgba(255,215,0,.48) !important;
-  border-radius:12px !important;
-  background:var(--q5-wine-btn) !important;
-  box-shadow:none !important;
-}
-
-.quick-btn:hover,
-.quick-btn.leaderboard:hover,
-.quick-btn.admin:hover,
-.quick-btn.losers:hover{
-  color:var(--q5-gold) !important;
-  border-color:var(--q5-gold) !important;
-  background:var(--q5-wine-btn-hover) !important;
-  transform:none !important;
-  box-shadow:none !important;
-}
-
-/* Update area */
-.update-section{
-  margin-top:14px !important;
-  padding:0 !important;
-  border:0 !important;
-  border-radius:0 !important;
-  background:transparent !important;
-  box-shadow:none !important;
-}
-
-.update-check-btn{
-  min-height:46px !important;
-  color:var(--q5-gold) !important;
-  font-size:.76rem !important;
-  font-weight:900 !important;
-  border:1.5px solid rgba(255,215,0,.62) !important;
-  border-radius:12px !important;
-  background:rgba(123,33,49,.86) !important;
-  box-shadow:none !important;
-}
-
-.update-check-btn:hover:not(:disabled){
-  color:#fff !important;
-  border-color:var(--q5-gold) !important;
-  background:var(--q5-wine-btn-hover) !important;
-  transform:none !important;
-}
-
-.update-status{
-  color:rgba(255,255,255,.78) !important;
-  border:1px solid rgba(255,215,0,.24) !important;
-  border-radius:11px !important;
-  background:rgba(0,0,0,.18) !important;
-  box-shadow:none !important;
-}
-
-.update-actions{
-  gap:8px !important;
-}
-
-.update-action-btn{
-  border-radius:11px !important;
-  box-shadow:none !important;
-}
-
-.update-action-btn.assets{
-  color:var(--q5-gold) !important;
-  border:1.5px solid var(--q5-gold) !important;
-  background:var(--q5-green) !important;
-}
-
-.update-action-btn.assets:hover:not(:disabled){
-  background:var(--q5-green-hover) !important;
-}
-
-.update-action-btn.app{
-  color:#fff !important;
-  border:1.5px solid rgba(255,215,0,.52) !important;
-  background:var(--q5-wine-btn) !important;
-}
-
-.update-action-btn.app:hover:not(:disabled){
-  color:var(--q5-gold) !important;
-  background:var(--q5-wine-btn-hover) !important;
-}
-
-/* No decorative neon/glow anywhere in the main controls. */
-.main-card *,
-.setup-panel *,
-.quick-panel *,
-.update-section *{
-  text-shadow:none !important;
-}
-
-.footer,
-.page-footer{
-  color:rgba(255,255,255,.36) !important;
-}
-
-@media(max-width:760px){
-  .page{padding:34px 12px !important}
-  .main-card{padding:14px !important}
-  .hero{grid-template-columns:1fr !important}
-  .logo-wrap{min-height:190px !important}
-  .logo{width:min(72%,260px) !important}
-}
-</style>
-
 </head>
 
 <body>
@@ -913,7 +581,7 @@ body::after{
               </div>
             </div>
 
-            <button id="startGameBtn" class="start-btn" type="button" onclick="startGame()">
+            <button id="startGameBtn" class="start-btn" type="button" onclick="logoutAndStart()">
               ابدأ اللعبة
             </button>
 
@@ -1030,50 +698,52 @@ body::after{
       latestUpdateResult = data || null;
       hideUpdateActions();
 
-      const lines = [];
       const app = data?.app || {};
       const files = data?.files || data?.assets || {};
-      const isDev = data?.buildKind === "development";
 
-      lines.push(`إصدار البرنامج الحالي: ${app.currentVersion || data?.currentVersion || "غير معروف"}`);
+      const latestVersion =
+        app.latestVersion ||
+        app.currentVersion ||
+        data?.currentVersion ||
+        "غير معروف";
 
-      if (app.available) {
-        lines.push(`يوجد إصدار برنامج أحدث: ${app.latestVersion}`);
-        if (downloadAppUpdateBtn) {
-          downloadAppUpdateBtn.style.display = "block";
-          updateActions?.classList.add("is-visible");
-        }
-      } else {
-        lines.push("البرنامج التنفيذي على آخر إصدار منشور.");
+      const added = Number(files.added || 0);
+      const changed = Number(files.changed || 0);
+      const deleted = Number(files.deleted || 0);
+
+      const lines = [
+        `آخر إصدار: ${latestVersion}`,
+        app.available
+          ? "الحالة: يوجد تحديث جديد."
+          : "الحالة: البرنامج على آخر تحديث.",
+        (added || changed || deleted)
+          ? `التعديلات: جديد ${added}، معدل ${changed}، محذوف ${deleted}.`
+          : "التعديلات: لا توجد تغييرات."
+      ];
+
+      /* Keep updater actions working; hide only technical prose. */
+      if (app.available && downloadAppUpdateBtn) {
+        downloadAppUpdateBtn.style.display = "block";
+        updateActions?.classList.add("is-visible");
       }
 
-      if (!files.baselineReady) {
-        if (!isDev) lines.push("تعذر قراءة بصمة ملفات النسخة الحالية؛ التحديث المباشر غير متاح لهذه النسخة.");
-      } else {
-        if (files.directCount > 0) {
-          lines.push(`ملفات متغيرة في GitHub: ${files.directCount} (واجهة/كروت ${files.publicCount || 0}، خادم ${files.runtimeCount || 0}).`);
-          lines.push(`التغييرات: جديد ${files.added || 0}، معدل ${files.changed || 0}، محذوف ${files.deleted || 0}.`);
-          if (Number(files.runtimeBlockedByInstaller || 0) > 0) {
-            lines.push(`تم تأجيل ${files.runtimeBlockedByInstaller} ملف خادم لأن هناك تغييرًا أساسيًا يحتاج Update Setup.`);
-          }
-          if (files.canApply && updateAssetsBtn) {
-            updateAssetsBtn.style.display = "block";
-            updateAssetsBtn.textContent = `تحديث الملفات من GitHub (${files.applyableCount || files.directCount})`;
-            updateActions?.classList.add("is-visible");
-          } else if (isDev) {
-            lines.push("التطبيق المباشر معطل في نسخة التطوير حتى لا تُستبدل ملفاتك المحلية.");
-          }
-        } else {
-          lines.push("ملفات اللعبة القابلة للتحديث مباشرة مطابقة لآخر نسخة في GitHub.");
-        }
-
-        if (files.installerCount > 0) {
-          lines.push(`توجد ${files.installerCount} تغييرات أساسية (Electron/dependencies/desktop) تحتاج Update Setup ولا تُستبدل مباشرة.`);
-        }
+      if (
+        files.baselineReady &&
+        files.canApply &&
+        Number(files.applyableCount || files.directCount || 0) > 0 &&
+        updateAssetsBtn
+      ) {
+        updateAssetsBtn.style.display = "block";
+        updateAssetsBtn.textContent =
+          `تحديث الملفات من GitHub (${files.applyableCount || files.directCount})`;
+        updateActions?.classList.add("is-visible");
       }
 
-      if (Array.isArray(data?.errors) && data.errors.length) lines.push(`ملاحظة: ${data.errors.join(" | ")}`);
-      const hasUpdate = !!app.available || Number(files.directCount || 0) > 0 || Number(files.installerCount || 0) > 0;
+      const hasUpdate =
+        !!app.available ||
+        Number(files.directCount || 0) > 0 ||
+        Number(files.installerCount || 0) > 0;
+
       setUpdateStatus(lines.join("\n"), hasUpdate ? "warn" : "good");
     }
 
@@ -1152,7 +822,7 @@ body::after{
       });
     }
 
-    function startGame() {
+    function logoutAndStart() {
       if (!localStorage.getItem("homepageRefreshed")) return;
 
       localStorage.removeItem("homepageRefreshed");
@@ -1181,17 +851,25 @@ body::after{
         startGameBtn.textContent = "جاري بدء اللعبة...";
       }
 
-      window.location.href = `${targetPath}/start.html`;
+      fetch("/api/exit-home", { method: "POST" })
+        .then(() => fetch("/api/logout", { method: "POST" }))
+        .then(() => {
+          window.location.href = `${targetPath}/start.html`;
+        })
+        .catch(() => {
+          if (startGameBtn) {
+            startGameBtn.disabled = false;
+            startGameBtn.textContent = "ابدأ اللعبة";
+          }
+        });
     }
   </script>
 
   <script src="copyright.js"></script>
   <script src="security.js"></script>
 
-<script id="qg14-index-v5-marker">
-document.documentElement.setAttribute("data-qg14-index-theme","result-v5");
-console.log("[QG14] INDEX RESULT THEME V5 loaded");
+<script id="qg14-update-box-system-final-v7">
+console.log("[QG14] UPDATE BOX SYSTEM FINAL V7 loaded");
 </script>
-
 </body>
 </html>
