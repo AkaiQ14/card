@@ -4,7 +4,6 @@ const { Server } = require("socket.io");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const fs = require("fs");
-const session = require("express-session");
 const bodyParser = require("body-parser");
 const helmet = require("helmet");
 const {
@@ -13,6 +12,7 @@ const {
   readAbilitiesFromFirebase,
   writeAbilitiesToFirebase,
 } = require("./firebase-service");
+const { createUpdateService } = require("./updater-service");
 
 const app = express();
 const server = http.createServer(app);
@@ -20,7 +20,10 @@ const io = new Server(server);
 
 // ====== Configuration ======
 const PORT = process.env.PORT || 3000;
-const SESSION_SECRET = process.env.SESSION_SECRET || "your-secure-secret";
+
+// In packaged builds, public assets live in resources/public. Do not create
+// a junction/symlink inside Program Files; use the real public root directly.
+const PUBLIC_ROOT = process.env.QG14_PUBLIC_ROOT || path.join(__dirname, "public");
 
 // ===== Legendary Rate Controller =====
 function getLegendaryRate() {
@@ -42,15 +45,27 @@ function getCardAssets(scope) {
 
   return {
     cardScope,
-    imageRoot: path.join(__dirname, "public", scopeDirectory, "images"),
+    imageRoot: path.join(PUBLIC_ROOT, scopeDirectory, "images"),
     imageUrlBase: `${urlPrefix}/images`,
   };
 }
 
 
-// Admin credentials from env (no hard-coded defaults)
-const ADMIN_USERNAME = process.env.USERNAME || "";
-const ADMIN_PASSWORD = process.env.PASSWORD || "";
+// GitHub updater service. desktop-main.js sets the QG14_* environment before
+// loading index.js, so the packaged desktop build gets the real writable roots.
+const updateService = createUpdateService({
+  owner: process.env.QG14_UPDATE_OWNER || "AkaiQ14",
+  repo: process.env.QG14_UPDATE_REPO || "card",
+  branch: process.env.QG14_UPDATE_BRANCH || "main",
+  appVersion: process.env.QG14_APP_VERSION || "1.0.0",
+  statePath: process.env.QG14_ASSET_STATE_PATH,
+  directPublicRoot: process.env.QG14_DIRECT_PUBLIC_ROOT,
+  directRuntimeRoot: process.env.QG14_DIRECT_RUNTIME_ROOT,
+  directDefaultsRoot: process.env.QG14_DIRECT_DEFAULTS_ROOT,
+  deletionStatePath: process.env.QG14_UPDATE_DELETIONS_PATH,
+  allowAssetApply: String(process.env.QG14_ALLOW_ASSET_UPDATE || "false").toLowerCase() === "true",
+  buildKind: process.env.QG14_BUILD_KIND || "development",
+});
 
 // Tell Express it's behind Render's proxy (so req.secure & secure cookies work)
 app.set("trust proxy", 1);
@@ -343,20 +358,6 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-app.use(
-  session({
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 3600000,
-      httpOnly: true,
-      sameSite: "lax",
-      secure: true,
-    },
-  })
-);
-
 // Mount IP allowlist BEFORE static and routes
 app.use(ipAllowlist);
 
@@ -374,6 +375,131 @@ app.post("/api/security/verify", (req, res) => {
   });
 });
 
+// ===== GitHub Update API =====
+// The home page calls these endpoints directly. They were previously missing,
+// which made "التحقق من التحديثات" return HTTP 404/error even though the
+// updater-service itself was present.
+app.get("/api/updates/source", (req, res) => {
+  const owner = process.env.QG14_UPDATE_OWNER || "AkaiQ14";
+  const repo = process.env.QG14_UPDATE_REPO || "card";
+  const branch = process.env.QG14_UPDATE_BRANCH || "main";
+  res.json({
+    ok: true,
+    provider: "github",
+    owner,
+    repo,
+    branch,
+    api: `https://api.github.com/repos/${owner}/${repo}`,
+    raw: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/`,
+  });
+});
+
+app.get("/api/updates/check", async (req, res) => {
+  try {
+    const result = await updateService.check();
+    res.json(result);
+  } catch (err) {
+    console.error("[updates] check failed:", err?.stack || err?.message || err);
+    res.status(502).json({
+      ok: false,
+      error: String(err?.message || err || "Update check failed"),
+    });
+  }
+});
+
+app.post("/api/updates/files/apply", async (req, res) => {
+  try {
+    const result = await updateService.applyFiles();
+    res.json(result);
+  } catch (err) {
+    console.error("[updates] apply failed:", err?.stack || err?.message || err);
+    const status = err?.code === "UPDATE_DISABLED" ? 403 : 500;
+    res.status(status).json({
+      ok: false,
+      code: err?.code || "UPDATE_FAILED",
+      error: String(err?.message || err || "Update failed"),
+    });
+  }
+});
+
+// Lightweight polling endpoint so the UI can show real progress ("12/84 files")
+// instead of a single static message while a large batch downloads.
+app.get("/api/updates/files/progress", (req, res) => {
+  const progress = typeof updateService.getProgress === "function"
+    ? updateService.getProgress()
+    : { active: false, phase: "idle", total: 0, done: 0, ok: 0, failed: 0, round: 0, currentPath: "" };
+  res.json({ ok: true, ...progress });
+});
+
+app.post("/api/updates/restart", (req, res) => {
+  if (process.env.QG14_DESKTOP !== "1") {
+    return res.status(400).json({ ok: false, error: "Restart is available only in the desktop app." });
+  }
+  res.json({ ok: true, restarting: true });
+  setTimeout(() => process.emit("qg14-update-restart"), 50);
+});
+
+// Safe Firebase diagnostic endpoint: never returns credentials or private key data.
+// ===== Cloudflare player sharing API =====
+// The desktop process starts the Quick Tunnel after the Express server is ready.
+// Therefore this endpoint reads QG14_PLAYER_ORIGIN/QG14_SHARE_ORIGIN at request
+// time, not only during server startup. This fixes the copy-player-link buttons.
+app.post("/api/remote-link", (req, res) => {
+  try {
+    const origin = String(
+      process.env.QG14_PLAYER_ORIGIN || process.env.QG14_SHARE_ORIGIN || ""
+    ).trim().replace(/\/$/, "");
+
+    if (!origin || !/^https:\/\//i.test(origin)) {
+      return res.status(503).json({
+        ok: false,
+        code: "PLAYER_TUNNEL_NOT_READY",
+        error: "Cloudflare player tunnel is not ready.",
+      });
+    }
+
+    const route = String(req.body?.route || "").trim();
+    if (!route || !route.startsWith("/")) {
+      return res.status(400).json({ ok: false, code: "INVALID_ROUTE" });
+    }
+
+    const gameID = String(req.body?.gameID || "").trim();
+    const playerKey = String(req.body?.playerKey || "").trim();
+    const playerName = String(req.body?.playerName || "").trim();
+    const query = req.body?.query && typeof req.body.query === "object"
+      ? req.body.query
+      : {};
+
+    const url = new URL(origin + route);
+    if (gameID) url.searchParams.set("game", gameID);
+    if (playerKey) url.searchParams.set("player", playerKey);
+    if (playerName) url.searchParams.set("name", playerName);
+
+    for (const [key, value] of Object.entries(query)) {
+      if (value === undefined || value === null || value === "") continue;
+      url.searchParams.set(String(key), String(value));
+    }
+
+    res.json({ ok: true, url: url.toString(), origin });
+  } catch (err) {
+    console.error("[remote-link] failed:", err?.stack || err?.message || err);
+    res.status(500).json({
+      ok: false,
+      code: "REMOTE_LINK_FAILED",
+      error: String(err?.message || err || "Remote link failed"),
+    });
+  }
+});
+
+app.get("/api/firebase/status", (req, res) => {
+  try {
+    const { getFirebaseStatus } = require("./firebase-config");
+    res.json({ ok: true, ...getFirebaseStatus() });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err?.message || err) });
+  }
+});
+
 // ===== Public Config API =====
 app.get("/api/config", (req, res) => {
   const rateRaw = process.env.LEGENDARY_RATE ?? "0.10";
@@ -384,26 +510,17 @@ app.get("/api/config", (req, res) => {
 
 
 // Serve static files AFTER ipAllowlist
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(PUBLIC_ROOT));
 
-// --- Auth helpers ---
-function requireAuth(req, res, next) {
-  if (req.session?.authenticated && req.session.enteredFromLogin && !req.session.exitedHome) {
-    return next();
-  }
-  res.redirect("/login");
-}
-function requireApiAuth(req, res, next) {
-  if (req.session?.authenticated) return next();
-  return res.status(401).json({ ok: false, error: "unauthorized" });
-}
+// Authentication/login has been removed. The application homepage is public and
+// administrative/game APIs are available without an account.
 
 // --- Pages ---
 app.get("/leaderboard", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "leaderboard.html"));
+  res.sendFile(path.join(PUBLIC_ROOT, "leaderboard.html"));
 });
-app.get("/leaderboard-admin", requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "leaderboard-admin.html"));
+app.get("/leaderboard-admin", (req, res) => {
+  res.sendFile(path.join(PUBLIC_ROOT, "leaderboard-admin.html"));
 });
 
 // ====== Abilities REST API ======
@@ -453,60 +570,17 @@ app.get("/api/diag/rounds", (req, res) => {
 
 const loggedNonImageOnce = new Set();
 
-// ====== Auth Routes ======
-app.get("/login", (_, res) =>
-  res.sendFile(path.join(__dirname, "public", "login.html"))
-);
-
-// Login reads credentials from ENV (USERNAME, PASSWORD)
-app.post("/api/login", (req, res) => {
-  const { username = "", password = "" } = req.body || {};
-  if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
-    return res.status(500).json({ success: false, message: "Server credentials not configured." });
-  }
-  const ok =
-    String(username) === String(ADMIN_USERNAME) &&
-    String(password) === String(ADMIN_PASSWORD);
-
-  if (ok) {
-    req.session.authenticated = true;
-    req.session.enteredFromLogin = true;
-    req.session.exitedHome = false;
-    return res.json({ success: true });
-  }
-  return res.status(401).json({ success: false, message: "Invalid credentials" });
-});
-
-app.post("/api/logout", (req, res) => {
-  req.session.destroy(() => res.json({ success: true }));
-});
-app.post("/api/exit-home", (req, res) => {
-  if (req.session.authenticated) {
-    req.session.exitedHome = true;
-    res.json({ success: true });
-  } else {
-    res.status(403).json({ success: false });
-  }
-});
-app.get("/api/check-auth", (req, res) => {
-  const auth =
-    req.session.authenticated &&
-    req.session.enteredFromLogin &&
-    !req.session.exitedHome;
-  res.status(auth ? 200 : 401).json({ authenticated: !!auth });
-});
-
 // ====== Start Page ======
+// Login/accounts were removed. The application always starts at public/index.html.
 app.get("/", (req, res) => {
-  if (
-    req.session.authenticated &&
-    req.session.enteredFromLogin &&
-    !req.session.exitedHome
-  ) {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
-  } else {
-    res.redirect("/login");
-  }
+  res.sendFile(path.join(PUBLIC_ROOT, "index.html"));
+});
+
+// Compatibility route: older navigation/auth code may still request /login.
+// Authentication was removed, so /login must return to the public homepage
+// instead of producing Express "Cannot GET /login".
+app.get(["/login", "/login/", "/login.html"], (req, res) => {
+  res.redirect(302, "/");
 });
 
 // ====== Serve Image Filenames ======
@@ -613,7 +687,7 @@ app.post("/api/leaderboard/award", async (req, res) => {
   res.json({ ok: true, player: name, points: row.points });
 });
 
-app.post("/api/leaderboard/update", requireApiAuth, async (req, res) => {
+app.post("/api/leaderboard/update", async (req, res) => {
   const name = String(req.body.player || "").trim();
   const games = Number.isFinite(+req.body.games) ? Math.max(0, Math.trunc(+req.body.games)) : 0;
   const wins = Number.isFinite(+req.body.wins) ? Math.max(0, Math.trunc(+req.body.wins)) : 0;
@@ -631,7 +705,7 @@ app.post("/api/leaderboard/update", requireApiAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-app.post("/api/leaderboard/batchUpdate", requireApiAuth, async (req, res) => {
+app.post("/api/leaderboard/batchUpdate", async (req, res) => {
   const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
   const lb = readLeaderboard();
   let updated = 0;
@@ -655,7 +729,7 @@ app.post("/api/leaderboard/batchUpdate", requireApiAuth, async (req, res) => {
   res.json({ ok: true, updated });
 });
 
-app.post("/api/leaderboard/delete", requireApiAuth, async (req, res) => {
+app.post("/api/leaderboard/delete", async (req, res) => {
   const name = String(req.body.player || "").trim();
   if (!name) return res.status(400).json({ ok: false, error: "missing player" });
   const lb = readLeaderboard();
@@ -1470,67 +1544,44 @@ wantLegendary = Math.max(0, Math.min(BOARD, wantLegendary));
 async function initializeData() {
   console.log("[init] Checking for data restoration from Firebase...");
 
+  // Firebase is the shared source of truth. Local JSON is only the cache/fallback.
+  // The previous code compared timestamps/array lengths and could silently keep
+  // stale local data even when Firebase was reachable.
   try {
-    // محاولة استعادة Leaderboard من Firebase
     try {
       const firebaseLb = await readLeaderboardFromFirebase();
       const localLb = readLeaderboard();
-
-      // مقارنة التواريخ لتحديد الأحدث
-      const firebaseHasData = Object.keys(firebaseLb.players || {}).length > 0;
-      const localHasData = Object.keys(localLb.players || {}).length > 0;
+      const firebaseHasData = Object.keys(firebaseLb?.players || {}).length > 0;
+      const localHasData = Object.keys(localLb?.players || {}).length > 0;
 
       if (firebaseHasData) {
-        // الحصول على آخر تاريخ تحديث من Firebase
-        let firebaseLatestDate = null;
-        for (const player of Object.values(firebaseLb.players || {})) {
-          if (player.updatedAt) {
-            const date = new Date(player.updatedAt);
-            if (!firebaseLatestDate || date > firebaseLatestDate) {
-              firebaseLatestDate = date;
-            }
-          }
-        }
-
-        // الحصول على آخر تاريخ تحديث من الملف المحلي
-        let localLatestDate = null;
-        for (const player of Object.values(localLb.players || {})) {
-          if (player.updatedAt) {
-            const date = new Date(player.updatedAt);
-            if (!localLatestDate || date > localLatestDate) {
-              localLatestDate = date;
-            }
-          }
-        }
-
-        // إذا كان Firebase أحدث أو الملف المحلي فارغ، استعادة من Firebase
-        if (!localHasData || (firebaseLatestDate && (!localLatestDate || firebaseLatestDate > localLatestDate))) {
-          const jsonStr = JSON.stringify(firebaseLb, null, 2);
-          fs.writeFileSync(LEADERBOARD_PATH, jsonStr, "utf8");
-          console.log(`[init] ✅ Restored leaderboard from Firebase (${Object.keys(firebaseLb.players).length} players)`);
-        } else {
-          console.log(`[init] ℹ️ Using local leaderboard (${Object.keys(localLb.players).length} players)`);
-        }
+        fs.writeFileSync(LEADERBOARD_PATH, JSON.stringify(firebaseLb, null, 2), "utf8");
+        console.log(`[init] ✅ Restored leaderboard from Firebase (${Object.keys(firebaseLb.players).length} players)`);
+      } else if (localHasData) {
+        // First-run migration: if Firebase is connected but empty, seed it once
+        // from the existing local cache rather than losing the local leaderboard.
+        await writeLeaderboardToFirebase(localLb);
+        console.log(`[init] ℹ️ Firebase leaderboard is empty; seeded from local (${Object.keys(localLb.players).length} players)`);
       } else {
-        console.log(`[init] ℹ️ No Firebase leaderboard data, using local (${Object.keys(localLb.players).length} players)`);
+        console.log("[init] ℹ️ Firebase leaderboard is empty; no local leaderboard data to seed");
       }
     } catch (e) {
       console.warn("[init] ⚠️ Could not restore leaderboard from Firebase:", e.message);
       console.log("[init] ℹ️ Using local leaderboard file");
     }
 
-    // محاولة استعادة Abilities من Firebase
     try {
       const firebaseAbilities = await readAbilitiesFromFirebase();
       const localAbilities = readAbilitiesFile();
 
-      // إذا كان Firebase يحتوي على بيانات أكثر أو الملف المحلي فارغ، استعادة من Firebase
-      if (firebaseAbilities.length > 0 && (localAbilities.length === 0 || firebaseAbilities.length > localAbilities.length)) {
-        const jsonStr = JSON.stringify({ abilities: firebaseAbilities }, null, 2);
-        fs.writeFileSync(ABILITIES_PATH, jsonStr, "utf8");
+      if (firebaseAbilities.length > 0) {
+        fs.writeFileSync(ABILITIES_PATH, JSON.stringify({ abilities: firebaseAbilities }, null, 2), "utf8");
         console.log(`[init] ✅ Restored abilities from Firebase (${firebaseAbilities.length} abilities)`);
+      } else if (localAbilities.length > 0) {
+        await writeAbilitiesToFirebase(localAbilities);
+        console.log(`[init] ℹ️ Firebase abilities are empty; seeded from local (${localAbilities.length} abilities)`);
       } else {
-        console.log(`[init] ℹ️ Using local abilities (${localAbilities.length} abilities)`);
+        console.log("[init] ℹ️ Firebase abilities are empty; no local abilities to seed");
       }
     } catch (e) {
       console.warn("[init] ⚠️ Could not restore abilities from Firebase:", e.message);
@@ -1556,7 +1607,7 @@ server.listen(PORT, async () => {
     console.log("[ip-exempt-paths]:", EXEMPT_PATHS.join(", "));
   }
   console.log(`[socket] SOCKET_ALLOW_PUBLIC=${SOCKET_ALLOW_PUBLIC}`);
-  console.log(`[auth] ADMIN_USERNAME configured: ${ADMIN_USERNAME ? "yes" : "no"}`);
+  console.log("[auth] Login/accounts disabled — homepage is public.");
 
   // Initialize data from Firebase
   await initializeData();
