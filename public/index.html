@@ -398,26 +398,41 @@
       text-align:center;
     }
 
+    /* Restyled to match the quick-btn pill language used across the site's
+       menus (leaderboard / admin / bottom) instead of a standalone gold bar,
+       with its own accent so it still reads as a distinct "system" action. */
     .update-check-btn{
       width:100%;
-      min-height:44px;
-      border:1px solid rgba(255,215,0,.28);
-      border-radius:12px;
-      color:#ffe777;
-      font-size:.72rem;
-      font-weight:900;
-      cursor:pointer;
-      background:rgba(255,215,0,.055);
-      transition:transform .15s ease,border-color .15s ease,background .15s ease;
+      min-height:46px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      border-color:rgba(103,232,249,.26);
+      color:#baf6ff;
+      font-size:.68rem;
+      letter-spacing:.01em;
+      background:rgba(103,232,249,.05);
     }
 
-    .update-check-btn:hover:not(:disabled){
-      transform:translateY(-1px);
-      border-color:rgba(255,215,0,.55);
-      background:rgba(255,215,0,.09);
+    .update-check-btn:hover:not(:disabled){border-color:rgba(103,232,249,.5);background:rgba(103,232,249,.09)}
+    .update-check-btn:disabled{opacity:.58;cursor:default;transform:none}
+
+    .update-check-icon{
+      display:inline-block;
+      font-size:.92em;
+      line-height:1;
+      transition:transform .5s ease;
     }
 
-    .update-check-btn:disabled{opacity:.58;cursor:default}
+    .update-check-btn.is-checking .update-check-icon{
+      animation:update-spin .9s linear infinite;
+    }
+
+    @keyframes update-spin{
+      from{transform:rotate(0deg)}
+      to{transform:rotate(360deg)}
+    }
 
     .update-status{
       display:none;
@@ -449,21 +464,18 @@
     .update-actions.is-visible{display:grid}
 
     .update-action-btn{
-      min-height:40px;
-      padding:7px 9px;
-      border:1px solid rgba(255,255,255,.11);
-      border-radius:10px;
-      color:#fff;
-      font-size:.61rem;
-      font-weight:900;
-      cursor:pointer;
-      background:rgba(255,255,255,.055);
+      min-height:42px;
+      padding:8px 9px;
+      font-size:.63rem;
     }
 
     .update-action-btn.assets{border-color:rgba(74,222,128,.30);color:#c7f9d8}
+    .update-action-btn.assets:hover:not(:disabled){border-color:rgba(74,222,128,.5);background:rgba(74,222,128,.08)}
     .update-action-btn.app{border-color:rgba(255,215,0,.30);color:#ffe777}
-    .update-action-btn:hover:not(:disabled){background:rgba(255,255,255,.09)}
-    .update-action-btn:disabled{opacity:.55;cursor:default}
+    .update-action-btn.app:hover:not(:disabled){border-color:rgba(255,215,0,.5);background:rgba(255,215,0,.08)}
+    .update-action-btn.restart{border-color:rgba(167,139,250,.30);color:#d9ccff}
+    .update-action-btn.restart:hover:not(:disabled){border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.08)}
+    .update-action-btn:disabled{opacity:.55;cursor:default;transform:none}
 
     .footer-mark{
       margin-top:12px;
@@ -506,18 +518,6 @@
     }
   </style>
 
-  <script>
-    fetch("/api/check-auth").then((res) => {
-      if (!res.ok) {
-        window.location.href = "/login";
-      }
-    });
-
-    if (!localStorage.getItem("homepageRefreshed")) {
-      localStorage.setItem("homepageRefreshed", "true");
-      window.location.reload();
-    }
-  </script>
 </head>
 
 <body>
@@ -581,7 +581,7 @@
               </div>
             </div>
 
-            <button id="startGameBtn" class="start-btn" type="button" onclick="logoutAndStart()">
+            <button id="startGameBtn" class="start-btn" type="button" onclick="startGame()">
               ابدأ اللعبة
             </button>
 
@@ -612,12 +612,15 @@
 
 
       <section class="update-section" aria-label="تحديثات QG14">
-        <button id="checkUpdatesBtn" class="update-check-btn" type="button">التحقق من التحديثات</button>
+        <button id="checkUpdatesBtn" class="quick-btn update-check-btn" type="button">
+          <span class="update-check-icon" aria-hidden="true">⟳</span>
+          <span class="update-check-label">التحقق من التحديثات</span>
+        </button>
         <div id="updateStatus" class="update-status" aria-live="polite"></div>
         <div id="updateActions" class="update-actions">
-          <button id="updateAssetsBtn" class="update-action-btn assets" type="button">تحديث الملفات من GitHub</button>
-          <button id="downloadAppUpdateBtn" class="update-action-btn app" type="button">تحميل تحديث البرنامج</button>
-          <button id="restartAfterUpdateBtn" class="update-action-btn assets" type="button">إعادة تشغيل QG14</button>
+          <button id="updateAssetsBtn" class="quick-btn update-action-btn assets" type="button">تحديث الملفات من GitHub</button>
+          <button id="downloadAppUpdateBtn" class="quick-btn update-action-btn app" type="button">تحميل تحديث البرنامج</button>
+          <button id="restartAfterUpdateBtn" class="quick-btn update-action-btn restart" type="button">إعادة تشغيل QG14</button>
         </div>
       </section>
 
@@ -632,12 +635,14 @@
     const scopeButtons = Array.from(document.querySelectorAll(".scope-option"));
     const startGameBtn = document.getElementById("startGameBtn");
     const checkUpdatesBtn = document.getElementById("checkUpdatesBtn");
+    const checkUpdatesLabel = checkUpdatesBtn?.querySelector(".update-check-label") || checkUpdatesBtn;
     const updateStatus = document.getElementById("updateStatus");
     const updateActions = document.getElementById("updateActions");
     const updateAssetsBtn = document.getElementById("updateAssetsBtn");
     const downloadAppUpdateBtn = document.getElementById("downloadAppUpdateBtn");
     const restartAfterUpdateBtn = document.getElementById("restartAfterUpdateBtn");
     let latestUpdateResult = null;
+    let updateProgressTimer = null;
 
     function setMode(mode) {
       if (!modeSelect) return;
@@ -749,9 +754,9 @@
 
     async function checkForUpdates() {
       if (!checkUpdatesBtn) return;
-      const oldText = checkUpdatesBtn.textContent;
       checkUpdatesBtn.disabled = true;
-      checkUpdatesBtn.textContent = "جاري التحقق...";
+      checkUpdatesBtn.classList.add("is-checking");
+      if (checkUpdatesLabel) checkUpdatesLabel.textContent = "جاري التحقق...";
       hideUpdateActions();
       setUpdateStatus("جاري الاتصال بمصدر التحديثات...", "");
 
@@ -760,30 +765,81 @@
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
         renderUpdateResult(data);
+
+        // Apply safe GitHub file updates immediately after a successful check.
+        // Installer/EXE updates remain manual because they require a full installer.
+        const files = data?.files || data?.assets || {};
+        if (files.canApply && Number(files.applyableCount || files.directCount || 0) > 0) {
+          await applyAssetUpdates(true);
+        }
       } catch (err) {
         setUpdateStatus(`تعذر التحقق من التحديثات: ${err?.message || err}`, "error");
       } finally {
         checkUpdatesBtn.disabled = false;
-        checkUpdatesBtn.textContent = oldText;
+        checkUpdatesBtn.classList.remove("is-checking");
+        if (checkUpdatesLabel) checkUpdatesLabel.textContent = "التحقق من التحديثات";
       }
     }
 
-    async function applyAssetUpdates() {
-      if (!updateAssetsBtn) return;
-      const oldText = updateAssetsBtn.textContent;
-      updateAssetsBtn.disabled = true;
-      updateAssetsBtn.textContent = "جاري تنزيل الملفات...";
+    function stopUpdateProgressPolling() {
+      if (updateProgressTimer) {
+        clearInterval(updateProgressTimer);
+        updateProgressTimer = null;
+      }
+    }
+
+    // Polls the backend while a batch is downloading so a large update (dozens
+    // of files) shows real progress instead of a single static line that looks
+    // frozen. Safe to call repeatedly; it de-dupes via updateProgressTimer.
+    function startUpdateProgressPolling() {
+      stopUpdateProgressPolling();
+      updateProgressTimer = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/updates/files/progress?t=${Date.now()}`, { cache: "no-store" });
+          const data = await response.json().catch(() => ({}));
+          if (!data || !data.active || !data.total) return;
+          const roundNote = data.round > 1 ? ` — إعادة محاولة (جولة ${data.round})` : "";
+          if (updateAssetsBtn) updateAssetsBtn.textContent = `جاري تنزيل الملفات (${data.done}/${data.total})...`;
+          setUpdateStatus(`جاري تنزيل الملفات من GitHub والتحقق من سلامتها (${data.done}/${data.total})${roundNote}. لا تغلق البرنامج.`, "warn");
+        } catch {}
+      }, 650);
+    }
+
+    async function applyAssetUpdates(auto = false, retryCount = 0) {
+      if (!updateAssetsBtn && !auto) return;
+      const oldText = updateAssetsBtn?.textContent || "تحديث الملفات من GitHub";
+      if (updateAssetsBtn) {
+        updateAssetsBtn.disabled = true;
+        updateAssetsBtn.textContent = "جاري تنزيل الملفات...";
+      }
       setUpdateStatus("جاري تنزيل الملفات الجديدة أو المعدلة من GitHub والتحقق من سلامتها. لا تغلق البرنامج.", "warn");
+      startUpdateProgressPolling();
+      let willRetry = false;
 
       try {
         const response = await fetch("/api/updates/files/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
         const data = await response.json().catch(() => ({}));
+        stopUpdateProgressPolling();
         if (!response.ok) throw new Error(data?.error || `HTTP ${response.status}`);
 
         const failed = Array.isArray(data.failed) ? data.failed.length : 0;
-        const summary = `تم تحديث ${data.updated || 0} ملف وحذف ${data.deleted || 0} ملف`;
+        const updated = Number(data.updated || 0);
+        const summary = `تم تحديث ${updated} ملف وحذف ${data.deleted || 0} ملف`;
+
+        if (failed && retryCount < 3) {
+          // The backend already retries internally and only leaves genuinely
+          // stubborn files in "failed" — those files' state was NOT marked
+          // current, so this retry only re-downloads the small remainder,
+          // not the whole batch. This is what actually fixes large batches
+          // (e.g. 84 files) that used to hang and never apply anything.
+          setUpdateStatus(`${summary}، وتبقّى ${failed} ملف — تتم إعادة المحاولة تلقائيًا...`, "warn");
+          willRetry = true;
+          setTimeout(() => applyAssetUpdates(auto, retryCount + 1), 1500 + retryCount * 1500);
+          return;
+        }
+
         if (failed) {
-          setUpdateStatus(`${summary}، وتعذر تحديث ${failed} ملف. اضغط التحقق من التحديثات للمحاولة مجددًا.`, "warn");
+          setUpdateStatus(`${summary}، وتعذر تحديث ${failed} ملف بعد عدة محاولات. اضغط التحقق من التحديثات للمحاولة مجددًا لاحقًا.`, "warn");
         } else if (data.restartRequired) {
           setUpdateStatus(`${summary} بنجاح. تم تحديث ملفات الخادم ويجب إعادة تشغيل QG14 لتفعيلها.`, "good");
           if (restartAfterUpdateBtn) {
@@ -795,10 +851,14 @@
           setTimeout(checkForUpdates, 900);
         }
       } catch (err) {
+        stopUpdateProgressPolling();
         setUpdateStatus(`تعذر تحديث ملفات GitHub: ${err?.message || err}`, "error");
       } finally {
-        updateAssetsBtn.disabled = false;
-        updateAssetsBtn.textContent = oldText;
+        stopUpdateProgressPolling();
+        if (!willRetry && updateAssetsBtn) {
+          updateAssetsBtn.disabled = false;
+          updateAssetsBtn.textContent = oldText;
+        }
       }
     }
 
@@ -822,11 +882,7 @@
       });
     }
 
-    function logoutAndStart() {
-      if (!localStorage.getItem("homepageRefreshed")) return;
-
-      localStorage.removeItem("homepageRefreshed");
-
+    function startGame() {
       const selectedMode = document.getElementById("mode").value;
       const selectedScope = document.getElementById("cardScope").value === "anime"
         ? "anime"
@@ -851,17 +907,7 @@
         startGameBtn.textContent = "جاري بدء اللعبة...";
       }
 
-      fetch("/api/exit-home", { method: "POST" })
-        .then(() => fetch("/api/logout", { method: "POST" }))
-        .then(() => {
-          window.location.href = `${targetPath}/start.html`;
-        })
-        .catch(() => {
-          if (startGameBtn) {
-            startGameBtn.disabled = false;
-            startGameBtn.textContent = "ابدأ اللعبة";
-          }
-        });
+      window.location.href = `${targetPath}/start.html`;
     }
   </script>
 

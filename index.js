@@ -576,9 +576,8 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(PUBLIC_ROOT, "index.html"));
 });
 
-// Compatibility route: older navigation/auth code may still request /login.
-// Authentication was removed, so /login must return to the public homepage
-// instead of producing Express "Cannot GET /login".
+// Legacy safety route: older public pages may still point to /login. Never
+// serve a login page; send that obsolete route straight to the public home.
 app.get(["/login", "/login/", "/login.html"], (req, res) => {
   res.redirect(302, "/");
 });
